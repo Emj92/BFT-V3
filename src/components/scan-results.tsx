@@ -1,0 +1,725 @@
+"use client";
+
+import React, { useState } from 'react';
+import { AlertTriangle, CheckCircle, XCircle, Info, Zap, Eye, FileText, Globe, Users, Palette } from "lucide-react"
+
+// Lokale Typdefinitionen
+export interface ScanResult {
+  url: string;
+  timestamp: string;
+  score: number;
+  summary: {
+    violations: number;
+    passes: number;
+    incomplete: number;
+    inapplicable: number;
+  };
+  violations: any[];
+  passes: any[];
+  incomplete: any[];
+  inapplicable: any[];
+  wcagViolations: number | { a: number; aa: number; aaa: number };
+  bitvViolations: number;
+  technicalChecks: {
+    altTexts: boolean;
+    semanticHtml: boolean;
+    keyboardNavigation: boolean;
+    focusVisible: boolean;
+    colorContrast: boolean;
+    ariaRoles: boolean;
+    formLabels: boolean;
+    autoplayVideos: boolean;
+    documentLanguage: boolean;
+    blinkElements: boolean;
+    headingStructure: boolean;
+  };
+  detailedAnalysis?: any;
+  categorizedViolations?: Record<string, any[]>;
+  errorCategories?: Record<string, any>;
+}
+
+// Einfache Chart-Komponente
+function Chart({ score, level }: { score: number; level: string }) {
+  const getColor = () => {
+    if (score >= 0.9) return "#22c55e" // Grün
+    if (score >= 0.7) return "#eab308" // Gelb
+    return "#ef4444" // Rot
+  }
+
+  return (
+    <div className="relative w-48 h-48 mx-auto">
+      <div 
+        className="w-full h-full rounded-full border-8 flex items-center justify-center"
+        style={{ borderColor: getColor(), backgroundColor: 'transparent' }}
+      >
+        <div className="text-center">
+          <div className="text-3xl font-bold" style={{ color: getColor() }}>
+            {Math.round(score * 100)}%
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            WCAG {level}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Übersetzungsfunktionen
+function translateImpact(impact: string): string {
+  switch (impact) {
+    case 'critical': return 'Kritisch';
+    case 'serious': return 'Schwerwiegend';
+    case 'moderate': return 'Mäßig';
+    case 'minor': return 'Geringfügig';
+    default: return impact;
+  }
+}
+
+function translateHelp(help: string): string {
+  // Häufige Hilfetexte übersetzen
+  if (help.includes('Elements must have sufficient color contrast')) {
+    return 'Farbkontrast verbessern';
+  }
+  if (help.includes('Images must have alternate text')) {
+    return 'Alt-Text für Bilder hinzufügen';
+  }
+  if (help.includes('Form elements must have labels')) {
+    return 'Labels für Formularelemente hinzufügen';
+  }
+  if (help.includes('Page must have a heading')) {
+    return 'Hauptüberschrift hinzufügen';
+  }
+  if (help.includes('Headings must not skip levels')) {
+    return 'Überschriftenhierarchie korrigieren';
+  }
+  return help;
+}
+
+function translateDescription(description: string): string {
+  // Häufige Beschreibungen übersetzen
+  if (description.includes('Elements must have sufficient color contrast')) {
+    return 'Elemente müssen ausreichenden Farbkontrast haben';
+  }
+  if (description.includes('Images must have alternate text')) {
+    return 'Bilder müssen Alternativtext haben';
+  }
+  if (description.includes('Form elements must have labels')) {
+    return 'Formularelemente müssen Labels haben';
+  }
+  if (description.includes('Page must have a heading')) {
+    return 'Seite muss eine Überschrift haben';
+  }
+  if (description.includes('Headings must not skip levels')) {
+    return 'Überschriften dürfen keine Ebenen überspringen';
+  }
+  return description;
+}
+
+function translateFailureSummary(summary: string): string {
+  // Häufige Fehlermeldungen übersetzen
+  if (summary.includes('Fix any of the following')) {
+    return summary.replace('Fix any of the following', 'Beheben Sie eines der folgenden Probleme');
+  }
+  if (summary.includes('Fix all of the following')) {
+    return summary.replace('Fix all of the following', 'Beheben Sie alle folgenden Probleme');
+  }
+  return summary;
+}
+
+interface ScanResultsProps {
+  results: ScanResult;
+  showFullDetails?: boolean;
+}
+
+export default function ScanResults({ results }: { results: ScanResult }) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'violations' | 'passes' | 'incomplete' | 'categories'>('overview')
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [showPremiumHint, setShowPremiumHint] = useState(true)
+
+  // Helper-Funktion für WCAG Violations
+  const getWcagViolationsTotal = (wcagViolations: number | { a: number; aa: number; aaa: number }) => {
+    if (typeof wcagViolations === 'number') {
+      return wcagViolations;
+    }
+    return (wcagViolations?.a || 0) + (wcagViolations?.aa || 0) + (wcagViolations?.aaa || 0);
+  };
+  
+  const getScoreColor = (score: number) => {
+    if (score >= 0.9) return 'text-green-500';
+    if (score >= 0.7) return 'text-yellow-500';
+    return 'text-red-500';
+  };
+  
+  const getLevelScore = (level: 'A' | 'AA' | 'AAA' | 'Alle') => {
+    // Vereinfachte Berechnung basierend auf Gesamtscore
+    return results.score;
+  };
+  
+  const filterByLevel = (items: any[], level: 'A' | 'AA' | 'AAA' | 'Alle') => {
+    return items.filter(item => {
+      if (level === 'Alle') {
+        return true;
+      }
+      
+      const hasLevelA = item.tags && (item.tags.includes('wcag2a') || item.tags.includes('wcag21a'));
+      const hasLevelAA = item.tags && (item.tags.includes('wcag2aa') || item.tags.includes('wcag21aa'));
+      const hasLevelAAA = item.tags && (item.tags.includes('wcag2aaa') || item.tags.includes('wcag21aaa'));
+      
+      if (level === 'A') {
+        return hasLevelA;
+      } else if (level === 'AA') {
+        return hasLevelA || hasLevelAA;
+      } else {
+        return hasLevelA || hasLevelAA || hasLevelAAA;
+      }
+    });
+  };
+  
+  const getStatusIcon = (status: boolean) => {
+    return status 
+      ? <span className="text-green-500">✓</span> 
+      : <span className="text-red-500">✗</span>;
+  };
+
+  const handleBuyCredits = () => {
+    alert('Vielen Dank für Ihr Interesse! Die Kaufoption wird in Kürze freigeschaltet.');
+    setShowPremiumHint(false);
+  };
+  
+  const handleAddToTasks = (violation: any) => {
+    const taskData = {
+      title: `Behebe: ${translateHelp(violation.help)}`,
+      description: translateDescription(violation.description),
+      wcagCode: violation.id,
+      priority: violation.impact === 'critical' ? 'high' : violation.impact === 'serious' ? 'medium' : 'low',
+      category: 'accessibility',
+      url: results.url,
+      violation: violation
+    };
+    
+    const existingTasks = JSON.parse(localStorage.getItem('accessibility-tasks') || '[]');
+    const newTask = {
+      ...taskData,
+      id: Date.now().toString(),
+      status: 'todo',
+      createdAt: new Date().toISOString(),
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    };
+    
+    existingTasks.push(newTask);
+    localStorage.setItem('accessibility-tasks', JSON.stringify(existingTasks));
+    
+    alert(`Aufgabe "${newTask.title}" wurde zu Ihren Aufgaben hinzugefügt!`);
+  };
+
+  // Neue Funktion für Kategorie-Icons
+  const getCategoryIcon = (categoryId: string) => {
+    switch (categoryId) {
+      case 'structure_navigation': return <Globe className="h-5 w-5" />
+      case 'images_media': return <Eye className="h-5 w-5" />
+      case 'forms_inputs': return <FileText className="h-5 w-5" />
+      case 'keyboard_focus': return <Zap className="h-5 w-5" />
+      case 'colors_contrast': return <Palette className="h-5 w-5" />
+      case 'aria_semantics': return <Users className="h-5 w-5" />
+      case 'technical_standards': return <CheckCircle className="h-5 w-5" />
+      case 'interaction_ux': return <AlertTriangle className="h-5 w-5" />
+      case 'content_language': return <FileText className="h-5 w-5" />
+      case 'responsive_mobile': return <Globe className="h-5 w-5" />
+      default: return <Info className="h-5 w-5" />
+    }
+  }
+
+  // Neue Funktion für Prioritätsfarben
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'critical': return 'bg-red-500 text-white'
+      case 'high': return 'bg-orange-500 text-white'
+      case 'medium': return 'bg-yellow-500 text-white'
+      case 'low': return 'bg-blue-500 text-white'
+      default: return 'bg-gray-500 text-white'
+    }
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+      <div className="p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className={`w-4 h-4 rounded-full ${results.score >= 0.9 ? 'bg-green-500' : results.score >= 0.7 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+          <h2 className="text-2xl font-bold">Scan-Ergebnisse für {results.url}</h2>
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+            results.score >= 0.9 ? 'bg-green-100 text-green-800' : 
+            results.score >= 0.7 ? 'bg-yellow-100 text-yellow-800' : 
+            'bg-red-100 text-red-800'
+          }`}>
+            {Math.round(results.score * 100)}% Barrierefreiheit
+          </span>
+        </div>
+        
+        {/* WCAG Level Filter */}
+        <div className="flex items-center gap-2 mb-6">
+          <span className="text-sm font-medium">WCAG Level:</span>
+          {['A', 'AA', 'AAA', 'Alle'].map((level) => (
+            <button
+              key={level}
+              className={`px-3 py-1 rounded text-sm ${
+                level === 'Alle' ? 'bg-blue-500 text-white' :
+                level === 'A' ? 'bg-green-500 text-white' :
+                level === 'AA' ? 'bg-yellow-500 text-white' :
+                'bg-red-500 text-white'
+              }`}
+              onClick={() => {
+                setActiveTab('overview'); // Reset to overview when changing level
+                // No direct state update for wcagLevel here, as it's not used in the new structure
+              }}
+            >
+              {level}
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      <div className="border-b">
+        <div className="flex overflow-x-auto">
+          <button
+            className={`px-4 py-3 font-medium text-sm ${activeTab === 'overview' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
+            onClick={() => setActiveTab('overview')}
+          >
+            Übersicht
+          </button>
+          <button
+            className={`px-4 py-3 font-medium text-sm ${activeTab === 'categories' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
+            onClick={() => setActiveTab('categories')}
+          >
+            Kategorien
+          </button>
+          <button
+            className={`px-4 py-3 font-medium text-sm ${activeTab === 'violations' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
+            onClick={() => setActiveTab('violations')}
+          >
+            Fehler ({results.summary.violations})
+          </button>
+          <button
+            className={`px-4 py-3 font-medium text-sm ${activeTab === 'passes' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
+            onClick={() => setActiveTab('passes')}
+          >
+            Bestanden ({results.summary.passes})
+          </button>
+          <button
+            className={`px-4 py-3 font-medium text-sm ${activeTab === 'incomplete' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
+            onClick={() => setActiveTab('incomplete')}
+          >
+            Zu prüfen ({results.summary.incomplete})
+          </button>
+        </div>
+      </div>
+
+      <div className="p-6">
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
+            {/* Detaillierte Analyse anzeigen falls verfügbar */}
+            {results.detailedAnalysis && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Detaillierte Analyse</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-red-600">Kritische Probleme</span>
+                      <XCircle className="h-4 w-4 text-red-500" />
+                    </div>
+                    <div className="text-2xl font-bold text-red-700">
+                      {results.detailedAnalysis.criticalIssues || 0}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-orange-600">Hohe Priorität</span>
+                      <AlertTriangle className="h-4 w-4 text-orange-500" />
+                    </div>
+                    <div className="text-2xl font-bold text-orange-700">
+                      {results.detailedAnalysis.highPriorityIssues || 0}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-yellow-600">Mittlere Priorität</span>
+                      <Info className="h-4 w-4 text-yellow-500" />
+                    </div>
+                    <div className="text-2xl font-bold text-yellow-700">
+                      {results.detailedAnalysis.mediumPriorityIssues || 0}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-blue-600">Niedrige Priorität</span>
+                      <CheckCircle className="h-4 w-4 text-blue-500" />
+                    </div>
+                    <div className="text-2xl font-bold text-blue-700">
+                      {results.detailedAnalysis.lowPriorityIssues || 0}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Empfehlungen */}
+                {results.detailedAnalysis.recommendations && results.detailedAnalysis.recommendations.length > 0 && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200">
+                    <h4 className="text-lg font-semibold mb-3 text-blue-800 dark:text-blue-200">
+                      🎯 Prioritäre Handlungsempfehlungen
+                    </h4>
+                    <ul className="space-y-2">
+                      {results.detailedAnalysis.recommendations.map((recommendation: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 text-blue-500 mt-0.5" />
+                          <span className="text-blue-700 dark:text-blue-300">{recommendation}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Bestehende Übersicht */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Score und Bewertung */}
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border">
+                <h3 className="text-sm font-medium text-gray-600 mb-2">Gesamtbewertung</h3>
+                <div className="flex items-center gap-4">
+                  <div className={`text-6xl font-bold ${results.score >= 90 ? 'text-green-500' : results.score >= 70 ? 'text-yellow-500' : 'text-red-500'}`}>
+                    {results.score}%
+                  </div>
+                  <div className="text-sm">
+                    <div className={`font-medium ${results.score >= 90 ? 'text-green-600' : results.score >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>
+                      {results.score >= 90 ? 'Sehr gut' : results.score >= 70 ? 'Gut' : results.score >= 50 ? 'Verbesserungsbedarf' : 'Kritisch'}
+                    </div>
+                    <div className="text-gray-500">WCAG 2.1 AA Konformität</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* WCAG Verstöße */}
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border">
+                <h3 className="text-sm font-medium text-gray-600 mb-2">WCAG 2.1 Verstöße</h3>
+                <div className="flex justify-between items-center h-full">
+                  <span>Gesamt</span>
+                  <span className={(() => {
+                    const wcagTotal = getWcagViolationsTotal(results.wcagViolations);
+                    return wcagTotal > 0 ? 'text-red-500 text-2xl font-bold' : 'text-green-500 text-2xl font-bold';
+                  })()}>
+                    {getWcagViolationsTotal(results.wcagViolations)}
+                  </span>
+                </div>
+              </div>
+              
+              {/* BITV Verstöße */}
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border">
+                <h3 className="text-sm font-medium text-gray-600 mb-2">BITV 2.0 Verstöße</h3>
+                <div className="flex justify-between items-center h-full">
+                  <span>Gesamt</span>
+                  <span className={results.bitvViolations > 0 ? 'text-red-500 text-2xl font-bold' : 'text-green-500 text-2xl font-bold'}>
+                    {results.bitvViolations}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Zusammenfassung */}
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border">
+                <h3 className="text-sm font-medium text-gray-600 mb-2">Zusammenfassung</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Fehler</span>
+                    <span className="text-red-500">{results.summary.violations}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Bestanden</span>
+                    <span className="text-green-500">{results.summary.passes}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Zu prüfen</span>
+                    <span className="text-yellow-500">{results.summary.incomplete}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Technische Prüfungen */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Technische Prüfungen</h3>
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden border">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="px-4 py-3 text-sm font-medium text-gray-600">Kriterium</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-600">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b">
+                      <td className="px-4 py-3">Alternativtexte für Bilder</td>
+                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.altTexts)}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="px-4 py-3">Semantisches HTML</td>
+                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.semanticHtml)}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="px-4 py-3">Tastaturbedienung</td>
+                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.keyboardNavigation)}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="px-4 py-3">Sichtbarer Fokus</td>
+                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.focusVisible)}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="px-4 py-3">Farbkontraste</td>
+                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.colorContrast)}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="px-4 py-3">ARIA-Rollen</td>
+                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.ariaRoles)}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="px-4 py-3">Formular-Labels</td>
+                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.formLabels)}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="px-4 py-3">Keine Autoplay-Videos</td>
+                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.autoplayVideos)}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="px-4 py-3">Dokumentsprache definiert</td>
+                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.documentLanguage)}</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="px-4 py-3">Keine Blink-Elemente</td>
+                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.blinkElements)}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3">Überschriftenhierarchie</td>
+                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.headingStructure)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Neue Kategorien-Ansicht */}
+        {activeTab === 'categories' && (
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Fehler nach Kategorien</h3>
+            {results.categorizedViolations && results.errorCategories ? (
+              <div className="grid gap-4">
+                {Object.entries(results.categorizedViolations).map(([categoryId, categoryViolations]) => {
+                  if (categoryViolations.length === 0) return null;
+                  
+                  const category = results.errorCategories![categoryId];
+                  if (!category) return null;
+
+                  return (
+                    <div key={categoryId} className="bg-card border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          {getCategoryIcon(categoryId)}
+                          <div>
+                            <h4 className="text-lg font-semibold">{category.name}</h4>
+                            <p className="text-sm text-muted-foreground">{category.description}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(category.priority)}`}>
+                            {category.priority}
+                          </span>
+                          <span className="text-lg font-bold text-red-500">
+                            {categoryViolations.length}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {categoryViolations.slice(0, selectedCategory === categoryId ? undefined : 2).map((violation: any, index: number) => (
+                          <div key={index} className="bg-muted p-3 rounded border-l-4 border-red-500">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h5 className="font-medium">{violation.id}: {translateHelp(violation.help)}</h5>
+                                <p className="text-sm text-muted-foreground mt-1">{translateDescription(violation.description)}</p>
+                                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                  <span>Betroffene Elemente: {violation.nodes.length}</span>
+                                  <span className={`px-2 py-1 rounded ${
+                                    violation.impact === 'critical' ? 'bg-red-100 text-red-800' :
+                                    violation.impact === 'serious' ? 'bg-orange-100 text-orange-800' :
+                                    violation.impact === 'moderate' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {translateImpact(violation.impact)}
+                                  </span>
+                                </div>
+                              </div>
+                              <button 
+                                className="ml-4 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                                onClick={() => handleAddToTasks(violation)}
+                              >
+                                + Zu Aufgaben
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {categoryViolations.length > 2 && (
+                          <button
+                            className="w-full py-2 text-sm text-blue-600 hover:text-blue-800"
+                            onClick={() => setSelectedCategory(selectedCategory === categoryId ? null : categoryId)}
+                          >
+                            {selectedCategory === categoryId 
+                              ? 'Weniger anzeigen' 
+                              : `${categoryViolations.length - 2} weitere anzeigen`}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {filterByLevel(results.violations, 'Alle')
+                  .slice(0, 3) // Show only 3 violations for the overview tab
+                  .map((violation, index) => (
+                  <div key={index} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="text-lg font-medium">{violation.id}: {translateHelp(violation.help)}</h3>
+                      <span className="px-2 py-1 text-xs font-medium rounded bg-red-900 text-red-300">
+                        {translateImpact(violation.impact)}
+                      </span>
+                    </div>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">{translateDescription(violation.description)}</p>
+                    
+                    <div className="flex gap-2 mb-4">
+                      <button 
+                        className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                        onClick={() => handleAddToTasks(violation)}
+                      >
+                        + Zu Aufgaben hinzufügen
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Bestehende Violations-Ansicht */}
+        {activeTab === 'violations' && (
+          <div>
+            {filterByLevel(results.violations, 'Alle').length === 0 ? (
+              <p className="text-green-500 text-center py-8">Keine Fehler gefunden! 🎉</p>
+            ) : (
+              <div className="space-y-6">
+                {filterByLevel(results.violations, 'Alle')
+                  .slice(0, 3) // Show only 3 violations for the overview tab
+                  .map((violation, index) => (
+                  <div key={index} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="text-lg font-medium">{violation.id}: {translateHelp(violation.help)}</h3>
+                      <span className="px-2 py-1 text-xs font-medium rounded bg-red-900 text-red-300">
+                        {translateImpact(violation.impact)}
+                      </span>
+                    </div>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">{translateDescription(violation.description)}</p>
+                    
+                    <div className="flex gap-2 mb-4">
+                      <button 
+                        className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                        onClick={() => handleAddToTasks(violation)}
+                      >
+                        + Zu Aufgaben hinzufügen
+                      </button>
+                    </div>
+                    
+                    {/* Removed showFullDetails && block as it's not in the new structure */}
+                    <div className="text-sm text-gray-600">
+                      🔒 Registrieren Sie sich, um Details und Lösungsvorschläge zu sehen
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Rest der bestehenden Tabs */}
+        {activeTab === 'passes' && (
+          <div>
+            {filterByLevel(results.passes, 'Alle').length === 0 ? (
+              <p className="text-center py-8">Keine bestandenen Tests für dieses Level.</p>
+            ) : (
+              <div className="space-y-4">
+                {filterByLevel(results.passes, 'Alle').map((item, index) => (
+                  <div key={index} className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="text-lg font-medium text-green-800 dark:text-green-200">{item.id}: {translateHelp(item.help)}</h3>
+                      <div className="px-2 py-1 text-xs font-medium rounded bg-green-800 text-green-100">
+                        Bestanden
+                      </div>
+                    </div>
+                    <p className="text-green-700 dark:text-green-300 mb-4">{translateDescription(item.description)}</p>
+                    <div>
+                      <h4 className="text-sm font-medium text-green-600 mb-2">Betroffene Elemente: {item.nodes.length}</h4>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'incomplete' && (
+          <div>
+            {filterByLevel(results.incomplete, 'Alle').length === 0 ? (
+              <p className="text-green-500 text-center py-8">Keine manuell zu prüfenden Tests.</p>
+            ) : (
+              <div className="space-y-4">
+                {filterByLevel(results.incomplete, 'Alle').map((item, index) => (
+                  <div key={index} className={`bg-card p-4 rounded-lg ${index >= Math.ceil(filterByLevel(results.incomplete, 'Alle').length / 2) && showPremiumHint ? 'blur-sm' : ''}`}>
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="text-lg font-medium text-foreground">{item.id}: {translateHelp(item.help)}</h3>
+                      <div className="px-2 py-1 text-xs font-medium rounded bg-yellow-900 text-yellow-300">
+                        Manuell prüfen
+                      </div>
+                    </div>
+                    <p className="text-muted-foreground mb-4">{translateDescription(item.description)}</p>
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-2">Betroffene Elemente:</h4>
+                      <div className="bg-card p-3 rounded text-sm font-mono text-muted-foreground max-h-40 overflow-y-auto">
+                        {item.nodes.map((node: any, nodeIndex: number) => (
+                          <div key={nodeIndex} className="mb-2">{node.html}</div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {filterByLevel(results.incomplete, 'Alle').length > 1 && showPremiumHint && (
+                  <div className="bg-card p-6 rounded-lg text-center">
+                    <h3 className="text-xl font-bold text-foreground mb-4">Premium-Funktion</h3>
+                    <p className="text-muted-foreground mb-4">Um alle {filterByLevel(results.incomplete, 'Alle').length} zu prüfenden Tests zu sehen, benötigen Sie Credits.</p>
+                    <button 
+                      onClick={handleBuyCredits}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                    >
+                      Credits kaufen
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

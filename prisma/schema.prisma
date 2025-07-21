@@ -1,0 +1,370 @@
+// Prisma Schema für das Barrierefreitool
+// Erweitertes Schema mit zusätzlichen Modellen und Beziehungen
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Benutzermodell mit erweiterten Funktionen
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  firstName     String?
+  lastName      String?
+  street        String?
+  houseNumber   String?
+  city          String?
+  country       String?
+  phone         String?
+  avatarUrl     String?
+  password      String    // Gehashtes Passwort
+  role          Role      @default(USER)
+  
+  // E-Mail-Bestätigung
+  emailVerified Boolean   @default(false)
+  emailVerificationToken String?
+  emailTokenExpiry DateTime?
+  
+  // Credit System
+  credits       Int       @default(1) // Erster Scan kostenlos
+  bundle        BundleType    @default(STARTER)
+  bundlePurchasedAt DateTime?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  organization  Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String?
+  scans         Scan[]
+  projects      Project[]
+  transactions  CreditTransaction[]
+  reports       Report[]
+  notificationsRead NotificationRead[]
+  supportTickets SupportTicket[]
+  ticketMessages TicketMessage[]
+  wcagSessions  WcagSession[]
+  bfeGenerations BfeGeneration[]
+}
+
+// Rollen für Benutzer
+enum Role {
+  USER
+  ADMIN
+  AUDITOR
+}
+
+// Bundle-Typen
+enum BundleType {
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+// Organisationsmodell für Teams
+model Organization {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  users       User[]
+  projects    Project[]
+}
+
+// Projektmodell für gruppierte Scans
+model Project {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  organization  Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String?
+  owner         User      @relation(fields: [ownerId], references: [id])
+  ownerId       String
+  websites      Website[]
+}
+
+// Website-Modell für mehrere URLs
+model Website {
+  id          String    @id @default(cuid())
+  name        String
+  baseUrl     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   String
+  pages       Page[]
+}
+
+// Seitenmodell für einzelne URLs
+model Page {
+  id          String    @id @default(cuid())
+  url         String
+  title       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  website     Website   @relation(fields: [websiteId], references: [id])
+  websiteId   String
+  scans       Scan[]
+}
+
+// Erweitertes Scan-Modell mit Beziehungen
+model Scan {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  startedAt   DateTime?
+  completedAt DateTime?
+  status      ScanStatus @default(PENDING)
+  results     Json?
+  score       Float?
+  violations  Int?
+  warnings    Int?
+  passes      Int?
+  incomplete  Int?
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  page        Page      @relation(fields: [pageId], references: [id])
+  pageId      String
+  issues      Issue[]
+  standards   ScanStandard[]
+}
+
+// Status eines Scans
+enum ScanStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+// Barrierefreiheitsstandards
+model Standard {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  version     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  scans       ScanStandard[]
+  rules       Rule[]
+}
+
+// Verknüpfungstabelle zwischen Scan und Standard
+model ScanStandard {
+  scan        Scan      @relation(fields: [scanId], references: [id])
+  scanId      String
+  standard    Standard  @relation(fields: [standardId], references: [id])
+  standardId  String
+  createdAt   DateTime  @default(now())
+
+  @@id([scanId, standardId])
+}
+
+// Regeln für Standards
+model Rule {
+  id          String    @id @default(cuid())
+  code        String
+  name        String
+  description String?
+  impact      String?
+  standard    Standard  @relation(fields: [standardId], references: [id])
+  standardId  String
+  issues      Issue[]
+
+  @@unique([standardId, code])
+}
+
+// Gefundene Probleme
+model Issue {
+  id          String    @id @default(cuid())
+  type        IssueType
+  selector    String?
+  html        String?
+  message     String
+  impact      Float?
+  scan        Scan      @relation(fields: [scanId], references: [id])
+  scanId      String
+  rule        Rule      @relation(fields: [ruleId], references: [id])
+  ruleId      String
+  status      IssueStatus @default(OPEN)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Typ eines Problems
+enum IssueType {
+  VIOLATION
+  WARNING
+  PASS
+  INCOMPLETE
+}
+
+// Status eines Problems
+enum IssueStatus {
+  OPEN
+  FIXED
+  IGNORED
+  FALSE_POSITIVE
+}
+
+// Credit-Transaktionen für Käufe und Verbrauch
+model CreditTransaction {
+  id          String    @id @default(cuid())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  amount      Int       // Positive für Kauf, negative für Verbrauch
+  type        TransactionType
+  description String?
+  createdAt   DateTime  @default(now())
+}
+
+// Transaktionstypen
+enum TransactionType {
+  PURCHASE    // Kauf von Credits
+  SCAN        // Verbrauch für Scan (1 Credit)
+  REPORT      // Verbrauch für Bericht (3 Credits)
+  WCAG_COACH  // Verbrauch für WCAG Coach (1 Credit)
+}
+
+// Berichte für Barrierefreiheitserklärungen
+model Report {
+  id          String    @id @default(cuid())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  title       String
+  content     Json      // Strukturierte Berichtsdaten
+  type        ReportType
+  scanId      String?   // Optional: Verknüpfung zu Scan
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Berichtstypen
+enum ReportType {
+  ACCESSIBILITY_DECLARATION
+  SCAN_REPORT
+  WCAG_ANALYSIS
+}
+
+// Benachrichtigungen für alle Benutzer
+model Notification {
+  id          String    @id @default(cuid())
+  title       String
+  message     String
+  type        NotificationType @default(INFO)
+  isGlobal    Boolean   @default(true) // Für alle Benutzer sichtbar
+  createdBy   String?   // Admin der die Nachricht erstellt hat
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Beziehung zu gelesenen Nachrichten
+  readBy      NotificationRead[]
+}
+
+// Tracking welche Benutzer welche Nachrichten gelesen haben
+model NotificationRead {
+  id             String       @id @default(cuid())
+  user           User         @relation(fields: [userId], references: [id])
+  userId         String
+  notification   Notification @relation(fields: [notificationId], references: [id])
+  notificationId String
+  readAt         DateTime     @default(now())
+  
+  @@unique([userId, notificationId])
+}
+
+// Benachrichtigungstypen
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ERROR
+  UPDATE
+}
+
+// Support-Ticket-System
+model SupportTicket {
+  id          String            @id @default(cuid())
+  subject     String
+  description String
+  priority    TicketPriority    @default(MEDIUM)
+  status      TicketStatus      @default(OPEN)
+  category    TicketCategory    @default(OTHER)
+  
+  // Beziehungen
+  user        User              @relation(fields: [userId], references: [id])
+  userId      String
+  messages    TicketMessage[]
+  
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+// Ticket-Nachrichten für Kommunikation zwischen User und Admin
+model TicketMessage {
+  id        String        @id @default(cuid())
+  content   String
+  
+  // Beziehungen
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id])
+  ticketId  String
+  user      User          @relation(fields: [userId], references: [id])
+  userId    String
+  
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+// Ticket-Prioritäten
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// Ticket-Status
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+// Ticket-Kategorien
+enum TicketCategory {
+  TECHNICAL
+  CONSULTATION
+  BILLING
+  OTHER
+}
+
+// WCAG Coach Sessions für KI-Beratung
+model WcagSession {
+  id                String    @id @default(cuid())
+  user              User      @relation(fields: [userId], references: [id])
+  userId            String
+  userMessage       String
+  assistantResponse String
+  sessionsUsed      Int       @default(1)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// BFE-Generierungen für Barrierefreiheitserklärungen
+model BfeGeneration {
+  id          String    @id @default(cuid())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  websiteUrl  String
+  content     Json      // Generierte Inhalte
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}

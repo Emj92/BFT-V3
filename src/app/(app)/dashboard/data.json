@@ -1,0 +1,110 @@
+[
+  {
+    "id": 1,
+    "header": "Hauptseite Barrierefreiheit",
+    "type": "Webseite",
+    "status": "In Bearbeitung",
+    "target": "95%",
+    "limit": "30.06.2025",
+    "reviewer": "Erwin Meinhardt"
+  },
+  {
+    "id": 2,
+    "header": "Kontaktformular",
+    "type": "Formular",
+    "status": "Done",
+    "target": "100%",
+    "limit": "15.05.2025",
+    "reviewer": "Anna Schmidt"
+  },
+  {
+    "id": 3,
+    "header": "Produktkatalog",
+    "type": "Webseite",
+    "status": "In Bearbeitung",
+    "target": "90%",
+    "limit": "10.07.2025",
+    "reviewer": "Thomas Müller"
+  },
+  {
+    "id": 4,
+    "header": "Anmeldebereich",
+    "type": "Formular",
+    "status": "Prüfung",
+    "target": "98%",
+    "limit": "05.06.2025",
+    "reviewer": "Julia Weber"
+  },
+  {
+    "id": 5,
+    "header": "Blog-Bereich",
+    "type": "Webseite",
+    "status": "In Bearbeitung",
+    "target": "85%",
+    "limit": "20.07.2025",
+    "reviewer": "Markus Becker"
+  },
+  {
+    "id": 6,
+    "header": "Warenkorb",
+    "type": "Webseite",
+    "status": "Done",
+    "target": "100%",
+    "limit": "01.05.2025",
+    "reviewer": "Sabine Klein"
+  },
+  {
+    "id": 7,
+    "header": "Zahlungsabwicklung",
+    "type": "Formular",
+    "status": "Prüfung",
+    "target": "95%",
+    "limit": "15.06.2025",
+    "reviewer": "Peter Schneider"
+  },
+  {
+    "id": 8,
+    "header": "FAQ-Sektion",
+    "type": "Webseite",
+    "status": "Done",
+    "target": "90%",
+    "limit": "10.05.2025",
+    "reviewer": "Laura Fischer"
+  },
+  {
+    "id": 9,
+    "header": "Impressum",
+    "type": "Webseite",
+    "status": "Done",
+    "target": "100%",
+    "limit": "01.04.2025",
+    "reviewer": "Michael Wagner"
+  },
+  {
+    "id": 10,
+    "header": "Datenschutzerklärung",
+    "type": "Webseite",
+    "status": "Done",
+    "target": "100%",
+    "limit": "01.04.2025",
+    "reviewer": "Sandra Hoffmann"
+  },
+  {
+    "id": 11,
+    "header": "Newsletter-Anmeldung",
+    "type": "Formular",
+    "status": "In Bearbeitung",
+    "target": "90%",
+    "limit": "25.06.2025",
+    "reviewer": "Daniel Krause"
+  },
+  {
+    "id": 12,
+    "header": "Suchfunktion",
+    "type": "Webseite",
+    "status": "Prüfung",
+    "target": "85%",
+    "limit": "30.06.2025",
+    "reviewer": "Nicole Schulz"
+  }
+]
