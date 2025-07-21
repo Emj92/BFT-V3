@@ -1,6 +1,8 @@
 import puppeteer, { Browser, Page } from 'puppeteer'; // puppeteer Import hinzugefügt
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { existsSync } from 'fs';
+import { platform } from 'os';
 import prisma from './prisma';
 
 // Typenerweiterung für Window mit axe
@@ -298,55 +300,166 @@ function analyzeIssueDetails(violations: any[]): any {
   return analysis;
 }
 
+/**
+ * Cross-platform Browser-Erkennung für Puppeteer
+ * Unterstützt automatische Erkennung für Linux-Server und Windows
+ */
+function getBrowserPaths(): string[] {
+  const currentPlatform = platform();
+  const paths: string[] = [];
+
+  // Linux-Pfade (für Server-Umgebung)
+  if (currentPlatform === 'linux') {
+    paths.push(
+      '/usr/bin/chromium-browser',
+      '/usr/bin/chromium',
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/google-chrome',
+      '/snap/bin/chromium',
+      '/opt/google/chrome/chrome',
+      '/usr/local/bin/chromium',
+      '/usr/local/bin/google-chrome'
+    );
+  }
+  
+  // Windows-Pfade
+  else if (currentPlatform === 'win32') {
+    paths.push(
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Users\\%USERNAME%\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files\\Chromium\\Application\\chromium.exe',
+      'C:\\Program Files (x86)\\Chromium\\Application\\chromium.exe'
+    );
+  }
+  
+  // macOS-Pfade
+  else if (currentPlatform === 'darwin') {
+    paths.push(
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/Applications/Chromium.app/Contents/MacOS/Chromium',
+      '/usr/local/bin/chromium',
+      '/opt/homebrew/bin/chromium'
+    );
+  }
+
+  // Umgebungsvariable immer hinzufügen
+  if (process.env.CHROME_PATH) {
+    paths.unshift(process.env.CHROME_PATH);
+  }
+  
+  if (process.env.CHROMIUM_PATH) {
+    paths.unshift(process.env.CHROMIUM_PATH);
+  }
+
+  return paths;
+}
+
+/**
+ * Finde verfügbaren Browser-Pfad
+ */
+function findAvailableBrowser(): string | undefined {
+  const paths = getBrowserPaths();
+  
+  for (const path of paths) {
+    try {
+      // Expandiere Umgebungsvariablen in Windows-Pfaden
+      const expandedPath = path.replace('%USERNAME%', process.env.USERNAME || '');
+      
+      if (existsSync(expandedPath)) {
+        console.log(`✓ Browser gefunden: ${expandedPath}`);
+        return expandedPath;
+      }
+    } catch (error) {
+      // Pfad nicht verfügbar, weiter versuchen
+      continue;
+    }
+  }
+  
+  console.log('⚠️ Kein System-Browser gefunden, verwende Puppeteer bundled Chromium');
+  return undefined; // Fallback zu Puppeteer's bundled Chromium
+}
+
+/**
+ * Erstelle optimierte Puppeteer-Konfiguration basierend auf Umgebung
+ */
+function createPuppeteerConfig(executablePath?: string) {
+  const currentPlatform = platform();
+  const isLinuxServer = currentPlatform === 'linux' && !process.env.DISPLAY;
+  
+  const baseArgs = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--no-first-run',
+    '--disable-gpu'
+  ];
+
+  // Linux-Server spezifische Args
+  if (isLinuxServer) {
+    baseArgs.push(
+      '--no-zygote',
+      '--single-process',
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding',
+      '--disable-features=TranslateUI',
+      '--disable-default-apps',
+      '--disable-extensions',
+      '--disable-plugins',
+      '--mute-audio'
+    );
+  }
+
+  const config = {
+    headless: true,
+    args: baseArgs,
+    executablePath: executablePath || undefined,
+    // Timeout-Konfiguration
+    defaultViewport: { width: 1280, height: 800 },
+    // Für Linux-Server: längere Timeouts
+    timeout: isLinuxServer ? 60000 : 30000
+  };
+
+  return config;
+}
+
 export async function scanUrl(url: string, standard?: string): Promise<ScanResult> {
   let browser: Browser | null = null;
   
   try {
-    // Puppeteer-Konfiguration für Windows
-    const puppeteerOptions = {
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu'
-      ],
-      // Versuche zuerst den System-Chrome zu verwenden
-      executablePath: undefined as string | undefined
-    };
-
-    // Versuche verschiedene Chrome-Pfade für Windows
-    const possibleChromePaths = [
-      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-      process.env.CHROME_PATH,
-      undefined // Fallback zu Puppeteer's bundled Chromium
-    ];
-
-    let browserLaunched = false;
-    for (const chromePath of possibleChromePaths) {
-      try {
-        if (chromePath) {
-          puppeteerOptions.executablePath = chromePath;
-        } else {
-          delete puppeteerOptions.executablePath;
-        }
-        
-        browser = await puppeteer.launch(puppeteerOptions);
-        browserLaunched = true;
-        break;
-      } catch (error) {
-        console.log(`Chrome-Pfad fehlgeschlagen: ${chromePath || 'bundled'}`);
-        continue;
+    console.log(`🔍 Starte Scan für: ${url}`);
+    console.log(`🖥️ Platform: ${platform()}`);
+    
+    // Finde verfügbaren Browser
+    const executablePath = findAvailableBrowser();
+    
+    // Erstelle Puppeteer-Konfiguration
+    const puppeteerConfig = createPuppeteerConfig(executablePath);
+    
+    console.log(`🚀 Starte Browser...${executablePath ? ` (${executablePath})` : ' (bundled Chromium)'}`);
+    
+    // Versuche Browser zu starten mit verbessertem Error-Handling
+    try {
+      browser = await puppeteer.launch(puppeteerConfig);
+      console.log('✓ Browser erfolgreich gestartet');
+    } catch (launchError) {
+      console.log(`⚠️ Browser-Start fehlgeschlagen: ${launchError}`);
+      
+      // Fallback: Versuche mit bundled Chromium
+      if (executablePath) {
+        console.log('🔄 Versuche Fallback zu bundled Chromium...');
+        const fallbackConfig = createPuppeteerConfig();
+        browser = await puppeteer.launch(fallbackConfig);
+        console.log('✓ Fallback-Browser erfolgreich gestartet');
+      } else {
+        throw launchError;
       }
     }
 
-    if (!browserLaunched || !browser) {
-      throw new Error('Konnte Chrome/Chromium nicht starten. Bitte installieren Sie Google Chrome oder setzen Sie CHROME_PATH.');
+    if (!browser) {
+      throw new Error('Browser konnte nicht gestartet werden. Bitte installieren Sie Google Chrome oder Chromium.');
     }
 
     const page = await browser.newPage();

@@ -26,14 +26,31 @@ export default function BackgroundAnimation() {
     // Erstelle geometrische Formen
     const createShapes = () => {
       const newShapes: Shape[] = []
-      const colors = [
-        'rgba(59, 130, 246, 0.1)', // blue
-        'rgba(139, 92, 246, 0.1)', // purple  
-        'rgba(236, 72, 153, 0.1)', // pink
-        'rgba(16, 185, 129, 0.1)', // emerald
-        'rgba(245, 158, 11, 0.1)', // amber
-        'rgba(99, 102, 241, 0.1)', // indigo
+      // Verbesserte Farben mit besserer Sichtbarkeit im Light Mode
+      const lightColors = [
+        'rgba(59, 130, 246, 0.08)', // blue - erhöht von 0.1 auf 0.08
+        'rgba(139, 92, 246, 0.08)', // purple - erhöht von 0.1 auf 0.08  
+        'rgba(236, 72, 153, 0.06)', // pink - erhöht von 0.1 auf 0.06
+        'rgba(16, 185, 129, 0.07)', // emerald - erhöht von 0.1 auf 0.07
+        'rgba(245, 158, 11, 0.06)', // amber - erhöht von 0.1 auf 0.06
+        'rgba(99, 102, 241, 0.08)', // indigo - erhöht von 0.1 auf 0.08
       ]
+      
+      // Dark Mode Farben bleiben gleich
+      const darkColors = [
+        'rgba(59, 130, 246, 0.12)', // blue
+        'rgba(139, 92, 246, 0.12)', // purple  
+        'rgba(236, 72, 153, 0.10)', // pink
+        'rgba(16, 185, 129, 0.11)', // emerald
+        'rgba(245, 158, 11, 0.10)', // amber
+        'rgba(99, 102, 241, 0.12)', // indigo
+      ]
+
+      // Erkenne Theme (falls verfügbar)
+      const isDarkMode = document.documentElement.classList.contains('dark') ||
+                        window.matchMedia('(prefers-color-scheme: dark)').matches
+      
+      const colors = isDarkMode ? darkColors : lightColors
       
       for (let i = 0; i < 8; i++) {
         newShapes.push({
@@ -42,7 +59,7 @@ export default function BackgroundAnimation() {
           x: Math.random() * window.innerWidth,
           y: Math.random() * window.innerHeight,
           size: Math.random() * 150 + 75, // 75-225px
-          opacity: Math.random() * 0.15 + 0.05, // 0.05-0.2 (reduziert für größere Formen)
+          opacity: Math.random() * 0.25 + 0.15, // 0.15-0.4 (erhöht für bessere Sichtbarkeit)
           color: colors[Math.floor(Math.random() * colors.length)],
           speed: Math.random() * 0.3 + 0.1, // 0.1-0.4 (langsamer für größere Formen)
           direction: Math.random() * 360,
@@ -84,16 +101,32 @@ export default function BackgroundAnimation() {
 
     const interval = setInterval(animate, 16) // ~60fps
     
-    // Handle window resize
+    // Handle window resize und Theme-Änderungen
     const handleResize = () => {
+      createShapes()
+    }
+    
+    // Theme-Change-Listener
+    const handleThemeChange = () => {
       createShapes()
     }
     
     window.addEventListener('resize', handleResize)
     
+    // Beobachte Theme-Änderungen
+    const observer = new MutationObserver(() => {
+      handleThemeChange()
+    })
+    
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    })
+    
     return () => {
       clearInterval(interval)
       window.removeEventListener('resize', handleResize)
+      observer.disconnect()
     }
   }, [])
 
@@ -115,6 +148,9 @@ export default function BackgroundAnimation() {
       pointerEvents: 'none' as const,
     }
 
+    // Verbesserte Border-Farben für bessere Sichtbarkeit
+    const borderColor = shape.color.replace(/[\d.]+\)$/, '0.3)')
+
     switch (shape.type) {
       case 'circle':
         return (
@@ -124,7 +160,7 @@ export default function BackgroundAnimation() {
               ...baseStyle,
               backgroundColor: shape.color,
               borderRadius: '50%',
-              border: `2px solid ${shape.color.replace('0.1', '0.2')}`,
+              border: `2px solid ${borderColor}`,
             }}
           />
         )
@@ -135,7 +171,7 @@ export default function BackgroundAnimation() {
             style={{
               ...baseStyle,
               backgroundColor: shape.color,
-              border: `2px solid ${shape.color.replace('0.1', '0.2')}`,
+              border: `2px solid ${borderColor}`,
             }}
           />
         )
@@ -164,17 +200,17 @@ export default function BackgroundAnimation() {
       className="fixed inset-0 w-full h-full overflow-hidden pointer-events-none -z-10"
       aria-hidden="true"
     >
-      {/* Subtle gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/5 via-transparent to-purple-50/5 dark:from-blue-950/10 dark:via-transparent dark:to-purple-950/10"></div>
+      {/* Verbesserte gradient background für bessere Sichtbarkeit */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/8 via-transparent to-purple-50/8 dark:from-blue-950/10 dark:via-transparent dark:to-purple-950/10"></div>
       
       {/* Animated geometric shapes */}
       {shapes.map(renderShape)}
       
-      {/* Subtle grid overlay */}
+      {/* Verbesserte grid overlay für bessere Sichtbarkeit */}
       <div 
-        className="absolute inset-0 opacity-5 dark:opacity-10"
+        className="absolute inset-0 opacity-8 dark:opacity-10"
         style={{
-          backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(99, 102, 241, 0.2) 1px, transparent 0)',
+          backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(99, 102, 241, 0.15) 1px, transparent 0)',
           backgroundSize: '60px 60px'
         }}
       ></div>
