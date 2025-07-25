@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { TrendingUp, Users, CreditCard, Eye } from "lucide-react"
 import { CartesianGrid, LabelList, Line, LineChart, XAxis } from "recharts"
 import {
@@ -19,21 +19,19 @@ import {
 } from "@/components/ui/chart"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-// Leere Datenstrukturen - werden durch echte API-Daten ersetzt
-const registrationData: Record<string, Array<{period: string, count: number}>> = {
-  day: [],
-  week: [],
-  month: [],
-  quarter: [],
-  year: []
+// Interfaces für echte Daten
+interface AdminStats {
+  totalUsers: number;
+  newUsersThisMonth: number;
+  totalCredits: number;
+  avgRegistrationsPerPeriod: number;
+  avgCreditsPerPeriod: number;
 }
 
-const creditPurchaseData: Record<string, Array<{period: string, credits: number}>> = {
-  day: [],
-  week: [],
-  month: [],
-  quarter: [],
-  year: []
+interface ChartData {
+  period: string;
+  count?: number;
+  credits?: number;
 }
 
 const chartConfig = {
@@ -50,15 +48,128 @@ const chartConfig = {
 export function AdminCharts() {
   const [registrationPeriod, setRegistrationPeriod] = useState<string>("month")
   const [creditPeriod, setCreditPeriod] = useState<string>("month")
+  const [stats, setStats] = useState<AdminStats>({
+    totalUsers: 0,
+    newUsersThisMonth: 0,
+    totalCredits: 0,
+    avgRegistrationsPerPeriod: 0,
+    avgCreditsPerPeriod: 0
+  })
+  const [registrationData, setRegistrationData] = useState<ChartData[]>([])
+  const [creditData, setCreditData] = useState<ChartData[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const currentRegistrationData = registrationData[registrationPeriod as keyof typeof registrationData]
-  const currentCreditData = creditPurchaseData[creditPeriod as keyof typeof creditPurchaseData]
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const [usersResponse, creditsResponse] = await Promise.all([
+          fetch('/api/users'),
+          fetch('/api/credits/usage')
+        ])
 
-  // Berechne Statistiken
-  const totalRegistrations = currentRegistrationData.reduce((sum, item) => sum + item.count, 0)
-  const totalCredits = currentCreditData.reduce((sum, item) => sum + item.credits, 0)
-  const avgRegistrationsPerPeriod = Math.round(totalRegistrations / currentRegistrationData.length)
-  const avgCreditsPerPeriod = Math.round(totalCredits / currentCreditData.length)
+        if (usersResponse.ok) {
+          const usersData = await usersResponse.json()
+          const users = Array.isArray(usersData) ? usersData : (usersData.users || [])
+          
+          // Berechne neue Nutzer diesen Monat
+          const thisMonth = new Date()
+          thisMonth.setDate(1)
+          thisMonth.setHours(0, 0, 0, 0)
+          
+          const newUsersThisMonth = users.filter((user: any) => 
+            new Date(user.createdAt) >= thisMonth
+          ).length
+
+          // Erstelle Chart-Daten für Registrierungen (letzte 12 Monate)
+          const registrationChartData: ChartData[] = []
+          for (let i = 11; i >= 0; i--) {
+            const date = new Date()
+            date.setMonth(date.getMonth() - i)
+            const month = date.toLocaleDateString('de-DE', { month: 'short', year: '2-digit' })
+            
+            const count = users.filter((user: any) => {
+              const userDate = new Date(user.createdAt)
+              return userDate.getMonth() === date.getMonth() && 
+                     userDate.getFullYear() === date.getFullYear()
+            }).length
+            
+            registrationChartData.push({ period: month, count })
+          }
+
+          setStats(prev => ({
+            ...prev,
+            totalUsers: users.length,
+            newUsersThisMonth,
+            avgRegistrationsPerPeriod: Math.round(newUsersThisMonth / registrationChartData.length)
+          }))
+          setRegistrationData(registrationChartData)
+        }
+
+        // Echte Credit-Daten laden
+        if (creditsResponse.ok) {
+          const creditsData = await creditsResponse.json()
+          const transactions = Array.isArray(creditsData) ? creditsData : (creditsData.transactions || [])
+          
+          // Credit-Chart-Daten erstellen (letzte 12 Monate)
+          const creditChartData: ChartData[] = []
+          for (let i = 11; i >= 0; i--) {
+            const date = new Date()
+            date.setMonth(date.getMonth() - i)
+            const month = date.toLocaleDateString('de-DE', { month: 'short', year: '2-digit' })
+            
+            const monthlyCredits = transactions
+              .filter((transaction: any) => {
+                const transactionDate = new Date(transaction.createdAt)
+                return transactionDate.getMonth() === date.getMonth() && 
+                       transactionDate.getFullYear() === date.getFullYear() &&
+                       transaction.type === 'purchase'
+              })
+              .reduce((sum: number, transaction: any) => sum + (transaction.amount || 0), 0)
+            
+            creditChartData.push({ period: month, credits: monthlyCredits })
+          }
+          setCreditData(creditChartData)
+          
+          const totalCredits = creditChartData.reduce((sum, item) => sum + (item.credits || 0), 0)
+          setStats(prev => ({
+            ...prev,
+            totalCredits,
+            avgCreditsPerPeriod: Math.round(totalCredits / creditChartData.length)
+          }))
+        } else {
+          // Fallback wenn API nicht verfügbar
+          setCreditData([])
+          setStats(prev => ({ ...prev, totalCredits: 0, avgCreditsPerPeriod: 0 }))
+        }
+
+      } catch (error) {
+        console.error('Fehler beim Laden der Admin-Statistiken:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadStats()
+  }, [registrationPeriod, creditPeriod])
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-6 md:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -70,9 +181,9 @@ export function AdminCharts() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalRegistrations}</div>
+            <div className="text-2xl font-bold">{stats.newUsersThisMonth}</div>
             <p className="text-xs text-muted-foreground">
-              Ø {avgRegistrationsPerPeriod} pro {registrationPeriod === 'day' ? 'Tag' : registrationPeriod === 'week' ? 'Woche' : registrationPeriod === 'month' ? 'Monat' : registrationPeriod === 'quarter' ? 'Quartal' : 'Jahr'}
+              Diesen Monat • Gesamt: {stats.totalUsers}
             </p>
           </CardContent>
         </Card>
@@ -83,9 +194,9 @@ export function AdminCharts() {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalCredits.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{stats.totalCredits.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              Ø {avgCreditsPerPeriod.toLocaleString()} pro {creditPeriod === 'day' ? 'Tag' : creditPeriod === 'week' ? 'Woche' : creditPeriod === 'month' ? 'Monat' : creditPeriod === 'quarter' ? 'Quartal' : 'Jahr'}
+              Ø {stats.avgCreditsPerPeriod.toLocaleString()} pro Monat
             </p>
           </CardContent>
         </Card>
@@ -96,9 +207,9 @@ export function AdminCharts() {
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12,847</div>
+            <div className="text-2xl font-bold">-</div>
             <p className="text-xs text-muted-foreground">
-              +15.2% gegenüber letztem Monat
+              Daten werden geladen...
             </p>
           </CardContent>
         </Card>
@@ -135,7 +246,7 @@ export function AdminCharts() {
               <ChartContainer config={chartConfig}>
                 <LineChart
                   accessibilityLayer
-                  data={currentRegistrationData}
+                  data={registrationData}
                   margin={{
                     top: 20,
                     left: 12,
@@ -219,7 +330,7 @@ export function AdminCharts() {
               <ChartContainer config={chartConfig}>
                 <LineChart
                   accessibilityLayer
-                  data={currentCreditData}
+                  data={creditData}
                   margin={{
                     top: 20,
                     left: 12,

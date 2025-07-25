@@ -62,7 +62,7 @@ export function CircularProgress({
       </svg>
       {/* Zentraler Text */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-2xl font-bold" style={{ color }}>
+        <span className="text-2xl font-bold leading-none" style={{ color }}>
           {value}%
         </span>
       </div>

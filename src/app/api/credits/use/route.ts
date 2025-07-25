@@ -3,28 +3,13 @@ import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
 
-// Credit-Limits nach Bundle-Typ
-const BUNDLE_LIMITS = {
-  'FREE': {
-    scans: { monthly: 2, daily: 2, hourly: 1 },
-    wcagSessions: { monthly: 10, daily: 5, hourly: 2 },
-    bfeGenerations: { monthly: 1, daily: 1, hourly: 1 }
-  },
-  'STARTER': {
-    scans: { monthly: 15, daily: 5, hourly: 2 },
-    wcagSessions: { monthly: 25, daily: 10, hourly: 3 },
-    bfeGenerations: { monthly: 3, daily: 2, hourly: 1 }
-  },
-  'PRO': {
-    scans: { monthly: 100, daily: 25, hourly: 10 },
-    wcagSessions: { monthly: 100, daily: 25, hourly: 10 },
-    bfeGenerations: { monthly: 999, daily: 50, hourly: 20 }
-  },
-  'ENTERPRISE': {
-    scans: { monthly: 500, daily: 100, hourly: 25 },
-    wcagSessions: { monthly: 500, daily: 100, hourly: 25 },
-    bfeGenerations: { monthly: 999, daily: 100, hourly: 25 }
-  }
+// Credit-Kosten für verschiedene Services
+const CREDIT_COSTS = {
+  scans: 1,          // Accessibility Check
+  wcagSessions: 1,   // WCAG Coach
+  bfeGenerations: 3, // BFE Generator
+  taskRescans: 0.5,  // Aufgaben erneut scannen
+  websiteRescans: 1  // Website Scans wiederholen
 };
 
 export async function POST(request: NextRequest) {
@@ -43,7 +28,7 @@ export async function POST(request: NextRequest) {
     // Request-Body parsen
     const { service } = await request.json();
     
-    if (!service || !['scans', 'wcagSessions', 'bfeGenerations'].includes(service)) {
+    if (!service || !Object.keys(CREDIT_COSTS).includes(service)) {
       return NextResponse.json({ error: 'Ungültiger Service' }, { status: 400 });
     }
 
@@ -56,121 +41,47 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 });
     }
 
-    const bundleType = user.bundle || 'FREE';
-    const limits = BUNDLE_LIMITS[bundleType as keyof typeof BUNDLE_LIMITS][service as keyof typeof BUNDLE_LIMITS['FREE']];
+    const creditCost = CREDIT_COSTS[service as keyof typeof CREDIT_COSTS];
 
-    // Zeiträume definieren
-    const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-    // Aktuelle Nutzung prüfen
-    let currentUsage = { hourly: 0, daily: 0, monthly: 0 };
-    
-    switch (service) {
-      case 'scans':
-        const [scansHourly, scansDaily, scansMonthly] = await Promise.all([
-          prisma.scan.count({
-            where: { userId, createdAt: { gte: oneHourAgo } }
-          }),
-          prisma.scan.count({
-            where: { userId, createdAt: { gte: oneDayAgo } }
-          }),
-          prisma.scan.count({
-            where: { userId, createdAt: { gte: oneMonthAgo } }
-          })
-        ]);
-        currentUsage = { hourly: scansHourly, daily: scansDaily, monthly: scansMonthly };
-        break;
-        
-      case 'wcagSessions':
-        const [wcagHourly, wcagDaily, wcagMonthly] = await Promise.all([
-          prisma.wcagSession.count({
-            where: { userId, createdAt: { gte: oneHourAgo } }
-          }),
-          prisma.wcagSession.count({
-            where: { userId, createdAt: { gte: oneDayAgo } }
-          }),
-          prisma.wcagSession.count({
-            where: { userId, createdAt: { gte: oneMonthAgo } }
-          })
-        ]);
-        currentUsage = { hourly: wcagHourly, daily: wcagDaily, monthly: wcagMonthly };
-        break;
-        
-      case 'bfeGenerations':
-        const [bfeHourly, bfeDaily, bfeMonthly] = await Promise.all([
-          prisma.bfeGeneration.count({
-            where: { userId, createdAt: { gte: oneHourAgo } }
-          }),
-          prisma.bfeGeneration.count({
-            where: { userId, createdAt: { gte: oneDayAgo } }
-          }),
-          prisma.bfeGeneration.count({
-            where: { userId, createdAt: { gte: oneMonthAgo } }
-          })
-        ]);
-        currentUsage = { hourly: bfeHourly, daily: bfeDaily, monthly: bfeMonthly };
-        break;
-    }
-
-    // Limits prüfen
-    if (currentUsage.hourly >= limits.hourly) {
+    // Prüfe ob genügend Credits vorhanden sind
+    if (user.credits < creditCost) {
       return NextResponse.json({ 
-        error: 'Stündliches Limit erreicht',
-        message: `Sie haben Ihr stündliches Limit von ${limits.hourly} für ${service} erreicht.`,
-        limitType: 'hourly',
-        currentUsage,
-        limits,
-        bundleType,
-        upgradeAvailable: bundleType !== 'ENTERPRISE'
-      }, { status: 429 });
+        error: 'Nicht genügend Credits',
+        required: creditCost,
+        available: user.credits,
+        message: `Sie benötigen ${creditCost} Credits für diese Aktion, haben aber nur ${user.credits} verfügbar.`
+      }, { status: 402 }); // Payment Required
     }
 
-    if (currentUsage.daily >= limits.daily) {
-      return NextResponse.json({ 
-        error: 'Tägliches Limit erreicht',
-        message: `Sie haben Ihr tägliches Limit von ${limits.daily} für ${service} erreicht.`,
-        limitType: 'daily',
-        currentUsage,
-        limits,
-        bundleType,
-        upgradeAvailable: bundleType !== 'ENTERPRISE'
-      }, { status: 429 });
-    }
-
-    if (currentUsage.monthly >= limits.monthly) {
-      return NextResponse.json({ 
-        error: 'Monatliches Limit erreicht',
-        message: `Sie haben Ihr monatliches Limit von ${limits.monthly} für ${service} erreicht.`,
-        limitType: 'monthly',
-        currentUsage,
-        limits,
-        bundleType,
-        upgradeAvailable: bundleType !== 'ENTERPRISE'
-      }, { status: 429 });
-    }
-
-    // Credit verbrauchen - wird vom jeweiligen Service gehandhabt
-    // Hier nur die Validierung, die tatsächliche Erstellung erfolgt in den entsprechenden APIs
-    
-    return NextResponse.json({ 
-      success: true,
-      remainingCredits: {
-        hourly: limits.hourly - currentUsage.hourly - 1,
-        daily: limits.daily - currentUsage.daily - 1,
-        monthly: limits.monthly - currentUsage.monthly - 1
-      },
-      limits,
-      currentUsage,
-      bundleType
+    // Credits abziehen
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        credits: user.credits - creditCost
+      }
     });
 
-  } catch (error) {
-    console.error('Credits Use API Error:', error);
+    // Credit-Transaktion protokollieren
+    await prisma.creditTransaction.create({
+      data: {
+        userId,
+        amount: -creditCost,
+        type: 'SCAN', // Anpassbar je nach Service
+        description: `${service} - Credit-Verbrauch`
+      }
+    });
+
     return NextResponse.json({ 
-      error: 'Interner Serverfehler' 
+      success: true,
+      creditsUsed: creditCost,
+      creditsRemaining: updatedUser.credits,
+      message: `${creditCost} Credits verwendet`
+    }, { status: 200 });
+
+  } catch (error) {
+    console.error('Fehler beim Credit-Verbrauch:', error);
+    return NextResponse.json({ 
+      error: 'Interner Serverfehler beim Credit-Verbrauch' 
     }, { status: 500 });
   }
 }

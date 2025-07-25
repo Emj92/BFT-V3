@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 
 
@@ -16,6 +17,8 @@ export function RegisterForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -133,58 +136,91 @@ export function RegisterForm({
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="password">Passwort</Label>
-                    <Input 
-                      id="password" 
-                      type="password" 
-                      value={password}
-                      onChange={handlePasswordChange}
-                      required 
-                    />
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Mindestens 8 Zeichen"
+                        value={password}
+                        onChange={handlePasswordChange}
+                        required
+                        className="pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                    
+                    {/* Passwortstärke-Anzeige */}
                     {password && (
-                      <div className="mt-1">
-                        <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                      <div className="space-y-2">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
                           <div 
-                            className={`h-full ${passwordStrength < 30 ? 'bg-red-500' : passwordStrength < 60 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                            className={`h-2 rounded-full transition-all duration-300 ${
+                              passwordStrength < 30 ? 'bg-red-500' :
+                              passwordStrength < 60 ? 'bg-yellow-500' :
+                              passwordStrength < 80 ? 'bg-blue-500' :
+                              'bg-green-500'
+                            }`}
                             style={{ width: `${passwordStrength}%` }}
-                          />
+                          ></div>
                         </div>
-                        <p className="text-xs mt-1 text-muted-foreground">
-                          {passwordStrength < 30 ? 'Schwaches Passwort' : 
-                           passwordStrength < 60 ? 'Mittleres Passwort' : 
-                           'Starkes Passwort'}
+                        <p className={`text-xs ${
+                          passwordStrength < 30 ? 'text-red-600' :
+                          passwordStrength < 60 ? 'text-yellow-600' :
+                          passwordStrength < 80 ? 'text-blue-600' :
+                          'text-green-600'
+                        }`}>
+                          Passwortstärke: {
+                            passwordStrength < 30 ? 'Schwach' :
+                            passwordStrength < 60 ? 'Mittel' :
+                            passwordStrength < 80 ? 'Gut' :
+                            'Sehr gut'
+                          }
                         </p>
                       </div>
                     )}
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="confirmPassword">Passwort bestätigen</Label>
-                    <Input 
-                      id="confirmPassword" 
-                      type="password" 
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required 
-                    />
-                    {password && confirmPassword && (
-                      <div className="flex items-center mt-1 text-xs">
-                        {password === confirmPassword ? (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-500 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                            <span className="text-green-500">Passwörter stimmen überein</span>
-                          </>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Passwort wiederholen"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        className="pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        aria-label={showConfirmPassword ? "Passwort verbergen" : "Passwort anzeigen"}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
                         ) : (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-500 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                            </svg>
-                            <span className="text-red-500">Passwörter stimmen nicht überein</span>
-                          </>
+                          <Eye className="h-4 w-4 text-muted-foreground" />
                         )}
-                      </div>
-                    )}
+                      </Button>
+                    </div>
                   </div>
+                  
                   <div className="flex items-start space-x-2 mb-4">
                     <div className="flex items-center h-5 mt-1">
                       <input
@@ -214,42 +250,8 @@ export function RegisterForm({
                   </div>
                 </div>
               </form>
-              <div className="hidden md:block">
-                <div className="h-full w-full p-4 bg-card border-t border-border">
-                
-                  <div className="flex items-center justify-center h-full p-4 text-foreground">
-                    <div>
-                      <h2 className="text-2xl font-bold mb-4">Vorteile der Registrierung</h2>
-                      <ul className="space-y-2">
-                        <li className="flex items-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          Speichern Ihrer Scan-Ergebnisse
-                        </li>
-                        <li className="flex items-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          Zugriff auf erweiterte Funktionen
-                        </li>
-                        <li className="flex items-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                          Detaillierte Fehlerberichte
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
-          <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-primary">
-            Mit der Registrierung akzeptieren Sie unsere <Link href="/agb">AGB</Link>{" "}
-            und <Link href="/datenschutzbestimmungen">Datenschutzbestimmungen</Link>.
-          </div>
         </div>
       </div>
     </div>

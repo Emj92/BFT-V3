@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { GlobalNavigation } from "@/components/global-navigation"
 import { SidebarInset } from "@/components/ui/sidebar"
+import { LanguageToggle } from "@/components/language-toggle"
 import { useUser } from "@/hooks/useUser"
 import { useBundle } from "@/hooks/useBundle"
 import { 
@@ -177,24 +178,23 @@ export default function EinstellungenPage() {
   const packages = [
     {
       id: "free",
-      name: "KOSTENLOS",
+      name: "FREE",
       subtitle: "Test & Kennenlernen",
       icon: "🆓",
       price: 0,
       period: "/ Monat",
-      scansPerMonth: 2,
-      storage: "48 Stunden",
+      websitesManaged: 1,
+      scansPerMonth: 5,
+      storage: "14 Tage",
       features: [
-        "Dashboard (Grundansicht)",
-        "2 Scans/Monat", 
-        "Basis Accessibility Check",
-        "FAQ Zugang"
+        "Accessibility Check",
+        "Dashboard (Grundansicht)"
       ],
       limitations: [
-        "Keine Berichte/Exporte",
-        "Kein BFE-Generator",
-        "Keine Ticket-Erstellung",
-        "Nur 48 Stunden Speicherdauer"
+        "Kein WCAG Coach",
+        "Kein BFE-Generator", 
+        "Keine Aufgabenverwaltung",
+        "Keine PDF/Excel Exporte"
       ],
       support: "FAQ und Community",
       popular: false
@@ -205,23 +205,23 @@ export default function EinstellungenPage() {
       subtitle: "Für Einzelpersonen",
       icon: "🚀",
       price: 9,
-      originalPrice: 14,
       period: "/ Monat",
+      websitesManaged: 3,
       scansPerMonth: "unbegrenzt",
-      storage: "30 Tage",
+      storage: "90 Tage",
       features: [
-        "Alle KOSTENLOS Features",
+        "Alle FREE Features",
         "Unbegrenzte Scans",
-        "WCAG Coach (Erweitert)",
-        "BFE-Generator (Erweitert)",
-        "PDF Export",
-        "Ticket-Erstellung",
-        "Erweiterte Einstellungen"
+        "WCAG Coach (10 Nutzungen/Monat)",
+        "BFE-Generator (10 Nutzungen/Monat)",
+        "Aufgabenverwaltung (bis 25 Aufgaben)",
+        "PDF Export"
       ],
       limitations: [
-        "30 Tage Speicherdauer"
+        "90 Tage Speicherdauer",
+        "Kein Excel Export"
       ],
-      support: "E-Mail Support (48h Antwortzeit)",
+      support: "E-Mail Support",
       popular: false
     },
     {
@@ -230,23 +230,22 @@ export default function EinstellungenPage() {
       subtitle: "Für Unternehmen",
       icon: "⭐", 
       price: 29,
-      originalPrice: 39,
       period: "/ Monat",
+      websitesManaged: 10,
       scansPerMonth: "unbegrenzt",
-      storage: "60 Tage",
+      storage: "365 Tage",
       features: [
         "Alle STARTER Features",
-        "WCAG Coach (Premium)",
-        "BFE-Generator (Premium)",
+        "WCAG Coach (50 Nutzungen/Monat)",
+        "BFE-Generator (50 Nutzungen/Monat)",
+        "Aufgabenverwaltung (bis 200 Aufgaben)",
         "Excel + PDF Export",
-        "Erweiterte Berichte",
-        "API-Zugang",
-        "Prioritäts-Support"
+        "Priorisierter Support"
       ],
       limitations: [
-        "Bis zu 100 Aufgaben"
+        "365 Tage Speicherdauer"
       ],
-      support: "E-Mail Support (4h Antwortzeit)",
+      support: "E-Mail Support mit Priorität",
       popular: true
     },
     {
@@ -255,15 +254,16 @@ export default function EinstellungenPage() {
       subtitle: "Für Agenturen & Teams",
       icon: "🏢",
       price: 79,
-      originalPrice: 99,
-      period: "/ Monat", 
+      period: "/ Auf Anfrage", 
+      websitesManaged: "Unbegrenzt/Individuell",
       scansPerMonth: "unbegrenzt",
-      storage: "12 Monate",
+      storage: "Unbegrenzt",
       features: [
         "Alle PROFESSIONAL Features",
         "Team-Funktionen (nur hier verfügbar!)",
-        "WCAG Coach (Enterprise)",
-        "BFE-Generator (Enterprise)",
+        "WCAG Coach (Unbegrenzt)",
+        "BFE-Generator (Unbegrenzt)",
+        "Aufgabenverwaltung (Unbegrenzt)",
         "Erweiterte API",
         "White-Label Option",
         "Custom Integrationen",
@@ -271,7 +271,7 @@ export default function EinstellungenPage() {
         "SLA Garantie"
       ],
       limitations: [
-        "Unbegrenzte Aufgaben"
+        "Unbegrenzte Features"
       ],
       support: "24/7 Premium Support + persönlicher Ansprechpartner",
       popular: false
@@ -285,6 +285,23 @@ export default function EinstellungenPage() {
     { credits: 50, price: 50, discount: 33, pricePerCredit: 1.00 },
     { credits: 100, price: 85, discount: 43, pricePerCredit: 0.85 },
     { credits: 250, price: 175, discount: 53, pricePerCredit: 0.70 }
+  ]
+
+  // Team-Mitglied-Pakete (nur für Enterprise-Nutzer)
+  const teamMemberPackages = [
+    { 
+      id: 'team_member_1', 
+      name: 'Weiteres Teammitglied', 
+      price: 5, 
+      description: 'Für Enterprise-Nutzer',
+      period: '/ Monat',
+      features: [
+        'Zugriff auf alle Team-Features',
+        'Geteilte Credits & Projekte',
+        'Gemeinsame Berichte',
+        'Team-Dashboard'
+      ]
+    }
   ]
 
   const [showAllPackages, setShowAllPackages] = useState(false)
@@ -420,6 +437,17 @@ export default function EinstellungenPage() {
                   <p className="text-sm text-muted-foreground">
                     Geben Sie die URL Ihrer Website ein (optional)
                   </p>
+                </div>
+
+                {/* Sprache Schnellwechsel */}
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium">Sprache wechseln</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Schneller Sprachwechsel für die Benutzeroberfläche
+                    </p>
+                  </div>
+                  <LanguageToggle />
                 </div>
                 
                 <Separator />
@@ -587,7 +615,7 @@ export default function EinstellungenPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge variant={(bundleInfo?.bundle === 'PRO' || user?.bundle === 'PRO') ? 'default' : 'secondary'}>
-                            {bundleInfo?.bundle || user?.bundle || 'STARTER'}
+                            {bundleInfo?.bundle || user?.bundle || 'FREE'}
                           </Badge>
                           {(bundleInfo?.isProActive || user?.bundle === 'PRO') && (
                             <Badge variant="outline" className="text-green-600 border-green-600">
@@ -786,15 +814,47 @@ export default function EinstellungenPage() {
                         </div>
                       </div>
                     ))}
+                    
+                    {/* Team-Mitglied Kachel (nur für Enterprise) */}
+                    {user.bundle === 'ENTERPRISE' && teamMemberPackages.map((pkg) => (
+                      <div 
+                        key={pkg.id}
+                        className="border-2 border-purple-200 rounded-lg p-4 text-center hover:border-purple-400 transition-colors flex flex-col min-h-[200px] bg-purple-50"
+                      >
+                        <div className="flex-grow space-y-3">
+                          <div className="text-2xl font-bold text-purple-600">👥</div>
+                          <div className="text-sm font-semibold">{pkg.name}</div>
+                          <div className="text-lg font-semibold text-purple-600">{pkg.price}€</div>
+                          <div className="text-xs text-purple-600 font-medium">
+                            {pkg.period}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {pkg.description}
+                          </div>
+                        </div>
+                        <div className="mt-4">
+                          <Button 
+                            className="w-full bg-purple-600 hover:bg-purple-700" 
+                            size="sm"
+                            onClick={() => {
+                              // Hier würde der Kauf-Dialog geöffnet werden
+                              alert('Team-Mitglied Kauf wird implementiert')
+                            }}
+                          >
+                            Kaufen
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                   
                   {creditPackages.length > 3 && (
-                    <div className="mt-6 mb-6 text-center">
-                      <Button 
-                        variant="outline" 
+                    <div className="mt-4 text-center">
+                      <Button
+                        variant="outline"
                         onClick={() => setShowAllCredits(!showAllCredits)}
                       >
-                        {showAllCredits ? 'Weniger anzeigen' : `Alle ${creditPackages.length} Credit-Pakete anzeigen`}
+                        {showAllCredits ? 'Weniger anzeigen' : 'Alle Credit-Pakete anzeigen'}
                       </Button>
                     </div>
                   )}

@@ -64,35 +64,8 @@ export default function WebsiteScansPage() {
         const parsedScans = JSON.parse(savedScans)
         setScans(parsedScans)
       } else {
-        // Erstelle Demo-Scans falls keine vorhanden
-        const demoScans = [
-          {
-            id: 1,
-            website: "Beispiel Website",
-            url: "https://example.com",
-            status: "abgeschlossen",
-            score: 85,
-            issues: 12,
-            criticalIssues: 3,
-            date: new Date().toLocaleDateString('de-DE'),
-            duration: "2.5",
-            pages: 5
-          },
-          {
-            id: 2,
-            website: "Test Website",
-            url: "https://test.com",
-            status: "abgeschlossen",
-            score: 92,
-            issues: 8,
-            criticalIssues: 1,
-            date: new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleDateString('de-DE'),
-            duration: "3.2",
-            pages: 8
-          }
-        ]
-        setScans(demoScans)
-        localStorage.setItem('website-scans', JSON.stringify(demoScans))
+        // Keine Demo-Scans mehr - neue Nutzer starten mit leerer Liste
+        setScans([])
       }
       
       console.log('Scans geladen')
@@ -305,28 +278,54 @@ export default function WebsiteScansPage() {
     setIsRepeatDialogOpen(true)
   }
 
-  const confirmRepeatScan = () => {
-    if (scanToRepeat) {
-      // Erstelle einen neuen Scan mit aktuellen Daten
-      const newScan: WebsiteScan = {
-        id: Date.now(),
-        website: scanToRepeat.website,
-        url: scanToRepeat.url,
-        status: "abgeschlossen",
-        score: Math.floor(Math.random() * 30) + 70, // Zufälliger Score 70-100
-        issues: Math.floor(Math.random() * 15) + 5, // 5-20 Issues
-        criticalIssues: Math.floor(Math.random() * 5) + 1, // 1-5 kritische Issues
-        date: new Date().toLocaleDateString('de-DE'),
-        duration: (Math.random() * 3 + 1).toFixed(1), // 1-4 Minuten
-        pages: scanToRepeat.pages
+  // Funktion zum Bestätigen der Scan-Wiederholung
+  const confirmRepeatScan = async () => {
+    if (!scanToRepeat) return
+
+    // Prüfe Credits vor der Wiederholung (1 Credit für Website-Scan wiederholen)
+    try {
+      const response = await fetch('/api/credits/use', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ service: 'websiteRescans' })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        if (response.status === 402) {
+          alert(`Nicht genügend Credits: ${errorData.message}`)
+          setIsRepeatDialogOpen(false)
+          setScanToRepeat(null)
+          return
+        }
+        throw new Error(errorData.message || 'Fehler beim Credit-Verbrauch')
       }
-      
-      const updatedScans = [...scans, newScan]
-      setScans(updatedScans)
-      localStorage.setItem('website-scans', JSON.stringify(updatedScans))
-      
-      alert(`Scan für "${scanToRepeat.website}" wurde erfolgreich wiederholt!`)
+    } catch (error) {
+      alert('Fehler beim Verbrauch der Credits für die Scan-Wiederholung.')
+      setIsRepeatDialogOpen(false)
+      setScanToRepeat(null)
+      return
     }
+
+    // Simuliere Scan-Wiederholung
+    const newScan = {
+      ...scanToRepeat,
+      id: Date.now(),
+      date: new Date().toLocaleDateString('de-DE'),
+      status: "abgeschlossen" as const,
+      // Simuliere leichte Verbesserung bei Wiederholung
+      score: Math.min(100, scanToRepeat.score + Math.floor(Math.random() * 10)),
+      issues: Math.max(0, scanToRepeat.issues - Math.floor(Math.random() * 3)),
+      criticalIssues: Math.max(0, scanToRepeat.criticalIssues - Math.floor(Math.random() * 2))
+    }
+    
+    const updatedScans = [...scans, newScan]
+    setScans(updatedScans)
+    localStorage.setItem('website-scans', JSON.stringify(updatedScans))
+    
+    alert(`Scan für "${scanToRepeat.website}" wurde erfolgreich wiederholt!`)
     setIsRepeatDialogOpen(false)
     setScanToRepeat(null)
   }

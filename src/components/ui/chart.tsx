@@ -121,11 +121,11 @@ export function Chart({ score, level, config }: ChartProps) {
       
       {/* Große Prozentzahl in der Mitte */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-3xl font-bold" style={{ color: getColor() }}>
+        <div className="text-center leading-none">
+          <div className="text-3xl font-bold leading-none" style={{ color: getColor() }}>
             {Math.round(score * 100)}%
           </div>
-          <div className="text-xs text-muted-foreground mt-1">
+          <div className="text-xs text-muted-foreground mt-1 leading-none">
             WCAG {level}
           </div>
         </div>

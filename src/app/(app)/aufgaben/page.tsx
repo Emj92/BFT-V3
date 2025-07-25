@@ -221,17 +221,40 @@ export default function AufgabenPage() {
       return
     }
 
+    // Prüfe Credits vor dem Test (0.5 Credits für Aufgaben-Test)
+    try {
+      const response = await fetch('/api/credits/use', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ service: 'taskRescans' })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        if (response.status === 402) {
+          alert(`Nicht genügend Credits: ${errorData.message}`)
+          return
+        }
+        throw new Error(errorData.message || 'Fehler beim Credit-Verbrauch')
+      }
+    } catch (error) {
+      alert('Fehler beim Verbrauch der Credits für den Aufgaben-Test.')
+      return
+    }
+
     setTestingTasks(prev => new Set(prev).add(task.id))
     
     try {
       // Kopiere die URL aus der Aufgabe oder verwende die Website-URL
-      const testUrl = task.url || websites.find(w => w.id === task.websiteId)?.baseUrl
+      const testUrl = task.url || websites.find(w => w.id === task.websiteId)?.url
       
       if (!testUrl) {
         throw new Error('Keine URL zum Testen verfügbar')
       }
 
-      // Führe einen fokussierten Scan für die spezifische WCAG-Regel durch
+      // Führe einen normalen vollständigen Scan durch (nicht fokussiert, da das API das nicht unterstützt)
       const response = await fetch('/api/scan', {
         method: 'POST',
         headers: {
@@ -239,8 +262,7 @@ export default function AufgabenPage() {
         },
         body: JSON.stringify({
           url: testUrl,
-          focused: true,
-          wcagRule: task.wcagCode
+          standard: 'wcag21aa'
         })
       })
 
@@ -251,21 +273,37 @@ export default function AufgabenPage() {
       const scanResult = await response.json()
       
       // Prüfe ob die spezifische WCAG-Regel noch Violations hat
-      const specificViolations = scanResult.violations?.filter((v: any) => 
-        v.id === task.wcagCode || v.id.includes(task.wcagCode)
-      ) || []
+      // Erweiterte Suche nach der Regel in verschiedenen Formaten
+      const ruleId = task.wcagCode.toLowerCase()
+      const specificViolations = scanResult.violations?.filter((v: any) => {
+        const violationId = v.id.toLowerCase()
+        return violationId === ruleId || 
+               violationId.includes(ruleId) || 
+               violationId.replace(/-/g, '') === ruleId.replace(/-/g, '') ||
+               ruleId.includes(violationId)
+      }) || []
 
+      // Nur als bestanden markieren, wenn:
+      // 1. Der Scan erfolgreich war
+      // 2. Es spezifische Violations für diese Regel gab
+      // 3. Diese spezifischen Violations jetzt nicht mehr vorhanden sind
       const testResult = specificViolations.length === 0 ? 'passed' : 'failed'
       
-      // Aktualisiere die Aufgabe mit dem Testergebnis
+      // Warnung wenn keine Violations der spezifischen Regel gefunden wurden
+      // (könnte bedeuten, dass die Regel-ID nicht korrekt ist)
+      if (testResult === 'passed' && scanResult.violations && scanResult.violations.length > 0) {
+        const allViolationIds = scanResult.violations.map((v: any) => v.id).join(', ')
+        console.warn(`Keine Violations für Regel "${task.wcagCode}" gefunden. Verfügbare Regeln: ${allViolationIds}`)
+      }
+      
+      // Aktualisiere die Aufgabe mit dem Testergebnis (aber setze NICHT automatisch auf completed)
       const updatedTasks = tasks.map(t => {
         if (t.id === task.id) {
           return {
             ...t,
             lastTestResult: testResult,
-            lastTestDate: new Date().toISOString(),
-            // Automatisch auf "completed" setzen wenn Test erfolgreich
-            status: testResult === 'passed' ? 'completed' : t.status
+            lastTestDate: new Date().toISOString()
+            // Entferne automatisches Setzen auf "completed"
           }
         }
         return t
@@ -273,11 +311,11 @@ export default function AufgabenPage() {
       
       saveTasks(updatedTasks)
       
-      // Erfolgsmeldung anzeigen
+      // Verbesserte Erfolgsmeldung
       if (testResult === 'passed') {
-        alert(`✅ Test erfolgreich! Die Aufgabe "${task.title}" wurde erfolgreich behoben und automatisch als erledigt markiert.`)
+        alert(`✅ Test erfolgreich! Für die Aufgabe "${task.title}" wurden keine Violations der Regel "${task.wcagCode}" gefunden.\n\nBitte überprüfen Sie das Ergebnis manuell und markieren Sie die Aufgabe als erledigt, wenn die Behebung korrekt ist.`)
       } else {
-        alert(`❌ Test fehlgeschlagen. Die Aufgabe "${task.title}" muss noch bearbeitet werden. Gefundene Violations: ${specificViolations.length}`)
+        alert(`❌ Test fehlgeschlagen. Die Aufgabe "${task.title}" muss noch bearbeitet werden.\n\nGefundene Violations für Regel "${task.wcagCode}": ${specificViolations.length}\n\nBitte beheben Sie die Probleme und testen Sie erneut.`)
       }
       
     } catch (error) {

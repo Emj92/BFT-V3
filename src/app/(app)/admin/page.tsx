@@ -27,7 +27,8 @@ import {
   Send,
   Info,
   AlertCircle,
-  XCircle
+  XCircle,
+  Edit
 } from "lucide-react"
 import dynamic from 'next/dynamic'
 import { UnifiedTicketDialog } from "@/components/unified-ticket-dialog"
@@ -117,6 +118,8 @@ export default function AdminPage() {
   })
   const [isDeleteUserDialogOpen, setIsDeleteUserDialogOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
+  const [editingCredits, setEditingCredits] = useState<{[userId: string]: boolean}>({})
+  const [tempCredits, setTempCredits] = useState<{[userId: string]: number}>({})
 
   // Benutzer laden
   const fetchUsers = async () => {
@@ -338,7 +341,7 @@ export default function AdminPage() {
       case 'high': return 'bg-red-100 text-red-800'
       case 'medium': return 'bg-yellow-100 text-yellow-800'
       case 'low': return 'bg-green-100 text-green-800'
-      default: return 'bg-gray-100 text-gray-800'
+              default: return 'bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200'
     }
   }
 
@@ -347,8 +350,8 @@ export default function AdminPage() {
       case 'open': return 'bg-blue-100 text-blue-800'
       case 'in_progress': return 'bg-purple-100 text-purple-800'
       case 'resolved': return 'bg-green-100 text-green-800'
-      case 'closed': return 'bg-gray-100 text-gray-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'closed': return 'bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200'
+      default: return 'bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200'
     }
   }
 
@@ -442,6 +445,50 @@ export default function AdminPage() {
     }
   }
 
+  // Credits für einen User bearbeiten
+  const handleEditCredits = (userId: string, currentCredits: number) => {
+    setEditingCredits(prev => ({ ...prev, [userId]: true }))
+    setTempCredits(prev => ({ ...prev, [userId]: currentCredits }))
+  }
+
+  // Credits-Änderung speichern
+  const handleSaveCredits = async (userId: string) => {
+    const newCredits = tempCredits[userId]
+    
+    try {
+      const response = await fetch('/api/users', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: userId,
+          credits: newCredits
+        })
+      })
+
+      if (response.ok) {
+        // Update local state
+        setUsers(prev => prev.map(user => 
+          user.id === userId ? { ...user, credits: newCredits } : user
+        ))
+        setEditingCredits(prev => ({ ...prev, [userId]: false }))
+        toast.success('Credits erfolgreich aktualisiert')
+      } else {
+        toast.error('Fehler beim Aktualisieren der Credits')
+      }
+    } catch (error) {
+      console.error('Error updating credits:', error)
+      toast.error('Fehler beim Aktualisieren der Credits')
+    }
+  }
+
+  // Credits-Bearbeitung abbrechen
+  const handleCancelEditCredits = (userId: string) => {
+    setEditingCredits(prev => ({ ...prev, [userId]: false }))
+    setTempCredits(prev => ({ ...prev, [userId]: undefined }))
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Laden...</div>
   }
@@ -496,7 +543,7 @@ export default function AdminPage() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle>Benutzer-Verwaltung</CardTitle>
+                        <CardTitle>Benutzerverwaltung ({stats.totalUsers})</CardTitle>
                         <CardDescription>
                           Verwalten Sie Benutzerkonten und Berechtigungen
                         </CardDescription>
@@ -513,7 +560,7 @@ export default function AdminPage() {
                   <CardContent>
                     <div className="overflow-x-auto">
                       <table className="w-full table-auto">
-                        <thead className="bg-gray-100">
+                        <thead className="bg-gray-100 dark:bg-gray-800">
                           <tr>
                             <th className="px-4 py-2 text-left">Name</th>
                             <th className="px-4 py-2 text-left">E-Mail</th>
@@ -542,7 +589,34 @@ export default function AdminPage() {
                                 </Badge>
                               </td>
                               <td className="px-4 py-2">
-                                <span className="font-medium">{user.credits || 0}</span>
+                                {editingCredits[user.id] ? (
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      value={tempCredits[user.id] || ''}
+                                      onChange={(e) => setTempCredits(prev => ({ ...prev, [user.id]: parseInt(e.target.value) || 0 }))}
+                                      className="w-20"
+                                    />
+                                    <Button variant="outline" size="sm" onClick={() => handleSaveCredits(user.id)}>
+                                      <CheckCircle className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleCancelEditCredits(user.id)}>
+                                      <XCircle className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{user.credits || 0}</span>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      onClick={() => handleEditCredits(user.id, user.credits || 0)}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                )}
                               </td>
                               <td className="px-4 py-2">
                                 <span className="font-medium">{user.openTickets || 0}</span>
@@ -567,6 +641,11 @@ export default function AdminPage() {
                                     )}
                                     {user.isActive ? 'Sperren' : 'Aktivieren'}
                                   </Button>
+                                  {editingCredits[user.id] && (
+                                    <Button variant="outline" size="sm" onClick={() => handleCancelEditCredits(user.id)}>
+                                      Abbrechen
+                                    </Button>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -590,7 +669,7 @@ export default function AdminPage() {
                   <CardContent>
                     <div className="overflow-x-auto">
                       <table className="w-full table-auto">
-                        <thead className="bg-gray-100">
+                        <thead className="bg-gray-100 dark:bg-gray-800">
                           <tr>
                             <th className="px-4 py-2 text-left">Betreff</th>
                             <th className="px-4 py-2 text-left">Priorität</th>
@@ -700,7 +779,7 @@ export default function AdminPage() {
                   <CardContent>
                     <div className="max-h-96 overflow-y-auto">
                       <table className="w-full table-auto">
-                        <thead className="bg-gray-100 sticky top-0">
+                        <thead className="bg-gray-100 dark:bg-gray-800 sticky top-0">
                           <tr>
                             <th className="px-4 py-2 text-left">Titel</th>
                             <th className="px-4 py-2 text-left">Nachricht</th>

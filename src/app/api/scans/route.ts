@@ -158,10 +158,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 })
     }
 
-    // Prüfe Credits
-    if (user.credits <= 0) {
+    // Prüfe Credits (1 Credit für Accessibility Check)
+    if (user.credits < 1) {
       return NextResponse.json(
-        { error: 'Nicht genügend Credits für einen Scan' },
+        { 
+          error: 'Nicht genügend Credits',
+          message: 'Sie benötigen 1 Credit für einen Accessibility-Scan.',
+          creditsRequired: 1,
+          creditsAvailable: user.credits
+        },
         { status: 402 } // Payment Required
       )
     }
@@ -257,6 +262,16 @@ export async function POST(request: NextRequest) {
       where: { id: user.id },
       data: {
         credits: user.credits - 1
+      }
+    })
+
+    // Credit-Transaktion protokollieren
+    await prisma.creditTransaction.create({
+      data: {
+        userId: user.id,
+        amount: -1,
+        type: 'SCAN',
+        description: 'Accessibility Check - Website-Scan'
       }
     })
 

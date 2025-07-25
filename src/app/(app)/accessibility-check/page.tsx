@@ -5,12 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { GlobalNavigation } from "@/components/global-navigation"
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarInset } from "@/components/ui/sidebar"
 import { 
   Shield, 
   Globe, 
@@ -24,30 +22,19 @@ import {
   Plus,
   Upload,
   Crown,
-  FileText
+  FileText,
+  Search,
+  ExternalLink,
+  ChevronDown
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { getErrorByCode } from "@/lib/wcag-errors"
-import dynamic from 'next/dynamic'
-import { 
-  Eye as EyeIcon, 
-  Search, 
-  AlertTriangle as AlertTriangleIcon, 
-  CheckCircle as CheckCircleIcon, 
-  Clock as ClockIcon,
-  ExternalLink,
-  Download as DownloadIcon,
-  RefreshCw as RefreshCwIcon
-} from "lucide-react"
 import { CircularProgress } from "@/components/ui/circular-progress"
 import { FirstScanDisclaimer, useFirstScanDisclaimer } from "@/components/first-scan-disclaimer"
 import { useWebsites } from "@/hooks/useWebsites"
 import { useBundle } from "@/hooks/useBundle"
 import { useLanguage } from "@/contexts/LanguageContext"
-
-// Dynamischer Import der Animation
-
 
 // Typdefinitionen für Scan-Ergebnisse
 interface ScanIssueDetails {
@@ -98,6 +85,46 @@ function translateDescription(description: string): string {
     'heading structure': 'Überschriftenhierarchie',
     'aria roles': 'ARIA-Rollen',
     
+    // Englische Begriffe die häufig vorkommen
+    'Passed': 'Bestanden',
+    'Failed': 'Fehlgeschlagen',
+    'Elements': 'Elemente',
+    'Element': 'Element',
+    'Page': 'Seite',
+    'Image': 'Bild',
+    'Images': 'Bilder',
+    'Link': 'Link',
+    'Links': 'Links',
+    'Button': 'Schaltfläche',
+    'Buttons': 'Schaltflächen',
+    'Form': 'Formular',
+    'Forms': 'Formulare',
+    'Label': 'Label',
+    'Labels': 'Labels',
+    'Heading': 'Überschrift',
+    'Headings': 'Überschriften',
+    'List': 'Liste',
+    'Lists': 'Listen',
+    'Text': 'Text',
+    'Color': 'Farbe',
+    'Background': 'Hintergrund',
+    'Foreground': 'Vordergrund', 
+    'Contrast': 'Kontrast',
+    'Focus': 'Fokus',
+    'Keyboard': 'Tastatur',
+    'Mouse': 'Maus',
+    'Click': 'Klick',
+    'Valid': 'Gültig',
+    'Invalid': 'Ungültig',
+    'Required': 'Erforderlich',
+    'Optional': 'Optional',
+    'Accessible': 'Zugänglich',
+    'Accessibility': 'Barrierefreiheit',
+    'Screen reader': 'Screenreader',
+    'Title': 'Titel',
+    'Alt text': 'Alt-Text',
+    'Alternative text': 'Alternativtext',
+    
     // Detaillierte Fehlermeldungen
     'Elements must have sufficient color contrast': 'Elemente müssen ausreichenden Farbkontrast haben',
     'Images must have alternative text': 'Bilder müssen Alternativtext haben',
@@ -107,6 +134,14 @@ function translateDescription(description: string): string {
     'Elements must have sufficient contrast': 'Elemente müssen ausreichenden Kontrast haben',
     'Elements must be focusable': 'Elemente müssen fokussierbar sein',
     'All interactive elements must be keyboard accessible': 'Alle interaktiven Elemente müssen über Tastatur zugänglich sein',
+    'Buttons must have discernible text': 'Schaltflächen müssen erkennbaren Text haben',
+    'Links must have discernible text': 'Links müssen erkennbaren Text haben',
+    'Images must have alternate text': 'Bilder müssen Alternativtext haben',
+    'Every form element must have a label': 'Jedes Formularelement muss ein Label haben',
+    'Document must have a title element': 'Dokument muss ein title-Element haben',
+    'HTML element must have a lang attribute': 'HTML-Element muss ein lang-Attribut haben',
+    'Page must contain a level-one heading': 'Seite muss eine Überschrift der Ebene 1 enthalten',
+    'All content must be contained in a landmark region': 'Aller Inhalt muss in einem Landmark-Bereich enthalten sein',
     
     // Weitere häufige Fehler
     'Ensures elements with an ARIA role that require child roles contain them': 'Stellt sicher, dass Elemente mit ARIA-Rollen, die Kindrollen benötigen, diese enthalten',
@@ -158,7 +193,6 @@ function translateDescription(description: string): string {
     'Ensures every ARIA treeitem has an accessible name': 'Stellt sicher, dass jedes ARIA-Baumelement einen zugänglichen Namen hat',
     'Ensures ARIA attributes are allowed for an element\'s role': 'Stellt sicher, dass ARIA-Attribute für die Rolle eines Elements erlaubt sind',
     'Ensures elements with ARIA roles are contained by the appropriate parent': 'Stellt sicher, dass Elemente mit ARIA-Rollen vom entsprechenden übergeordneten Element umschlossen sind',
-    'Ensures elements with ARIA roles have their required children': 'Stellt sicher, dass Elemente mit ARIA-Rollen ihre erforderlichen Kinder haben',
     'Ensures role attribute values are valid': 'Stellt sicher, dass role-Attributwerte gültig sind',
     'Ensures aria-describedby attribute values are valid': 'Stellt sicher, dass aria-describedby-Attributwerte gültig sind',
     'Ensures aria-details attribute values are valid': 'Stellt sicher, dass aria-details-Attributwerte gültig sind',
@@ -168,17 +202,15 @@ function translateDescription(description: string): string {
     'Ensures elements with a role that require specific parent contain them': 'Stellt sicher, dass Elemente mit einer Rolle, die spezifische Eltern erfordert, diese enthalten',
     'Ensures elements with a role attribute use a valid value': 'Stellt sicher, dass Elemente mit einem role-Attribut einen gültigen Wert verwenden',
     'Ensures role attributes are used on elements with semantic meaning': 'Stellt sicher, dass role-Attribute bei Elementen mit semantischer Bedeutung verwendet werden',
-    'Ensures elements with an ARIA role that require child roles contain them': 'Stellt sicher, dass Elemente mit einer ARIA-Rolle, die Kindrollen erfordert, diese enthalten',
     'Ensures elements with an ARIA role that require parent roles are contained by them': 'Stellt sicher, dass Elemente mit einer ARIA-Rolle, die Elternrollen erfordert, von diesen umschlossen sind',
-    'Ensures elements with ARIA roles have all required ARIA attributes': 'Stellt sicher, dass Elemente mit ARIA-Rollen alle erforderlichen ARIA-Attribute haben',
     'Ensures elements with ARIA roles have required owned elements': 'Stellt sicher, dass Elemente mit ARIA-Rollen erforderliche besitzende Elemente haben',
     'Ensures elements with ARIA roles have required parent elements': 'Stellt sicher, dass Elemente mit ARIA-Rollen erforderliche übergeordnete Elemente haben',
-    'Ensures ARIA attributes are not prohibited for an element\'s role': 'Stellt sicher, dass ARIA-Attribute für die Rolle eines Elements nicht verboten sind',
+    'Ensures ARIA attributes are not prohibited for an elements role': 'Stellt sicher, dass ARIA-Attribute für die Rolle eines Elements nicht verboten sind',
     'Ensures ARIA state and property values are valid': 'Stellt sicher, dass ARIA-Zustand und -Eigenschaftswerte gültig sind',
-    'Ensures ARIA state and property values are valid for their roles': 'Stellt sicher, dass ARIA-Zustand und -Eigenschaftswerte für ihre Rollen gültig sind',
+    'Ensures ARIA state property values are valid for their roles': 'Stellt sicher, dass ARIA-Zustand und -Eigenschaftswerte für ihre Rollen gültig sind',
     'Ensures ARIA toggle fields have an accessible name': 'Stellt sicher, dass ARIA-Umschaltfelder einen zugänglichen Namen haben',
     'Ensures ARIA attributes are not used to modify semantic meaning': 'Stellt sicher, dass ARIA-Attribute nicht verwendet werden, um die semantische Bedeutung zu ändern',
-    'Ensures elements with ARIA roles are contained by the appropriate parent': 'Stellt sicher, dass Elemente mit ARIA-Rollen vom entsprechenden übergeordneten Element umschlossen sind',
+    'Ensures elements with ARIA roles are contained by appropriate parent': 'Stellt sicher, dass Elemente mit ARIA-Rollen vom entsprechenden übergeordneten Element umschlossen sind',
   };
   
   let translatedDescription = description;
@@ -205,19 +237,107 @@ export default function AccessibilityCheckPage() {
   const [isScanning, setIsScanning] = useState(false)
   const [scanResults, setScanResults] = useState<ScanResultsData | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [showPositiveResults, setShowPositiveResults] = useState(false)
+  const [showPositiveResults, setShowPositiveResults] = useState(true) // Immer auf true
+  const [activeFilter, setActiveFilter] = useState<'all' | 'critical' | 'serious' | 'positive' | 'total'>('critical') // Kritische Probleme als Standard
+  const [hiddenIssues, setHiddenIssues] = useState<Set<number>>(new Set())
   const [urlListFile, setUrlListFile] = useState<File | null>(null)
   const [enableSubpageScanning, setEnableSubpageScanning] = useState(false)
-  const { showDisclaimer, disclaimerOpen, setDisclaimerOpen, markAsAccepted } = useFirstScanDisclaimer()
-  const { websites } = useWebsites()
+  const [isUrlDropdownOpen, setIsUrlDropdownOpen] = useState(false)
+  const { shouldShow: showDisclaimer, markAsAccepted } = useFirstScanDisclaimer()
+  const [disclaimerOpen, setDisclaimerOpen] = useState(false)
+  const { websites, selectedWebsite } = useWebsites()
   const { bundleInfo } = useBundle()
+  const { t } = useLanguage()
 
   // Korrigierte Pro-Version-Prüfung - nutzt die hasProFeatures aus der Bundle-API
   const hasProVersion = bundleInfo?.hasProFeatures || false
-  
-  // Debug-Ausgabe für Entwicklung
-  console.log('Bundle Info:', bundleInfo)
-  console.log('Has Pro Version:', hasProVersion)
+
+  // Automatisch URL setzen wenn Website ausgewählt wird 
+  useEffect(() => {
+    if (selectedWebsite && selectedWebsite.url) {
+      setUrl(selectedWebsite.url)
+    }
+  }, [selectedWebsite])
+
+  // Zeige Disclaimer wenn nötig
+  useEffect(() => {
+    if (showDisclaimer) {
+      setDisclaimerOpen(true)
+    }
+  }, [showDisclaimer])
+
+  // Schließe URL-Dropdown bei Klick außerhalb
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (!target.closest('[data-url-dropdown="true"]')) {
+        setIsUrlDropdownOpen(false)
+      }
+    }
+
+    if (isUrlDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isUrlDropdownOpen])
+
+  // Filter-Handler für Kacheln
+  const handleFilterChange = (filter: typeof activeFilter) => {
+    setActiveFilter(filter)
+  }
+
+  // Ein-/Ausblenden von einzelnen Ergebnissen
+  const toggleIssueVisibility = (index: number) => {
+    setHiddenIssues(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(index)) {
+        newSet.delete(index)
+      } else {
+        newSet.add(index)
+      }
+      return newSet
+    })
+  }
+
+  // URL-Dropdown Handler
+  const handleUrlSelect = (selectedUrl: string) => {
+    setUrl(selectedUrl)
+    setIsUrlDropdownOpen(false)
+  }
+
+  // Gefilterte Ergebnisse basierend auf activeFilter
+  const getFilteredResults = () => {
+    if (!scanResults) return []
+    
+    let filtered = [...scanResults.details]
+    
+    switch (activeFilter) {
+      case 'critical':
+        filtered = filtered.filter(issue => issue.type === 'critical')
+        break
+      case 'serious':
+        filtered = filtered.filter(issue => issue.type === 'serious')
+        break
+      case 'positive':
+        return scanResults.passedChecks || []
+      case 'total':
+        // Zeige alle einschließlich positive
+        filtered = [...filtered, ...(scanResults.passedChecks || [])]
+        break
+      default:
+        // 'all' - zeige alle Probleme (ohne positive)
+        break
+    }
+    
+    return filtered
+  }
+
+  // Checkbox-Handler für enableSubpageScanning
+  const handleSubpageScanningChange = (checked: boolean | 'indeterminate') => {
+    if (typeof checked === 'boolean') {
+      setEnableSubpageScanning(checked)
+    }
+  }
 
   const handleScan = async () => {
     if (!url) return
@@ -227,21 +347,46 @@ export default function AccessibilityCheckPage() {
       setDisclaimerOpen(true)
       return
     }
+
+    // Prüfe Credits vor dem Scan (1 Credit für Accessibility Check)
+    try {
+      const creditResponse = await fetch('/api/credits/use', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ service: 'scans' })
+      })
+
+      if (!creditResponse.ok) {
+        const errorData = await creditResponse.json()
+        if (creditResponse.status === 402) {
+          setError(`Nicht genügend Credits: ${errorData.message}`)
+          return
+        }
+        throw new Error(errorData.message || 'Fehler beim Credit-Verbrauch')
+      }
+    } catch (error) {
+      setError('Fehler beim Verbrauch der Credits für den Accessibility Check.')
+      return
+    }
     
     setIsScanning(true)
     
     try {
+      const scanParams = {
+        url: url,
+        standard: selectedStandard,
+        scanSubpages: enableSubpageScanning && hasProVersion,
+        urlList: urlListFile ? await fileToText(urlListFile) : null
+      }
+      
       const response = await fetch('/api/scan', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          url: url,
-          standard: selectedStandard,
-          scanSubpages: enableSubpageScanning && hasProVersion,
-          urlList: urlListFile ? await fileToText(urlListFile) : null
-        }),
+        body: JSON.stringify(scanParams),
       });
       
       if (!response.ok) {
@@ -323,11 +468,6 @@ export default function AccessibilityCheckPage() {
     }
   };
 
-  // Website aus Dropdown auswählen
-  const handleWebsiteSelect = (websiteUrl: string) => {
-    setUrl(websiteUrl)
-  }
-
   // Handle Disclaimer Accept
   const handleDisclaimerAccept = () => {
     markAsAccepted()
@@ -371,7 +511,7 @@ export default function AccessibilityCheckPage() {
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 Tage
       assignee: 'Sie',
       estimatedHours: 2,
-      websiteId: websites.find(w => scanResults?.url?.includes(w.baseUrl))?.id || ''
+      websiteId: websites.find(w => scanResults?.url?.includes(w.url))?.id || ''
     };
     
     existingTasks.push(newTask);
@@ -457,33 +597,46 @@ export default function AccessibilityCheckPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="url" className="text-base font-medium">Website URL</Label>
-                <div className="space-y-2">
+                <div className="relative">
                   <Input
                     id="url"
                     type="url"
                     placeholder="https://www.ihre-website.de"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
+                    onFocus={() => setIsUrlDropdownOpen(websites.length > 0)}
                     className="text-base h-12"
+                    data-url-dropdown="true"
                   />
-                  {websites.length > 0 && (
-                    <div className="space-y-2">
-                      <Label htmlFor="website-select" className="text-sm text-muted-foreground">
-                        Oder wählen Sie eine Ihrer gespeicherten Websites:
-                      </Label>
-                      <Select onValueChange={handleWebsiteSelect}>
-                        <SelectTrigger className="text-sm h-12">
-                          <SelectValue placeholder="Website auswählen..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {websites.map(website => (
-                            <SelectItem key={website.id} value={website.url}>
-                              {website.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  {websites.length > 0 && isUrlDropdownOpen && (
+                    <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-60 overflow-auto" data-url-dropdown="true">
+                      <div className="p-2 border-b bg-muted/50">
+                        <p className="text-xs text-muted-foreground">Gespeicherte Websites:</p>
+                      </div>
+                      {websites.map(website => (
+                        <button
+                          key={website.id}
+                          onClick={() => handleUrlSelect(website.url)}
+                          className="w-full p-3 text-left hover:bg-accent hover:text-accent-foreground text-sm border-b last:border-b-0 focus:bg-accent focus:text-accent-foreground focus:outline-none"
+                          data-url-dropdown="true"
+                        >
+                          <div className="font-medium">{website.name}</div>
+                          <div className="text-xs text-muted-foreground">{website.url}</div>
+                        </button>
+                      ))}
                     </div>
+                  )}
+                  {websites.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                      onClick={() => setIsUrlDropdownOpen(!isUrlDropdownOpen)}
+                      data-url-dropdown="true"
+                    >
+                      <ChevronDown className={`h-4 w-4 transition-transform ${isUrlDropdownOpen ? 'rotate-180' : ''}`} />
+                    </Button>
                   )}
                 </div>
               </div>
@@ -502,56 +655,33 @@ export default function AccessibilityCheckPage() {
                 </Select>
               </div>
             </div>
-            <div className="grid gap-6 md:grid-cols-3">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="showPositive"
-                  checked={showPositiveResults}
-                  onChange={(e) => setShowPositiveResults(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="showPositive" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  Positive Ergebnisse anzeigen
-                </label>
-              </div>
-              
+            <div className="grid gap-6 md:grid-cols-2">
               {hasProVersion && (
                 <>
                   <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="scanSubpages"
+                    <Checkbox
+                      id="enableSubpageScanning"
                       checked={enableSubpageScanning}
-                      onChange={(e) => setEnableSubpageScanning(e.target.checked)}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      onCheckedChange={handleSubpageScanningChange}
                     />
-                    <label htmlFor="scanSubpages" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    <Label htmlFor="enableSubpageScanning" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                       Unterseiten mitscannen
-                    </label>
-                    <div className="flex items-center gap-1 text-xs text-yellow-600">
-                      <Crown className="h-3 w-3" />
-                      <span>PRO</span>
-                    </div>
+                    </Label>
                   </div>
-                  
                   <div className="space-y-2">
-                    <label htmlFor="urlList" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      URL-Liste hochladen (optional)
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="file"
-                        id="urlList"
-                        accept=".txt"
-                        onChange={handleFileUpload}
-                        className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                      />
-                      <div className="flex items-center gap-1 text-xs text-yellow-600">
-                        <Crown className="h-3 w-3" />
-                        <span>PRO</span>
-                      </div>
-                    </div>
+                    <Label htmlFor="urlList" className="text-sm font-medium">URL-Liste hochladen (.txt)</Label>
+                    <Input
+                      id="urlList"
+                      type="file"
+                      accept=".txt"
+                      onChange={handleFileUpload}
+                      className="text-sm"
+                    />
+                    {urlListFile && (
+                      <p className="text-xs text-muted-foreground">
+                        Datei ausgewählt: {urlListFile.name}
+                      </p>
+                    )}
                   </div>
                 </>
               )}
@@ -564,15 +694,15 @@ export default function AccessibilityCheckPage() {
                 </div>
                 <div className="space-y-2 text-sm text-gray-600">
                   <div className="flex items-center gap-2">
-                    <input type="checkbox" disabled className="h-4 w-4 rounded border-gray-300 opacity-50" />
-                    <span className="opacity-50">Unterseiten mitscannen</span>
+                    <Checkbox disabled />
+                    <Label className="opacity-50">Unterseiten mitscannen</Label>
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-sm font-medium opacity-50">URL-Liste hochladen</label>
-                    <input
+                    <Label className="block text-sm font-medium opacity-50">URL-Liste hochladen</Label>
+                    <Input
                       type="file"
                       disabled
-                      className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-400 opacity-50"
+                      className="opacity-50"
                     />
                   </div>
                 </div>
@@ -585,7 +715,7 @@ export default function AccessibilityCheckPage() {
             >
               {isScanning ? (
                 <>
-                  <RefreshCwIcon className="mr-2 h-4 w-4 animate-spin" />
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                   Prüfung läuft...
                 </>
               ) : (
@@ -601,27 +731,32 @@ export default function AccessibilityCheckPage() {
         {/* Scan-Ergebnisse */}
         {scanResults && (
           <>
-            {/* Übersicht */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
+            {/* Übersicht mit neuem Layout */}
+            <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+              {/* Kreisdiagramm - 2 Kacheln hoch */}
+              <Card className="lg:row-span-2">
                 <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-base font-medium">Gesamt-Score</CardTitle>
-                  <CheckCircleIcon className="h-4 w-4 text-green-500" />
+                  <CheckCircle className="h-4 w-4 text-green-500" />
                 </CardHeader>
-                <CardContent className="relative flex items-center justify-center py-6">
-                  <CircularProgress value={Math.round(scanResults.score * 100)} size={100} strokeWidth={8} />
-                  <div className="ml-4">
-                    <p className="text-base text-muted-foreground">
+                <CardContent className="relative flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <CircularProgress value={Math.round(scanResults.score * 100)} size={120} strokeWidth={8} />
+                    <p className="text-base text-muted-foreground mt-4">
                       Barrierefreiheit
                     </p>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
+              {/* Filter-Kacheln rechts */}
+              <Card 
+                className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'critical' ? 'ring-2 ring-red-500 bg-red-50' : ''}`}
+                onClick={() => handleFilterChange('critical')}
+              >
                 <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-base font-medium">Kritische Probleme</CardTitle>
-                  <AlertTriangleIcon className="h-4 w-4 text-red-500" />
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
                 </CardHeader>
                 <CardContent className="relative">
                   <div className="text-3xl font-bold text-red-600">{scanResults.issues.critical}</div>
@@ -631,10 +766,13 @@ export default function AccessibilityCheckPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card 
+                className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'serious' ? 'ring-2 ring-orange-500 bg-orange-50' : ''}`}
+                onClick={() => handleFilterChange('serious')}
+              >
                 <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-base font-medium">Schwerwiegende Probleme</CardTitle>
-                  <AlertTriangleIcon className="h-4 w-4 text-orange-500" />
+                  <AlertTriangle className="h-4 w-4 text-orange-500" />
                 </CardHeader>
                 <CardContent className="relative">
                   <div className="text-3xl font-bold text-orange-600">{scanResults.issues.serious}</div>
@@ -644,10 +782,29 @@ export default function AccessibilityCheckPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card 
+                className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'positive' ? 'ring-2 ring-green-500 bg-green-50' : ''}`}
+                onClick={() => handleFilterChange('positive')}
+              >
                 <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-base font-medium">Geprüfte Elemente</CardTitle>
-                  <EyeIcon className="h-4 w-4 text-blue-500" />
+                  <CardTitle className="text-base font-medium">Positiv geprüfte Ergebnisse</CardTitle>
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="text-3xl font-bold text-green-600">{scanResults.checks.passed}</div>
+                  <p className="text-base text-muted-foreground">
+                    Erfolgreich bestanden
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'total' ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}
+                onClick={() => handleFilterChange('total')}
+              >
+                <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-base font-medium">Insgesamt geprüfte Ergebnisse</CardTitle>
+                  <Eye className="h-4 w-4 text-blue-500" />
                 </CardHeader>
                 <CardContent className="relative">
                   <div className="text-3xl font-bold text-blue-600">{scanResults.checks.total}</div>
@@ -661,177 +818,185 @@ export default function AccessibilityCheckPage() {
             {/* Detaillierte Ergebnisse */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl">Detaillierte Prüfergebnisse</CardTitle>
+                <CardTitle className="text-xl">
+                  Detaillierte Prüfergebnisse
+                  {activeFilter !== 'all' && (
+                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                      - {activeFilter === 'critical' ? 'Kritische Probleme' :
+                         activeFilter === 'serious' ? 'Schwerwiegende Probleme' :
+                         activeFilter === 'positive' ? 'Positive Ergebnisse' :
+                         activeFilter === 'total' ? 'Alle Ergebnisse' : 'Alle Probleme'}
+                    </span>
+                  )}
+                </CardTitle>
                 <CardDescription className="text-base">
-                  Gefundene Barrierefreiheitsprobleme für {scanResults.url}
+                  {activeFilter === 'positive' 
+                    ? `Erfolgreich bestandene Tests für ${scanResults.url}`
+                    : `Gefundene Barrierefreiheitsprobleme für ${scanResults.url}`
+                  }
                 </CardDescription>
+                {activeFilter !== 'all' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleFilterChange('all')}
+                    className="mt-2 w-fit"
+                  >
+                    Alle anzeigen
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {/* Probleme anzeigen */}
-                  {scanResults.details.map((issue, index) => (
-                    <div key={index} className="flex items-start justify-between p-6 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h4 className="font-semibold text-lg">{issue.rule}</h4>
-                          {getIssueBadge(issue.type)}
-                          <Badge variant="outline" className="text-base">WCAG {issue.wcag}</Badge>
-                          {issue.wcagCode && (
-                            <Badge variant="outline" className="text-base">{issue.wcagCode}</Badge>
-                          )}
-                        </div>
-                        <p className="text-base text-muted-foreground mb-2">{translateDescription(issue.description)}</p>
-                        {issue.wcagCode && (() => {
-                          const wcagError = getErrorByCode(issue.wcagCode);
-                          return wcagError ? (
-                            <div className="mt-2 p-3 bg-muted rounded-md">
-                              <p className="text-sm font-medium">WCAG Richtlinie:</p>
-                              <p className="text-sm text-muted-foreground">{wcagError.description}</p>
-                              <p className="text-xs text-muted-foreground mt-1">Level: {wcagError.level} | Impact: {wcagError.impact}</p>
-                            </div>
-                          ) : null;
-                        })()}
-                        <div className="flex items-center gap-4">
-                          <span className="text-base font-medium">
-                            {issue.elements} betroffene Elemente
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-base"
-                          onClick={() => handleAddToTasks(issue)}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Zu Aufgaben hinzufügen
-                        </Button>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="text-base">
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              Details
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                            <DialogHeader>
-                              <DialogTitle className="text-xl">
-                                {issue.rule} - Details
-                              </DialogTitle>
-                              <DialogDescription>
-                                Detaillierte Informationen zu diesem Barrierefreiheitsproblem
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-6">
-                              {/* Problem-Übersicht */}
-                              <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                  {getIssueBadge(issue.type)}
-                                  <Badge variant="outline">WCAG {issue.wcag}</Badge>
-                                  {issue.wcagCode && (
-                                    <Badge variant="outline">{issue.wcagCode}</Badge>
-                                  )}
-                                </div>
-                                <p className="text-muted-foreground">{issue.description}</p>
-                              </div>
-
-                              {/* WCAG-Details */}
-                              {issue.wcagCode && (() => {
-                                const wcagError = getErrorByCode(issue.wcagCode);
-                                return wcagError ? (
-                                  <div className="p-4 bg-muted rounded-lg">
-                                    <h4 className="font-semibold mb-2">WCAG-Richtlinie</h4>
-                                    <p className="text-sm text-muted-foreground mb-2">{wcagError.description}</p>
-                                    <div className="flex gap-4 text-xs text-muted-foreground">
-                                      <span>Level: {wcagError.level}</span>
-                                      <span>Impact: {wcagError.impact}</span>
-                                    </div>
-                                  </div>
-                                ) : null;
-                              })()}
-
-                              {/* Betroffene Elemente */}
-                              <div>
-                                <h4 className="font-semibold mb-2">
-                                  Betroffene Elemente ({issue.elements})
-                                </h4>
-                                <div className="bg-muted p-3 rounded-lg">
-                                  <p className="text-sm text-muted-foreground">
-                                    Diese Probleme wurden in {issue.elements} HTML-Elementen auf der Seite gefunden.
-                                    Überprüfen Sie alle Vorkommen dieses Problems auf Ihrer Website.
-                                  </p>
-                                </div>
-                              </div>
-
-                              {/* Lösungsvorschläge */}
-                              <div>
-                                <h4 className="font-semibold mb-2">Lösungsvorschläge</h4>
-                                <div className="bg-muted p-3 rounded-lg space-y-2">
-                                  {issue.wcagCode && (() => {
-                                    const wcagError = getErrorByCode(issue.wcagCode);
-                                    if (wcagError?.solutions) {
-                                      return (
-                                        <div>
-                                          <p className="text-sm font-medium mb-2">Empfohlene Maßnahmen:</p>
-                                          <ul className="text-sm text-muted-foreground space-y-1">
-                                            {wcagError.solutions.map((solution, idx) => (
-                                              <li key={idx} className="flex items-start gap-2">
-                                                <span className="text-blue-600 font-bold">•</span>
-                                                <span>{solution}</span>
-                                              </li>
-                                            ))}
-                                          </ul>
-                                        </div>
-                                      );
-                                    } else {
-                                      return (
-                                        <p className="text-sm text-muted-foreground">
-                                          Stellen Sie sicher, dass alle Elemente den WCAG {issue.wcag} Richtlinien entsprechen.
-                                          Konsultieren Sie die offiziellen WCAG-Dokumentationen für detaillierte Anweisungen.
-                                        </p>
-                                      );
-                                    }
-                                  })()}
-                                </div>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {/* Positive Ergebnisse anzeigen (wenn aktiviert) */}
-                  {showPositiveResults && scanResults.passedChecks && scanResults.passedChecks.length > 0 && (
-                    <>
-                      <div className="border-t pt-4 mt-6">
-                        <h3 className="text-lg font-semibold mb-4 text-green-600 flex items-center gap-2">
-                          <CheckCircle className="h-5 w-5" />
-                          Erfolgreich bestandene Prüfungen ({scanResults.passedChecks.length})
-                        </h3>
-                      </div>
-                      {scanResults.passedChecks.map((passedCheck, index) => (
-                        <div key={`passed-${index}`} className="flex items-start justify-between p-6 border rounded-lg border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
+                  {getFilteredResults().map((item, index) => {
+                    const isHidden = hiddenIssues.has(index)
+                    const isPositive = activeFilter === 'positive' || activeFilter === 'total' && 'rule' in item && !('type' in item)
+                    
+                    return (
+                      <div 
+                        key={index} 
+                        className={`transition-all duration-200 ${isHidden ? 'opacity-30' : ''}`}
+                      >
+                        <div className="flex items-start justify-between p-6 border rounded-lg">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
-                              <h4 className="font-semibold text-lg text-green-700 dark:text-green-300">{passedCheck.rule}</h4>
-                              <Badge variant="outline" className="text-green-600 border-green-300">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Bestanden
+                              <h4 className="font-semibold text-lg">
+                                {'rule' in item ? item.rule : item.rule}
+                              </h4>
+                              {!isPositive && 'type' in item && getIssueBadge(item.type)}
+                              {isPositive && (
+                                <Badge className="bg-green-500 text-white">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Bestanden
+                                </Badge>
+                              )}
+                              <Badge variant="outline" className="text-base">
+                                WCAG {'wcag' in item ? item.wcag : item.wcag}
                               </Badge>
-                              <Badge variant="outline" className="text-base">WCAG {passedCheck.wcag}</Badge>
+                              {'wcagCode' in item && item.wcagCode && (
+                                <Badge variant="outline" className="text-base">{item.wcagCode}</Badge>
+                              )}
                             </div>
-                            <p className="text-base text-green-700 dark:text-green-300 mb-2">{translateDescription(passedCheck.description)}</p>
+                            <p className="text-base text-muted-foreground mb-2">
+                              {translateDescription('description' in item ? item.description : item.description)}
+                            </p>
+                            {'wcagCode' in item && item.wcagCode && (() => {
+                              const wcagError = getErrorByCode(item.wcagCode);
+                              return wcagError ? (
+                                <div className="mt-2 p-3 bg-muted rounded-md">
+                                  <p className="text-sm font-medium">WCAG Richtlinie:</p>
+                                  <p className="text-sm text-muted-foreground">{wcagError.description}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">Level: {wcagError.level} | Impact: {wcagError.impact}</p>
+                                </div>
+                              ) : null;
+                            })()}
                             <div className="flex items-center gap-4">
-                              <span className="text-base font-medium text-green-600 dark:text-green-400">
-                                {passedCheck.elements} geprüfte Elemente
+                              <span className="text-base font-medium">
+                                {'elements' in item ? item.elements : item.elements} betroffene Elemente
                               </span>
                             </div>
                           </div>
+                          <div className="flex items-center gap-2">
+                            {/* Auge-Symbol zum Ein-/Ausblenden */}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleIssueVisibility(index)}
+                              className="text-base"
+                              title={isHidden ? "Einblenden" : "Ausblenden"}
+                            >
+                              <Eye className={`h-4 w-4 ${isHidden ? 'text-muted-foreground' : ''}`} />
+                            </Button>
+                            
+                            {!isPositive && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-base"
+                                onClick={() => handleAddToTasks(item as ScanIssueDetails)}
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Zu Aufgaben hinzufügen
+                              </Button>
+                            )}
+                            
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="text-base">
+                                  <ExternalLink className="h-4 w-4 mr-2" />
+                                  Details
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                                <DialogHeader>
+                                  <DialogTitle className="text-xl">
+                                    {'rule' in item ? item.rule : item.rule} - Details
+                                  </DialogTitle>
+                                  <DialogDescription>
+                                    {isPositive 
+                                      ? "Detaillierte Informationen zu diesem erfolgreich bestandenen Test"
+                                      : "Detaillierte Informationen zu diesem Barrierefreiheitsproblem"
+                                    }
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-6">
+                                  {/* Problem-/Test-Übersicht */}
+                                  <div className="space-y-4">
+                                    <div className="flex items-center gap-3">
+                                      {!isPositive && 'type' in item && getIssueBadge(item.type)}
+                                      {isPositive && (
+                                        <Badge className="bg-green-500 text-white">
+                                          <CheckCircle className="h-3 w-3 mr-1" />
+                                          Bestanden
+                                        </Badge>
+                                      )}
+                                      <Badge variant="outline">
+                                        WCAG {'wcag' in item ? item.wcag : item.wcag}
+                                      </Badge>
+                                      {'wcagCode' in item && item.wcagCode && (
+                                        <Badge variant="outline">{item.wcagCode}</Badge>
+                                      )}
+                                    </div>
+                                    <p className="text-muted-foreground">
+                                      {'description' in item ? item.description : item.description}
+                                    </p>
+                                  </div>
+
+                                  {/* WCAG-Details */}
+                                  {'wcagCode' in item && item.wcagCode && (() => {
+                                    const wcagError = getErrorByCode(item.wcagCode);
+                                    return wcagError ? (
+                                      <div className="p-4 bg-muted rounded-lg">
+                                        <h4 className="font-semibold mb-2">WCAG-Richtlinie</h4>
+                                        <p className="text-sm text-muted-foreground mb-2">{wcagError.description}</p>
+                                        <div className="flex gap-4 text-xs text-muted-foreground">
+                                          <span>Level: {wcagError.level}</span>
+                                          <span>Impact: {wcagError.impact}</span>
+                                        </div>
+                                      </div>
+                                    ) : null;
+                                  })()}
+
+                                  {/* Betroffene Elemente */}
+                                  <div className="p-4 bg-muted rounded-lg">
+                                    <h4 className="font-semibold mb-2">Betroffene Elemente</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      {'elements' in item ? item.elements : item.elements} Elemente {isPositive ? 'erfolgreich geprüft' : 'betroffen'}
+                                    </p>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
                         </div>
-                      ))}
-                    </>
+                      </div>
+                    )
+                  })}
+                  
+                  {getFilteredResults().length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>Keine Ergebnisse für den gewählten Filter gefunden.</p>
+                    </div>
                   )}
                 </div>
               </CardContent>
@@ -840,41 +1005,61 @@ export default function AccessibilityCheckPage() {
             {/* Aktionen */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl">Bericht exportieren</CardTitle>
-                <CardDescription className="text-base">
-                  Laden Sie einen detaillierten Prüfbericht herunter
+                <CardTitle className="text-xl">Aktionen</CardTitle>
+                <CardDescription>
+                  Weitere Schritte und Exporte
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-4">
-                  <Button 
-                    className="text-base"
-                    onClick={handlePdfExport}
-                  >
-                    <DownloadIcon className="mr-2 h-4 w-4" />
-                    PDF-Bericht
+                <div className="grid gap-3 md:grid-cols-3">
+                  <Button variant="outline" onClick={handlePdfExport} className="justify-start h-auto p-4">
+                    <Download className="h-4 w-4 mr-2" />
+                    <div className="text-left">
+                      <div className="font-medium">PDF Export</div>
+                      <div className="text-xs text-muted-foreground">Detaillierter Bericht</div>
+                    </div>
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    className="text-base"
-                    onClick={handleCsvExport}
-                  >
-                    <DownloadIcon className="mr-2 h-4 w-4" />
-                    CSV-Export
+                  
+                  <Button variant="outline" onClick={handleCsvExport} className="justify-start h-auto p-4">
+                    <FileText className="h-4 w-4 mr-2" />
+                    <div className="text-left">
+                      <div className="font-medium">CSV Export</div>
+                      <div className="text-xs text-muted-foreground">Daten für Analyse</div>
+                    </div>
+                  </Button>
+                  
+                  <Button variant="outline" onClick={handleScan} disabled={isScanning} className="justify-start h-auto p-4">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    <div className="text-left">
+                      <div className="font-medium">Erneut scannen</div>
+                      <div className="text-xs text-muted-foreground">Aktualisierte Prüfung</div>
+                    </div>
                   </Button>
                 </div>
               </CardContent>
             </Card>
           </>
         )}
+
+        {/* Error Display */}
+        {error && (
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 text-red-600">
+                <AlertTriangle className="h-4 w-4" />
+                <p className="text-sm">{error}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* First Scan Disclaimer */}
+        <FirstScanDisclaimer
+          open={disclaimerOpen}
+          onClose={() => setDisclaimerOpen(false)}
+          onAccept={handleDisclaimerAccept}
+        />
       </main>
-      
-      {/* Disclaimer für ersten Scan */}
-      <FirstScanDisclaimer
-        open={disclaimerOpen}
-        onClose={() => setDisclaimerOpen(false)}
-        onAccept={handleDisclaimerAccept}
-      />
     </SidebarInset>
   )
 }

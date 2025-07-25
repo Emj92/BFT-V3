@@ -60,52 +60,60 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
     }
 
+    // Hole vollständige User-Daten für Credits
+    const fullUser = await prisma.user.findUnique({
+      where: { id: user.id }
+    })
+
+    if (!fullUser) {
+      return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 })
+    }
+
     const { action } = await request.json()
 
     if (action === 'use') {
-      // Hole aktuelle Generation-Anzahl
-      const generationRecord = await prisma.bfeGeneration.findFirst({
-        where: { userId: user.id },
-        orderBy: { createdAt: 'desc' }
-      })
-
-      const currentGenerations = generationRecord?.generationsUsed || 0
-      const limit = GENERATION_LIMITS[user.bundle as keyof typeof GENERATION_LIMITS] || GENERATION_LIMITS.FREE
-
-      if (currentGenerations >= limit) {
-        return NextResponse.json({ error: 'Generation-Limit erreicht' }, { status: 400 })
+      // Prüfe Credits (3 Credits für BFE Generator)
+      if (fullUser.credits < 3) {
+        return NextResponse.json({ 
+          error: 'Nicht genügend Credits',
+          message: 'Sie benötigen 3 Credits für die BFE-Generierung.',
+          creditsRequired: 3,
+          creditsAvailable: fullUser.credits
+        }, { status: 402 })
       }
 
-      // Erstelle oder aktualisiere Generation-Record
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-
-      const existingRecord = await prisma.bfeGeneration.findFirst({
-        where: {
-          userId: user.id,
-          createdAt: {
-            gte: today
-          }
+      // Credits abziehen
+      await prisma.user.update({
+        where: { id: fullUser.id },
+        data: {
+          credits: fullUser.credits - 3
         }
       })
 
-      if (existingRecord) {
-        // Aktualisiere bestehenden Record
-        const updated = await prisma.bfeGeneration.update({
-          where: { id: existingRecord.id },
-          data: { generationsUsed: existingRecord.generationsUsed + 1 }
-        })
-        return NextResponse.json({ generations: updated.generationsUsed })
-      } else {
-        // Erstelle neuen Record
-        const newRecord = await prisma.bfeGeneration.create({
-          data: {
-            userId: user.id,
-            generationsUsed: 1
-          }
-        })
-        return NextResponse.json({ generations: newRecord.generationsUsed })
-      }
+      // Credit-Transaktion protokollieren
+      await prisma.creditTransaction.create({
+        data: {
+          userId: fullUser.id,
+          amount: -3,
+          type: 'REPORT',
+          description: 'BFE-Generator - Barrierefreiheitserklärung erstellt'
+        }
+      })
+
+      // Erstelle BFE Generation Record
+      const newRecord = await prisma.bfeGeneration.create({
+        data: {
+          userId: fullUser.id,
+          generationsUsed: 1
+        }
+      })
+
+      return NextResponse.json({ 
+        success: true,
+        creditsUsed: 3,
+        creditsRemaining: fullUser.credits - 3,
+        generations: newRecord.generationsUsed 
+      })
     }
 
     if (action === 'reset') {

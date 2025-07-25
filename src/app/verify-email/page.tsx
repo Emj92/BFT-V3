@@ -1,103 +1,151 @@
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useEffect, useState, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react'
 import Link from 'next/link'
 
 export default function VerifyEmailPage() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
+  
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
-
+  const [countdown, setCountdown] = useState(3)
+  const hasAttemptedVerification = useRef(false)
+  
   useEffect(() => {
     if (!token) {
       setStatus('error')
-      setMessage('Bestätigungstoken fehlt')
+      setMessage('Kein Bestätigungstoken gefunden')
       return
     }
-
+    
+    // Verhindere mehrfache Ausführung
+    if (hasAttemptedVerification.current) return
+    hasAttemptedVerification.current = true
+    
     const verifyEmail = async () => {
       try {
-        const response = await fetch(`/api/auth/verify-email?token=${token}`)
+        console.log('Starte E-Mail-Verifizierung...') // Debug log
+        
+        const response = await fetch(`/api/auth/verify-email?token=${token}`, {
+          method: 'GET',
+          cache: 'no-cache'
+        })
         const data = await response.json()
-
-        if (response.ok) {
+        
+        console.log('Verifizierung Response:', { 
+          status: response.status, 
+          success: data.success, 
+          data 
+        }) // Debug log
+        
+        if (response.ok && data.success) {
           setStatus('success')
-          setMessage(data.message)
+          setMessage(data.message || 'E-Mail erfolgreich bestätigt! Sie sind jetzt angemeldet.')
+          
+          // Countdown für automatische Weiterleitung
+          const timer = setInterval(() => {
+            setCountdown((prev) => {
+              if (prev <= 1) {
+                clearInterval(timer)
+                console.log('Weiterleitung zum Dashboard...') // Debug log
+                router.push('/dashboard')
+                return 0
+              }
+              return prev - 1
+            })
+          }, 1000)
+          
+          return () => clearInterval(timer)
         } else {
+          console.error('Verifizierung fehlgeschlagen:', data) // Debug log
           setStatus('error')
-          setMessage(data.error || 'Bestätigung fehlgeschlagen')
+          setMessage(data.error || 'Fehler bei der E-Mail-Bestätigung')
         }
       } catch (error) {
+        console.error('Netzwerk-Fehler bei Verifizierung:', error) // Debug log
         setStatus('error')
-        setMessage('Fehler bei der Bestätigung')
+        setMessage('Netzwerkfehler. Bitte versuchen Sie es später erneut.')
       }
     }
-
+    
     verifyEmail()
-  }, [token])
-
+  }, [token, router])
+  
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="flex items-center justify-center gap-2">
-              {status === 'loading' && <Loader2 className="h-6 w-6 animate-spin" />}
-              {status === 'success' && <CheckCircle className="h-6 w-6 text-green-500" />}
-              {status === 'error' && <XCircle className="h-6 w-6 text-red-500" />}
-              E-Mail-Bestätigung
-            </CardTitle>
-            <CardDescription>
-              {status === 'loading' && 'Ihre E-Mail wird bestätigt...'}
-              {status === 'success' && 'E-Mail erfolgreich bestätigt'}
-              {status === 'error' && 'Bestätigung fehlgeschlagen'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="mb-6 text-sm text-gray-600">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-4">
+            {status === 'loading' && <Loader2 className="h-12 w-12 animate-spin text-blue-500" />}
+            {status === 'success' && <CheckCircle className="h-12 w-12 text-green-500" />}
+            {status === 'error' && <XCircle className="h-12 w-12 text-red-500" />}
+          </div>
+          <CardTitle>
+            {status === 'loading' && 'E-Mail wird bestätigt...'}
+            {status === 'success' && 'E-Mail bestätigt!'}
+            {status === 'error' && 'Fehler bei der Bestätigung'}
+          </CardTitle>
+          <CardDescription>
+            {status === 'loading' && 'Bitte warten Sie einen Moment'}
+            {status === 'success' && `Sie werden in ${countdown} Sekunden automatisch weitergeleitet`}
+            {status === 'error' && 'Es gab ein Problem mit der E-Mail-Bestätigung'}
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          <Alert>
+            <Mail className="h-4 w-4" />
+            <AlertDescription>
               {message}
-            </p>
-            
-            {status === 'success' && (
-              <div className="space-y-3">
-                <p className="text-sm text-green-600">
-                  Sie können sich jetzt anmelden und alle Funktionen nutzen.
-                </p>
-                <Link href="/login">
-                  <Button className="w-full">
-                    Zur Anmeldung
-                  </Button>
+            </AlertDescription>
+          </Alert>
+          
+          {status === 'success' && (
+            <div className="text-center space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Sie sind jetzt angemeldet und werden automatisch weitergeleitet.
+              </p>
+              <Button asChild className="w-full">
+                <Link href="/dashboard">
+                  Jetzt zum Dashboard
                 </Link>
-              </div>
-            )}
-            
-            {status === 'error' && (
-              <div className="space-y-3">
-                <p className="text-sm text-red-600">
-                  Bitte kontaktieren Sie den Support oder versuchen Sie sich erneut zu registrieren.
-                </p>
-                <div className="flex gap-2">
-                  <Link href="/register" className="flex-1">
-                    <Button variant="outline" className="w-full">
-                      Neu registrieren
-                    </Button>
-                  </Link>
-                  <Link href="/support" className="flex-1">
-                    <Button variant="outline" className="w-full">
-                      Support
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              </Button>
+            </div>
+          )}
+          
+          {status === 'error' && (
+            <div className="text-center space-y-2">
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/register">
+                  Neue Registrierung
+                </Link>
+              </Button>
+              <Button asChild className="w-full">
+                <Link href="/login">
+                  Zum Login
+                </Link>
+              </Button>
+            </div>
+          )}
+          
+          {status === 'loading' && (
+            <div className="text-center">
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/">
+                  Zur Startseite
+                </Link>
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 } 

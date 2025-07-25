@@ -26,7 +26,10 @@ export async function GET(request: NextRequest) {
         id: true,
         name: true,
         email: true,
-        role: true
+        role: true,
+        credits: true,
+        bundle: true,
+        bundlePurchasedAt: true
       }
     })
 
@@ -34,15 +37,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 })
     }
 
-    // Temporäre Bundle-Informationen
-    const bundleInfo = getBundleInfo('PRO')
+    // Echte Bundle-Informationen
+    const bundleInfo = getBundleInfo(user.bundle || 'FREE')
 
     return NextResponse.json({
       success: true,
-      credits: 25,
-      bundle: 'PRO',
+      credits: user.credits || 0,
+      bundle: user.bundle || 'FREE',
       bundleInfo,
-      bundlePurchasedAt: new Date()
+      bundlePurchasedAt: user.bundlePurchasedAt
     })
 
   } catch (error) {
@@ -54,12 +57,19 @@ export async function GET(request: NextRequest) {
 // Bundle-Informationen
 function getBundleInfo(bundleType: string) {
   const bundles = {
-    STARTER: {
-      name: 'Starter',
+    FREE: {
+      name: 'Free',
       credits: 10,
       maxWebsites: 1,
-      price: 18,
-      pricePerScan: 1.80
+      price: 0,
+      pricePerScan: 0
+    },
+    STARTER: {
+      name: 'Starter',
+      credits: 50,
+      maxWebsites: 3,
+      price: 9,
+      pricePerScan: 0.18
     },
     PRO: {
       name: 'Pro',
@@ -84,5 +94,5 @@ function getBundleInfo(bundleType: string) {
     }
   }
   
-  return bundles[bundleType as keyof typeof bundles] || bundles.STARTER
+  return bundles[bundleType as keyof typeof bundles] || bundles.FREE
 }

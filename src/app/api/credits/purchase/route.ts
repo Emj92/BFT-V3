@@ -1,26 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
-
-// Simuliere Prisma für Demo-Zwecke
-const prisma = {
-  user: {
-    findUnique: async (options: any) => {
-      // Demo-Benutzer
-      return { id: options.where.id, credits: 100 };
-    },
-    update: async (options: any) => {
-      // Demo-Update
-      return { id: options.where.id, credits: 100 };
-    }
-  },
-  creditPurchase: {
-    create: async (data: any) => {
-      // Demo-Kauf
-      return { id: 'demo-purchase-id', ...data.data };
-    }
-  }
-};
+import { prisma } from '@/lib/prisma';
 
 // Credit-Pakete
 const CREDIT_PACKAGES = {
@@ -84,38 +65,11 @@ export async function POST(request: NextRequest) {
 
     const selectedPackage = CREDIT_PACKAGES[packageType as keyof typeof CREDIT_PACKAGES];
     
-    // Hier würde normalerweise die Stripe-Integration stattfinden
-    // Für Demo-Zwecke simulieren wir den Kauf
-    
-    // Credits zur Datenbank hinzufügen
-    const creditPurchase = await prisma.creditPurchase.create({
-      data: {
-        userId,
-        packageType,
-        packageName: selectedPackage.name,
-        price: selectedPackage.price,
-        credits: selectedPackage.credits,
-        status: 'completed',
-        createdAt: new Date()
-      }
-    });
-
-    // Benutzer-Credits aktualisieren
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        credits: {
-          increment: selectedPackage.credits.scans + selectedPackage.credits.wcagSessions + selectedPackage.credits.bfeGenerations
-        }
-      }
-    });
-
+    // TODO: Echte Stripe-Integration implementieren
+    // Für jetzt kehren wir einen Fehler zurück, da dies noch nicht implementiert ist
     return NextResponse.json({ 
-      success: true,
-      purchase: creditPurchase,
-      message: `Sie haben das ${selectedPackage.name} erfolgreich gekauft!`,
-      creditsAdded: selectedPackage.credits
-    });
+      error: 'Credit-Käufe sind derzeit nicht verfügbar. Diese Funktion wird bald aktiviert.' 
+    }, { status: 501 });
 
   } catch (error) {
     console.error('Credits Purchase API Error:', error);

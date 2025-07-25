@@ -32,9 +32,16 @@ model User {
   emailTokenExpiry DateTime?
   
   // Credit System
-  credits       Int       @default(1) // Erster Scan kostenlos
-  bundle        BundleType    @default(STARTER)
+  credits       Int       @default(5) // Free User bekommen 5 Credits zum Start
+  bundle        BundleType    @default(FREE)
   bundlePurchasedAt DateTime?
+  
+  // Team-System für Enterprise
+  teamId        String?   // Verweis auf Team (nur für Enterprise)
+  isTeamOwner   Boolean   @default(false) // Ist der Hauptbenutzer des Teams
+  team          Team?     @relation(fields: [teamId], references: [id])
+  sentTeamInvitations TeamInvitation[] @relation("InvitationSender")
+  receivedTeamInvitations TeamInvitation[] @relation("InvitationReceiver")
   
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -60,6 +67,7 @@ enum Role {
 
 // Bundle-Typen
 enum BundleType {
+  FREE
   STARTER
   PRO
   ENTERPRISE
@@ -367,4 +375,58 @@ model BfeGeneration {
   content     Json      // Generierte Inhalte
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+// Team-Modell für Enterprise-Nutzer
+model Team {
+  id          String    @id @default(cuid())
+  name        String    // Team-Name
+  description String?   // Optional: Team-Beschreibung
+  
+  // Team-Limits
+  maxMembers  Int       @default(3) // Standard: Hauptnutzer + 2 zusätzliche
+  currentMembers Int    @default(1) // Aktuell: nur Hauptnutzer
+  
+  // Geteilte Ressourcen
+  sharedCredits Int     @default(0) // Credits die das ganze Team nutzen kann
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Beziehungen
+  members     User[]
+  invitations TeamInvitation[]
+}
+
+// Team-Einladungen
+model TeamInvitation {
+  id          String    @id @default(cuid())
+  
+  // Einladungsdetails
+  email       String    // E-Mail des eingeladenen Benutzers
+  message     String?   // Optional: Persönliche Nachricht
+  status      InvitationStatus @default(PENDING)
+  
+  // Beziehungen
+  team        Team      @relation(fields: [teamId], references: [id])
+  teamId      String
+  sender      User      @relation(fields: [senderId], references: [id], name: "InvitationSender")
+  senderId    String
+  receiver    User?     @relation(fields: [receiverId], references: [id], name: "InvitationReceiver")
+  receiverId  String?   // Null wenn Benutzer noch nicht registriert
+  
+  // Metadaten
+  expiresAt   DateTime  // Einladung läuft ab
+  acceptedAt  DateTime? // Wann wurde die Einladung angenommen
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Status für Team-Einladungen
+enum InvitationStatus {
+  PENDING    // Wartet auf Antwort
+  ACCEPTED   // Angenommen
+  DECLINED   // Abgelehnt
+  EXPIRED    // Abgelaufen
+  CANCELLED  // Vom Sender storniert
 }

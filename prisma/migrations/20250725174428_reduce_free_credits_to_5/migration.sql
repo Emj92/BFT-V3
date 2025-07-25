@@ -1,0 +1,6 @@
+-- AlterEnum
+ALTER TYPE "BundleType" ADD VALUE 'FREE';
+
+-- AlterTable
+ALTER TABLE "User" ALTER COLUMN "bundle" SET DEFAULT 'FREE',
+ALTER COLUMN "credits" SET DEFAULT 5;

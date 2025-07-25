@@ -78,7 +78,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, email, role, firstName, lastName, credits, password } = body
+    const { name, email, role, firstName, lastName, credits, password, bundle } = body
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 })
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Create new user
+    // Create new user with proper defaults
     const newUser = await prisma.user.create({
       data: {
         email,
@@ -108,8 +108,10 @@ export async function POST(request: NextRequest) {
         firstName,
         lastName,
         role: role || 'USER',
-        credits: credits || 1, // Use provided credits or default to 1
-        password: hashedPassword
+        credits: credits || 5, // FREE users get 5 credits by default
+        bundle: bundle || 'FREE', // Default to FREE bundle
+        password: hashedPassword,
+        emailVerified: true // Admin-created users are pre-verified
       },
       select: {
         id: true,
@@ -119,6 +121,7 @@ export async function POST(request: NextRequest) {
         lastName: true,
         role: true,
         credits: true,
+        bundle: true,
         createdAt: true
       }
     })
@@ -133,7 +136,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, name, email, role } = body
+    const { id, name, email, role, credits } = body
 
     if (!id) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
@@ -147,19 +150,23 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
+    // Prepare update data
+    const updateData: any = {}
+    if (name !== undefined) updateData.name = name
+    if (email !== undefined) updateData.email = email
+    if (role !== undefined) updateData.role = role
+    if (credits !== undefined) updateData.credits = credits
+
     // Update user
     const updatedUser = await prisma.user.update({
       where: { id },
-      data: {
-        name,
-        email,
-        role
-      },
+      data: updateData,
       select: {
         id: true,
         email: true,
         name: true,
-        role: true
+        role: true,
+        credits: true
       }
     })
 
@@ -187,12 +194,92 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Remove user from database
+    // CASCADE DELETE: Alle verknüpften Datensätze löschen
+    console.log(`Beginne Cascade Delete für User ${id}`)
+    
+    // 1. Alle Issues von Scans dieses Users löschen
+    const userScans = await prisma.scan.findMany({
+      where: { userId: id },
+      select: { id: true }
+    })
+    
+    for (const scan of userScans) {
+      await prisma.issue.deleteMany({
+        where: { scanId: scan.id }
+      })
+    }
+
+    // 2. Alle Scans dieses Users löschen
+    await prisma.scan.deleteMany({
+      where: { userId: id }
+    })
+
+    // 3. Alle Projekte dieses Users löschen (mit deren Websites und Pages)
+    const userProjects = await prisma.project.findMany({
+      where: { ownerId: id },
+      include: {
+        websites: {
+          include: {
+            pages: true
+          }
+        }
+      }
+    })
+
+    for (const project of userProjects) {
+      for (const website of project.websites) {
+        // Pages löschen
+        await prisma.page.deleteMany({
+          where: { websiteId: website.id }
+        })
+      }
+      // Websites löschen
+      await prisma.website.deleteMany({
+        where: { projectId: project.id }
+      })
+    }
+    
+    // Projekte löschen
+    await prisma.project.deleteMany({
+      where: { ownerId: id }
+    })
+
+    // 4. Alle anderen verknüpften Datensätze löschen
+    await prisma.creditTransaction.deleteMany({
+      where: { userId: id }
+    })
+
+    await prisma.report.deleteMany({
+      where: { userId: id }
+    })
+
+    await prisma.notificationRead.deleteMany({
+      where: { userId: id }
+    })
+
+    await prisma.ticketMessage.deleteMany({
+      where: { userId: id }
+    })
+
+    await prisma.supportTicket.deleteMany({
+      where: { userId: id }
+    })
+
+    await prisma.wcagSession.deleteMany({
+      where: { userId: id }
+    })
+
+    await prisma.bfeGeneration.deleteMany({
+      where: { userId: id }
+    })
+
+    // 5. Endlich den User löschen
     await prisma.user.delete({
       where: { id }
     })
 
-    return NextResponse.json({ message: 'User deleted successfully' })
+    console.log(`Cascade Delete für User ${id} erfolgreich abgeschlossen`)
+    return NextResponse.json({ message: 'User and all related data deleted successfully' })
   } catch (error) {
     console.error('Error deleting user:', error)
     return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 })

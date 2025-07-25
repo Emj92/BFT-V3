@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 
 interface BundleInfo {
-  bundle: 'STARTER' | 'PRO' | 'ENTERPRISE'
+  bundle: 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE'
   bundlePurchasedAt: string | null
   credits: number
   isProActive: boolean

@@ -10,7 +10,6 @@ import { SidebarInset } from "@/components/ui/sidebar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useWebsites } from "@/hooks/useWebsites"
-import { PDFReportGenerator } from "@/lib/pdf-generator"
 import { 
   FileText, 
   Download, 
@@ -202,90 +201,47 @@ export default function BerichtePage() {
   // Funktion zum Herunterladen als PDF
   const handleDownloadPDF = async (report: any) => {
     try {
-      // Erstelle Mock-ScanResult für PDF-Generator
-      const mockScanResult = {
-        url: report.websiteUrl,
-        timestamp: new Date().toISOString(),
-        score: report.score / 100, // PDFGenerator erwartet 0-1 Range
-        violations: Array.from({ length: Math.min(report.issues, 5) }, (_, i) => ({
-          id: `mock-violation-${i + 1}`,
-          impact: i < 2 ? 'critical' : i < 4 ? 'serious' : 'moderate',
-          description: `Beispiel-Barrierefreiheitsproblem ${i + 1}`,
-          help: `Lösungshinweise für Problem ${i + 1}`,
-          nodes: [{ target: [`#element-${i + 1}`] }]
-        })),
-        passes: Array.from({ length: 5 }, (_, i) => ({
-          id: `mock-pass-${i + 1}`,
-          description: `Erfolgreich bestandener Test ${i + 1}`,
-          nodes: [{ target: [`#element-pass-${i + 1}`] }]
-        })),
-        incomplete: Array.from({ length: 2 }, (_, i) => ({
-          id: `mock-incomplete-${i + 1}`,
-          description: `Manuelle Prüfung erforderlich ${i + 1}`,
-          nodes: [{ target: [`#element-incomplete-${i + 1}`] }]
-        })),
-        inapplicable: [],
-        summary: {
-          violations: Math.min(report.issues, 5),
-          passes: 5,
-          incomplete: 2,
-          inapplicable: 0
-        },
-        wcagViolations: {
-          a: Math.floor(report.issues * 0.4),
-          aa: Math.floor(report.issues * 0.4),
-          aaa: Math.floor(report.issues * 0.2)
-        },
-        bitvViolations: Math.floor(report.issues * 0.3),
-        technicalChecks: {
-          altTexts: report.score >= 80,
-          semanticHtml: report.score >= 75,
-          keyboardNavigation: report.score >= 85,
-          focusVisible: report.score >= 90,
-          colorContrast: report.score >= 70,
-          ariaRoles: report.score >= 80,
-          formLabels: report.score >= 85,
-          autoplayVideos: true,
-          documentLanguage: true,
-          blinkElements: true,
-          headingStructure: report.score >= 75
-        },
-        detailedResults: {
-          totalElements: report.pages * 100,
-          testedElements: report.pages * 90,
-          accessibleElements: report.pages * Math.floor(report.score * 0.9),
-          violations: report.issues
-        }
-      }
-
-      // PDF-Generator-Optionen
-      const options = {
-        includeViolations: true,
-        includePasses: true,
-        includeIncomplete: true,
-        includeRecommendations: true,
-        companyName: "Barrierefreiheits-Prüfung",
-        reportTitle: report.title,
-        customFooter: "Generiert mit BFE Tool"
-      }
-
-      // Erstelle PDF
-      const pdfGenerator = new PDFReportGenerator()
-      const pdfBuffer = await pdfGenerator.generateReport(mockScanResult, options)
+      // Einfacher Fallback ohne PDF-Generator da jspdf Module nicht verfügbar
+      alert(`PDF-Download für "${report.title}" wird vorbereitet.\n\nDieser Bericht würde folgende Informationen enthalten:\n- Website: ${report.websiteName}\n- Score: ${report.score}%\n- Probleme: ${report.issues}\n- Seiten: ${report.pages}`)
       
-      // Erstelle Download
-      const blob = new Blob([pdfBuffer], { type: 'application/pdf' })
+      // Simpler Text-Download als Fallback
+      const reportText = `
+BARRIEREFREIHEITS-BERICHT
+========================
+
+Titel: ${report.title}
+Website: ${report.websiteName}
+URL: ${report.websiteUrl}
+Datum: ${report.date}
+Score: ${report.score}%
+Analysierte Seiten: ${report.pages}
+Gefundene Probleme: ${report.issues}
+Status: ${report.status}
+
+Beschreibung:
+${report.description}
+
+Empfehlungen:
+- Überprüfung der Farbkontraste
+- Optimierung der Tastaturnavigation
+- Verbesserung der Alt-Texte für Bilder
+- Sicherstellung der Screenreader-Kompatibilität
+
+Dieser Bericht wurde automatisch generiert.
+      `
+      
+      const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${report.title.replace(/\s+/g, '_')}.pdf`
+      a.download = `${report.title.replace(/\s+/g, '_')}_Bericht.txt`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch (error) {
-      console.error('PDF-Erstellung fehlgeschlagen:', error)
-      alert('Fehler beim Erstellen der PDF-Datei. Bitte versuchen Sie es erneut.')
+      console.error('Download fehlgeschlagen:', error)
+      alert('Fehler beim Herunterladen des Berichts. Bitte versuchen Sie es erneut.')
     }
   }
 

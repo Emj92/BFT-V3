@@ -99,6 +99,33 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
+    // Prüfe 1-Ticket-pro-Tag-Limit (außer für ENTERPRISE)
+    if (user.bundle !== 'ENTERPRISE') {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const tomorrow = new Date(today)
+      tomorrow.setDate(today.getDate() + 1)
+
+      const ticketsToday = await prisma.supportTicket.count({
+        where: {
+          userId: user.id,
+          createdAt: {
+            gte: today,
+            lt: tomorrow
+          }
+        }
+      })
+
+      if (ticketsToday >= 1) {
+        return NextResponse.json({ 
+          error: 'Tägliches Ticket-Limit erreicht',
+          message: 'Sie können nur 1 Ticket pro Tag erstellen. Für unbegrenzte Tickets upgraden Sie auf das ENTERPRISE-Paket.',
+          currentBundle: user.bundle,
+          upgradeAvailable: true
+        }, { status: 429 })
+      }
+    }
+
     // Erstelle neues Ticket in der Datenbank
     const newTicket = await prisma.supportTicket.create({
       data: {

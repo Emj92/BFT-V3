@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     // Für Admins: Setze Bundle auf PRO falls noch kein Bundle gesetzt
     const effectiveBundle = isAdmin && !user.bundle 
       ? BundleType.PRO 
-      : (user.bundle || BundleType.STARTER)
+      : (user.bundle || BundleType.FREE)
 
     return NextResponse.json({
       bundle: effectiveBundle,

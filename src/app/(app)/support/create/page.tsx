@@ -110,38 +110,35 @@ export default function CreateTicketPage() {
       <SidebarInset>
         <GlobalNavigation title="Support-Ticket erstellen" />
         <main className="flex flex-1 flex-col gap-6 p-6 md:gap-8 md:p-8">
-          <Card>
+          {/* Gelber Hinweis für FREE Nutzer */}
+          <Card className="border-yellow-500 bg-yellow-50">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Lock className="h-5 w-5" />
-                Ticket-Erstellung nicht verfügbar
+              <CardTitle className="flex items-center gap-2 text-yellow-700">
+                <Crown className="h-5 w-5" />
+                Support-Tickets ab STARTER-Paket
               </CardTitle>
-              <CardDescription>
-                Support-Tickets sind nur für bezahlte Pakete verfügbar
+              <CardDescription className="text-yellow-600">
+                Premium Support ist ressourcentechnisch nur ab dem STARTER-Paket verfügbar
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <Crown className="mx-auto h-16 w-16 text-yellow-500 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  Upgraden Sie zu einem bezahlten Paket
-                </h3>
-                <p className="text-muted-foreground mb-6">
-                  Um Support-Tickets zu erstellen, benötigen Sie mindestens das STARTER-Paket. 
-                  Bezahlte Pakete erhalten priorisierten E-Mail-Support.
+              <div className="text-center py-4">
+                <p className="text-yellow-700 mb-4">
+                  Um Support-Tickets zu erstellen und professionelle Hilfe von echten Menschen zu erhalten, 
+                  benötigen Sie mindestens das STARTER-Paket.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button 
                     onClick={() => router.push("/einstellungen")}
-                    className="h-12"
+                    className="h-12 bg-yellow-600 hover:bg-yellow-700"
                   >
                     <Crown className="mr-2 h-4 w-4" />
-                    Jetzt upgraden
+                    Jetzt auf STARTER upgraden
                   </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => router.push("/support/faq")}
-                    className="h-12"
+                    className="h-12 border-yellow-500 text-yellow-700 hover:bg-yellow-50"
                   >
                     FAQ ansehen
                   </Button>
@@ -164,16 +161,29 @@ export default function CreateTicketPage() {
             <CardTitle className="flex items-center gap-2 text-xl">
               <MessageSquare className="h-5 w-5" />
               Neues Support-Ticket
-              <div className="flex items-center gap-2 ml-auto">
-                <Crown className="h-4 w-4 text-yellow-500" />
-                <span className="text-sm font-medium text-yellow-600">
-                  {bundleInfo?.name || 'STARTER'}+ Paket
-                </span>
-              </div>
             </CardTitle>
             <CardDescription className="text-base">
-              Beschreiben Sie Ihr Problem oder Ihre Frage so detailliert wie möglich
+              Beschreiben Sie Ihr Problem oder Ihre Frage so detailliert wie möglich. 
+              Ihr Ticket wird von einem echten Menschen und Barrierefreiheits-Profi beantwortet.
             </CardDescription>
+            
+            {/* Ticket-Limit Info */}
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2 text-blue-700 text-sm">
+                <MessageSquare className="h-4 w-4" />
+                <span className="font-medium">
+                  {bundleInfo?.id === 'ENTERPRISE' 
+                    ? 'Unbegrenzte Tickets für ENTERPRISE-Nutzer' 
+                    : bundleInfo?.id === 'FREE'
+                      ? 'STARTER-Paket oder höher erforderlich'
+                      : 'Limit: 1 Ticket pro Tag (außer ENTERPRISE-Paket)'
+                  }
+                </span>
+              </div>
+              <p className="text-blue-600 text-xs mt-1">
+                Jedes Ticket wird persönlich von einem Experten bearbeitet und erhält eine qualifizierte Antwort.
+              </p>
+            </div>
           </CardHeader>
           <CardContent className="relative">
             <form onSubmit={handleSubmit} className="space-y-6">

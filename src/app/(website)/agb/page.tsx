@@ -147,7 +147,7 @@ export default function AGBPage() {
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-3">§ 7 Nutzungsbedingungen</h3>
+              <h3 className="text-lg font-semibold mb-3">§ 7 Nutzungsbedingungen und Missbrauchsschutz</h3>
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
                   Der Kunde verpflichtet sich, die Plattform nur für rechtmäßige Zwecke zu nutzen. 
@@ -158,12 +158,65 @@ export default function AGBPage() {
                   <li>Das Scannen von Websites ohne entsprechende Berechtigung</li>
                   <li>Der Missbrauch der Plattform für illegale Aktivitäten</li>
                   <li>Das Reverse Engineering oder der Versuch, die Software zu dekompilieren</li>
+                  <li>Der Verkauf, die Übertragung oder anderweitige Veräußerung von Credits oder Account-Zugängen</li>
+                  <li>Die Erstellung mehrerer Accounts zur Umgehung von Limits oder Nutzungsbeschränkungen</li>
+                  <li>Der Missbrauch von kostenlosen Testversionen oder Trials</li>
+                  <li>Das automatisierte Erstellen von Accounts oder die Nutzung von Bots</li>
+                  <li>Die Manipulation oder der Betrug bei Zahlungsprozessen</li>
+                  <li>Chargeback-Betrug oder unberechtigte Rückbuchungen nach erfolgter Leistungserbringung</li>
                 </ul>
+                
+                <p className="text-sm text-muted-foreground">
+                  <strong>Betrugs- und Missbrauchsschutz:</strong>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Bei Verdacht auf Betrug, Missbrauch oder Verstößen gegen diese Nutzungsbedingungen behält sich 
+                  der Anbieter das Recht vor, folgende Maßnahmen zu ergreifen:
+                </p>
+                <ul className="text-sm text-muted-foreground list-disc ml-6 space-y-1">
+                  <li>Sofortige Sperrung des Accounts ohne vorherige Ankündigung</li>
+                  <li>Fristlose Kündigung des Vertrages ohne Rückerstattung bereits gezahlter Beträge</li>
+                  <li>Einbehaltung aller Credits und Guthaben ohne Entschädigung</li>
+                  <li>Rechtliche Verfolgung und Schadensersatzforderungen</li>
+                  <li>Meldung an entsprechende Behörden bei Verdacht auf strafbare Handlungen</li>
+                </ul>
+                
+                <p className="text-sm text-muted-foreground">
+                  Der Kunde trägt die volle Beweislast dafür, dass kein Missbrauch oder Betrug vorliegt. 
+                  Bei ungerechtfertigten Chargeback-Anfragen oder Rückbuchungen nach ordnungsgemäßer 
+                  Leistungserbringung wird eine Bearbeitungsgebühr von mindestens 25 Euro erhoben.
+                </p>
               </div>
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-3">§ 8 Datenschutz</h3>
+              <h3 className="text-lg font-semibold mb-3">§ 8 Account-Sicherheit und Monitoring</h3>
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Der Anbieter überwacht die Plattform aktiv auf verdächtige Aktivitäten, Missbrauch und 
+                  Sicherheitsverletzungen. Dies umfasst:
+                </p>
+                <ul className="text-sm text-muted-foreground list-disc ml-6 space-y-1">
+                  <li>Automatisierte Erkennung ungewöhnlicher Nutzungsmuster</li>
+                  <li>Überwachung von Zahlungsaktivitäten und Transaktionen</li>
+                  <li>Analyse von IP-Adressen und Geräteinformationen</li>
+                  <li>Prüfung auf Mehrfach-Accounts und koordinierte Aktivitäten</li>
+                </ul>
+                
+                <p className="text-sm text-muted-foreground">
+                  Der Kunde erklärt sich ausdrücklich mit diesem Monitoring einverstanden und erkennt an, 
+                  dass es zum Schutz der Plattform und aller Nutzer erforderlich ist.
+                </p>
+                
+                <p className="text-sm text-muted-foreground">
+                  Alle Nutzungsdaten können für Sicherheitszwecke gespeichert und zur Aufklärung von 
+                  Missbrauchsfällen verwendet werden.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold mb-3">§ 9 Datenschutz und Dateneinsicht</h3>
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
                   Die Verarbeitung personenbezogener Daten erfolgt gemäß der Datenschutzerklärung, 
@@ -172,11 +225,25 @@ export default function AGBPage() {
                 <p className="text-sm text-muted-foreground">
                   Der Anbieter verpflichtet sich, alle anwendbaren Datenschutzgesetze einzuhalten.
                 </p>
+                
+                <p className="text-sm text-muted-foreground">
+                  <strong>Erweiterte Dateneinsicht:</strong> Bei Verdacht auf Betrug, Missbrauch oder 
+                  Vertragsverletzungen behält sich der Anbieter das Recht vor, alle verfügbaren 
+                  Nutzungsdaten einzusehen, zu analysieren und für rechtliche Schritte zu verwenden. 
+                  Dies umfasst die vollständige Account-Historie, Zahlungsdaten, IP-Adressen, 
+                  Geräteinformationen und alle gespeicherten Logs.
+                </p>
+                
+                <p className="text-sm text-muted-foreground">
+                  Der Kunde erklärt sich ausdrücklich mit dieser erweiterten Dateneinsicht einverstanden 
+                  und erkennt an, dass sie zum Schutz der Plattform und zur Aufklärung von Rechtsverstößen 
+                  erforderlich ist.
+                </p>
               </div>
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-3">§ 9 Änderungen der AGB</h3>
+              <h3 className="text-lg font-semibold mb-3">§ 10 Änderungen der AGB</h3>
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
                   Der Anbieter behält sich vor, diese AGB bei Bedarf zu ändern. Änderungen werden 
@@ -190,7 +257,7 @@ export default function AGBPage() {
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold mb-3">§ 10 Schlussbestimmungen</h3>
+              <h3 className="text-lg font-semibold mb-3">§ 11 Schlussbestimmungen</h3>
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
                   Es gilt deutsches Recht unter Ausschluss des UN-Kaufrechts.
@@ -201,6 +268,10 @@ export default function AGBPage() {
                 <p className="text-sm text-muted-foreground">
                   Sollten einzelne Bestimmungen dieser AGB unwirksam sein, berührt dies die 
                   Wirksamkeit der übrigen Bestimmungen nicht.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Bei Widersprüchen zwischen diesen AGB und anderen Vereinbarungen haben diese AGB Vorrang, 
+                  sofern nicht ausdrücklich etwas anderes vereinbart wurde.
                 </p>
               </div>
             </div>
@@ -214,6 +285,21 @@ export default function AGBPage() {
                 Sie stellen keine vollständige Lösung dar und ersetzen nicht die manuelle Überprüfung durch 
                 Barrierefreiheits-Experten. Für eine rechtssichere Barrierefreiheit empfehlen wir zusätzliche 
                 professionelle Beratung.
+              </p>
+            </div>
+
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <h4 className="font-semibold text-red-800 dark:text-red-200 mb-2">
+                Wichtige Warnung: Betrug und Missbrauch
+              </h4>
+              <p className="text-sm text-red-700 dark:text-red-300 mb-2">
+                Jeder Versuch von Betrug, Missbrauch oder Manipulation führt zur sofortigen Account-Sperrung 
+                ohne Rückerstattung bereits gezahlter Beträge. Wir verfolgen alle Rechtsverstöße konsequent 
+                und arbeiten eng mit Strafverfolgungsbehörden zusammen.
+              </p>
+              <p className="text-sm text-red-700 dark:text-red-300">
+                Bei Chargeback-Betrug oder unberechtigten Rückbuchungen nach ordnungsgemäßer Leistungserbringung 
+                werden zusätzliche Bearbeitungsgebühren und rechtliche Schritte eingeleitet.
               </p>
             </div>
           </CardContent>

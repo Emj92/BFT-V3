@@ -17,15 +17,13 @@ import {
   Info,
   Zap,
   AlertCircle,
-  Crown
+  Crown,
+  CreditCard
 } from "lucide-react"
 import { getErrorByCode } from "@/lib/wcag-errors"
-import { useWcagSessions } from "@/hooks/useWcagSessions"
+import { useUser } from "@/hooks/useUser"
 import dynamic from 'next/dynamic'
 import { GlobalNavigation } from "@/components/global-navigation"
-
-// Dynamischer Import der Animation
-
 
 interface ChatMessage {
   id: string;
@@ -39,7 +37,7 @@ export default function WCAGCoachPage() {
     {
       id: '1',
       type: 'assistant',
-      content: '👋 Hallo! Ich bin Ihr persönlicher WCAG Coach und freue mich, Ihnen zu helfen! 🚀\n\n✨ **Gemeinsam machen wir Ihre Website barrierefrei!**\n\nUm Ihnen die bestmöglichen Lösungen zu geben, erzählen Sie mir gerne:\n\n🔧 **Welches System nutzen Sie?** (z.B. WordPress, Wix, Shopify)\n📝 **Welchen Editor verwenden Sie?** (z.B. Elementor, Divi, Gutenberg)\n⚠️ **Was ist das konkrete Problem?** (z.B. Kontrastfehler, fehlende Alt-Texte)\n\nJe detaillierter Sie mir beschreiben, was nicht funktioniert, desto gezielter kann ich Ihnen helfen! 💪',
+      content: '👋 Hallo! Ich bin Ihr persönlicher WCAG Coach und freue mich, Ihnen zu helfen! 🚀\n\n✨ **Gemeinsam machen wir Ihre Website barrierefrei!**\n\nUm Ihnen die bestmöglichen Lösungen zu geben, erzählen Sie mir gerne:\n\n🔧 **Welches System nutzen Sie?** (z.B. WordPress, Wix, Shopify)\n📝 **Welchen Editor verwenden Sie?** (z.B. Elementor, Divi, Gutenberg)\n⚠️ **Was ist das konkrete Problem?** (z.B. Kontrastfehler, fehlende Alt-Texte)\n\nJe detaillierter Sie mir beschreiben, was nicht funktioniert, desto gezielter kann ich Ihnen helfen! 💪\n\n**💳 Neue Preisstruktur:** 1 Credit pro Anfrage\n**📊 Ihr aktuelles Guthaben:** Wird oben rechts angezeigt\n**🔄 Credits aufladen:** Über Einstellungen > Credit-Pakete',
       timestamp: new Date()
     }
   ])
@@ -49,18 +47,10 @@ export default function WCAGCoachPage() {
   const [isClient, setIsClient] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
-  // Session-Management
-  const { 
-    sessions, 
-    sessionLimit, 
-    remainingSessions, 
-    hasSessionsLeft, 
-    useSession, 
-    bundleInfo,
-    loading: sessionsLoading 
-  } = useWcagSessions()
+  // User und Credits laden
+  const { user, loading: userLoading } = useUser()
 
-  // Client-Side-Renderingn für Hydration-Probleme
+  // Client-Side-Rendering für Hydration-Probleme
   useEffect(() => {
     setIsClient(true)
   }, [])
@@ -78,8 +68,8 @@ export default function WCAGCoachPage() {
     
     if (!chatInput.trim()) return
     
-    // Prüfe ob noch Sessions verfügbar sind
-    if (!hasSessionsLeft()) {
+    // Prüfe ob genügend Credits vorhanden sind
+    if (!user || user.credits < 1) {
       setShowUpgradeDialog(true)
       return
     }
@@ -96,10 +86,7 @@ export default function WCAGCoachPage() {
     setIsLoading(true)
 
     try {
-      // Verwende Session
-      await useSession()
-      
-      // Sende Nachricht an Claude API
+      // Sende Nachricht an WCAG Coach API
       const response = await fetch('/api/wcag-coach', {
         method: 'POST',
         headers: {
@@ -114,27 +101,37 @@ export default function WCAGCoachPage() {
       if (!response.ok) {
         const errorData = await response.json()
         
-        if (response.status === 429) {
-          // Rate-Limit erreicht
-          if (errorData.rateLimitExceeded) {
-            setShowUpgradeDialog(true)
-          }
-          throw new Error(errorData.message || 'Rate-Limit erreicht')
+        if (response.status === 402) {
+          // Nicht genügend Credits
+          setShowUpgradeDialog(true)
+          return
         }
         
-        throw new Error(errorData.message || 'Fehler beim Senden der Nachricht')
+        console.error('WCAG Coach API Error:', response.status, errorData)
+        throw new Error(errorData.message || errorData.error || 'Fehler beim Senden der Nachricht')
       }
 
       const data = await response.json()
+      console.log('WCAG Coach Response:', data)
+      
+      if (!data.response) {
+        console.error('Keine Response in Daten:', data)
+        throw new Error('Keine Antwort vom WCAG Coach erhalten')
+      }
       
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: data.message,
+        content: data.response,
         timestamp: new Date()
       }
 
       setChatMessages(prev => [...prev, assistantMessage])
+      
+      // User Credits aktualisieren
+      if (user && !data.fallback) {
+        user.credits = Math.max(0, user.credits - 1)
+      }
       
     } catch (error) {
       console.error('Fehler beim Senden der Nachricht:', error)
@@ -152,12 +149,6 @@ export default function WCAGCoachPage() {
     }
   }
 
-  const getSessionStatusColor = () => {
-    if (remainingSessions <= 0) return 'text-red-600'
-    if (remainingSessions <= 1) return 'text-orange-600'
-    return 'text-green-600'
-  }
-
   const formatTime = (date: Date) => {
     if (!isClient) return ''
     return date.toLocaleTimeString('de-DE', {
@@ -166,8 +157,8 @@ export default function WCAGCoachPage() {
     })
   }
 
-  // Lade-Indikator für Sessions
-  if (sessionsLoading) {
+  // Lade-Indikator für User
+  if (userLoading) {
     return (
       <SidebarInset>
         <GlobalNavigation title="WCAG Coach" />
@@ -187,13 +178,15 @@ export default function WCAGCoachPage() {
     )
   }
 
+  const hasCredits = user && user.credits >= 1
+
   return (
     <SidebarInset>
       <GlobalNavigation title="WCAG Coach" />
       
       <div className="flex h-full flex-col">
         <main className="flex flex-1 flex-col gap-6 p-6 relative">
-          {/* Session-Status */}
+          {/* Credit-Status */}
           <div className="flex items-center justify-between">
             <Alert>
               <Info className="h-4 w-4" />
@@ -206,15 +199,18 @@ export default function WCAGCoachPage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4" />
-                    <span className="text-sm font-medium">Sessions</span>
+                    <CreditCard className="h-4 w-4" />
+                    <span className="text-sm font-medium">Credits</span>
                   </div>
-                  <Badge variant="outline" className={getSessionStatusColor()}>
-                    {remainingSessions} / {sessionLimit}
+                  <Badge variant={hasCredits ? "default" : "destructive"}>
+                    {user?.credits || 0}
                   </Badge>
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  {bundleInfo?.bundle || 'FREE'} Paket
+                  1 Credit pro Anfrage
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {user?.bundle || 'FREE'} Paket
                 </div>
               </CardContent>
             </Card>
@@ -300,20 +296,20 @@ export default function WCAGCoachPage() {
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder="Beschreiben Sie Ihr Barrierefreiheitsproblem ausführlich..."
                   className="flex-1"
-                  disabled={isLoading || !hasSessionsLeft()}
+                  disabled={isLoading || !hasCredits}
                 />
                 <Button 
                   type="submit" 
-                  disabled={!chatInput.trim() || isLoading || !hasSessionsLeft()}
+                  disabled={!chatInput.trim() || isLoading || !hasCredits}
                 >
                   <Send className="h-4 w-4" />
                 </Button>
               </form>
               
-              {!hasSessionsLeft() && (
+              {!hasCredits && (
                 <div className="mt-2 text-center">
                   <p className="text-sm text-muted-foreground">
-                    Sie haben Ihr Session-Limit erreicht. Upgraden Sie auf ein höheres Paket für mehr Sessions.
+                    Sie benötigen Credits um den WCAG Coach zu nutzen. Kaufen Sie Credits oder upgraden Sie auf ein Paket.
                   </p>
                 </div>
               )}
@@ -328,28 +324,23 @@ export default function WCAGCoachPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Crown className="h-5 w-5 text-yellow-500" />
-              Session-Limit erreicht
+              Nicht genügend Credits
             </DialogTitle>
             <DialogDescription>
-              Sie haben Ihr monatliches Session-Limit erreicht. Upgraden Sie auf ein höheres Paket für mehr WCAG Coach Sessions.
+              Sie benötigen 1 Credit um den WCAG Coach zu nutzen. Kaufen Sie Credits oder upgraden Sie auf ein Paket für mehr Features.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="p-4 border rounded-lg">
-                <h4 className="font-semibold">FREE/STARTER</h4>
-                <p className="text-2xl font-bold text-green-600">3</p>
-                <p className="text-sm text-muted-foreground">Sessions/Monat</p>
+                <h4 className="font-semibold">Credits kaufen</h4>
+                <p className="text-sm text-muted-foreground">Flexible Bezahlung pro Nutzung</p>
+                <p className="text-xs text-muted-foreground mt-2">Ab 1,50€ pro Credit</p>
               </div>
               <div className="p-4 border rounded-lg bg-blue-50">
-                <h4 className="font-semibold">PRO</h4>
-                <p className="text-2xl font-bold text-blue-600">25</p>
-                <p className="text-sm text-muted-foreground">Sessions/Monat</p>
-              </div>
-              <div className="p-4 border rounded-lg bg-purple-50">
-                <h4 className="font-semibold">ENTERPRISE</h4>
-                <p className="text-2xl font-bold text-purple-600">50</p>
-                <p className="text-sm text-muted-foreground">Sessions/Monat</p>
+                <h4 className="font-semibold">Paket upgraden</h4>
+                <p className="text-sm text-muted-foreground">Monatliche Pakete mit vielen Features</p>
+                <p className="text-xs text-muted-foreground mt-2">Ab 9€/Monat</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -357,7 +348,7 @@ export default function WCAGCoachPage() {
                 Später
               </Button>
               <Button asChild>
-                <a href="/einstellungen">Paket upgraden</a>
+                <a href="/einstellungen">Credits & Pakete</a>
               </Button>
             </div>
           </div>

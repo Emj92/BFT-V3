@@ -4,11 +4,15 @@ import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useRouter, usePathname } from "next/navigation"
 import { ThemeSwitcher } from "@/components/theme-switcher"
+import { LanguageToggle } from "@/components/language-toggle"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ArrowLeft, LogOut } from "lucide-react"
 import { useUser } from "@/hooks/useUser"
 import { NotificationBell } from "@/components/notifications/notification-bell"
+import { TeamInvitationBell } from "@/components/notifications/team-invitation-bell"
+import { Separator } from "@/components/ui/separator"
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb"
 
 interface GlobalNavigationProps {
   title?: string
@@ -52,17 +56,64 @@ export function GlobalNavigation({ title = "Dashboard", subtitle }: GlobalNaviga
   }
 
   // Fallback während des Ladens
-  if (loading || !user) {
+  if (loading) {
     return (
       <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-6">
         <div className="flex flex-1 items-center gap-4">
           <div className="md:hidden">
             <SidebarTrigger />
           </div>
+          
+          {/* Back Button */}
+          {shouldShowBackButton && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleBack}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Zurück
+            </Button>
+          )}
+          
           <div className="flex-1"></div>
           <div className="flex items-center gap-2">
             <ThemeSwitcher />
+            <LanguageToggle />
             <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse" />
+          </div>
+        </div>
+      </header>
+    )
+  }
+
+  // Fallback wenn kein User (sollte trotzdem Navigation zeigen)
+  if (!user) {
+    return (
+      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-6">
+        <div className="flex flex-1 items-center gap-4">
+          <div className="md:hidden">
+            <SidebarTrigger />
+          </div>
+          
+          {/* Back Button */}
+          {shouldShowBackButton && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleBack}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Zurück
+            </Button>
+          )}
+          
+          <div className="flex-1"></div>
+          <div className="flex items-center gap-2">
+            <ThemeSwitcher />
+            <LanguageToggle />
           </div>
         </div>
       </header>
@@ -111,11 +162,15 @@ export function GlobalNavigation({ title = "Dashboard", subtitle }: GlobalNaviga
           
 
           
-          {/* Notification Bell */}
-          <NotificationBell />
+                      {/* Notification Bell */}
+            <TeamInvitationBell />
+            <NotificationBell />
           
           {/* Theme Switcher */}
           <ThemeSwitcher />
+          
+          {/* Language Toggle */}
+          <LanguageToggle />
           
           {/* User Avatar with Dropdown */}
           <DropdownMenu>

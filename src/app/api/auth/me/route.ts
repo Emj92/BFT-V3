@@ -57,36 +57,40 @@ export async function GET(req: NextRequest) {
     // Bundle-Informationen basierend auf dem Benutzer-Bundle
     const getBundleInfo = (bundleType: string) => {
       const bundles = {
-        STARTER: {
-          name: 'Starter',
-          credits: 1,
+        FREE: {
+          name: 'Free',
+          credits: 10,
           maxWebsites: 1,
           price: 0,
-          pricePerScan: 0
+          pricePerScan: 0,
+          hasProFeatures: false
         },
-        BASIC: {
-          name: 'Basic',
-          credits: 10,
-          maxWebsites: 3,
-          price: 29,
-          pricePerScan: 2.90
-        },
-        PROFESSIONAL: {
-          name: 'Professional',
+        STARTER: {
+          name: 'Starter',
           credits: 50,
+          maxWebsites: 3,
+          price: 9,
+          pricePerScan: 0.18,
+          hasProFeatures: true
+        },
+        PRO: {
+          name: 'Professional',
+          credits: 200,
           maxWebsites: 10,
-          price: 99,
-          pricePerScan: 1.98
+          price: 29,
+          pricePerScan: 0.145,
+          hasProFeatures: true
         },
         ENTERPRISE: {
           name: 'Enterprise',
-          credits: 200,
+          credits: 500,
           maxWebsites: 50,
-          price: 299,
-          pricePerScan: 1.50
+          price: 79,
+          pricePerScan: 0.158,
+          hasProFeatures: true
         }
       };
-      return bundles[bundleType as keyof typeof bundles] || bundles.STARTER;
+      return bundles[bundleType as keyof typeof bundles] || bundles.FREE;
     };
 
     const bundleInfo = getBundleInfo(user.bundle);

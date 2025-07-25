@@ -38,25 +38,71 @@ export interface ScanResult {
   errorCategories?: Record<string, any>;
 }
 
-// Einfache Chart-Komponente
+// Einfache Chart-Komponente mit verbessertem Kreisdiagramm
 function Chart({ score, level }: { score: number; level: string }) {
   const getColor = () => {
-    if (score >= 0.9) return "#22c55e" // Grün
-    if (score >= 0.7) return "#eab308" // Gelb
+    // Score ist zwischen 0-1, also für Farbberechnung * 100
+    const percentage = score * 100;
+    if (percentage >= 90) return "#22c55e" // Grün
+    if (percentage >= 70) return "#eab308" // Gelb
     return "#ef4444" // Rot
   }
 
+  const getColorClass = () => {
+    const percentage = score * 100;
+    if (percentage >= 90) return "text-green-500"
+    if (percentage >= 70) return "text-yellow-500"
+    return "text-red-500"
+  }
+
+  // SVG Kreisdiagramm
+  const radius = 80;
+  const strokeWidth = 8;
+  const normalizedRadius = radius - strokeWidth * 2;
+  const circumference = normalizedRadius * 2 * Math.PI;
+  const strokeDasharray = `${circumference} ${circumference}`;
+  const strokeDashoffset = circumference - (score * circumference);
+
   return (
     <div className="relative w-48 h-48 mx-auto">
-      <div 
-        className="w-full h-full rounded-full border-8 flex items-center justify-center"
-        style={{ borderColor: getColor(), backgroundColor: 'transparent' }}
+      {/* SVG Kreisdiagramm */}
+      <svg
+        height={radius * 2}
+        width={radius * 2}
+        className="absolute inset-0"
       >
-        <div className="text-center">
-          <div className="text-3xl font-bold" style={{ color: getColor() }}>
+        {/* Hintergrund-Kreis */}
+        <circle
+          stroke="#e5e7eb"
+          fill="transparent"
+          strokeWidth={strokeWidth}
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+        />
+        {/* Fortschritts-Kreis */}
+        <circle
+          stroke={getColor()}
+          fill="transparent"
+          strokeWidth={strokeWidth}
+          strokeDasharray={strokeDasharray}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+          transform={`rotate(-90 ${radius} ${radius})`}
+          className="transition-all duration-500 ease-in-out"
+        />
+      </svg>
+      
+      {/* Zentraler Text */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="text-center leading-none">
+          <div className={`text-3xl font-bold leading-none ${getColorClass()}`}>
             {Math.round(score * 100)}%
           </div>
-          <div className="text-xs text-gray-500 mt-1">
+          <div className="text-xs text-gray-500 mt-1 leading-none">
             WCAG {level}
           </div>
         </div>
@@ -132,7 +178,13 @@ interface ScanResultsProps {
   showFullDetails?: boolean;
 }
 
-export default function ScanResults({ results }: { results: ScanResult }) {
+export default function ScanResults({ 
+  results, 
+  showAddToTasks = false 
+}: { 
+  results: ScanResult; 
+  showAddToTasks?: boolean;
+}) {
   const [activeTab, setActiveTab] = useState<'overview' | 'violations' | 'passes' | 'incomplete' | 'categories'>('overview')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [showPremiumHint, setShowPremiumHint] = useState(true)
@@ -384,18 +436,25 @@ export default function ScanResults({ results }: { results: ScanResult }) {
 
             {/* Bestehende Übersicht */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Score und Bewertung */}
-              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border">
-                <h3 className="text-sm font-medium text-gray-600 mb-2">Gesamtbewertung</h3>
-                <div className="flex items-center gap-4">
-                  <div className={`text-6xl font-bold ${results.score >= 90 ? 'text-green-500' : results.score >= 70 ? 'text-yellow-500' : 'text-red-500'}`}>
-                    {results.score}%
-                  </div>
-                  <div className="text-sm">
-                    <div className={`font-medium ${results.score >= 90 ? 'text-green-600' : results.score >= 70 ? 'text-yellow-600' : 'text-red-600'}`}>
-                      {results.score >= 90 ? 'Sehr gut' : results.score >= 70 ? 'Gut' : results.score >= 50 ? 'Verbesserungsbedarf' : 'Kritisch'}
+              {/* Score und Bewertung mit Kreisdiagramm */}
+              <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg border">
+                <h3 className="text-sm font-medium text-gray-600 mb-4">Gesamtbewertung</h3>
+                <div className="flex flex-col items-center gap-4">
+                  {/* Kreisdiagramm */}
+                  <Chart score={results.score} level="AA" />
+                  
+                  {/* Bewertungstext */}
+                  <div className="text-center">
+                    <div className={`text-lg font-medium ${(() => {
+                      const scorePercent = Math.round(results.score * 100);
+                      return scorePercent >= 90 ? 'text-green-600' : scorePercent >= 70 ? 'text-yellow-600' : 'text-red-600';
+                    })()}`}>
+                      {(() => {
+                        const scorePercent = Math.round(results.score * 100);
+                        return scorePercent >= 90 ? 'Sehr gut' : scorePercent >= 70 ? 'Gut' : scorePercent >= 50 ? 'Verbesserungsbedarf' : 'Kritisch';
+                      })()}
                     </div>
-                    <div className="text-gray-500">WCAG 2.1 AA Konformität</div>
+                    <div className="text-sm text-gray-500">WCAG 2.1 AA Konformität</div>
                   </div>
                 </div>
               </div>
@@ -559,12 +618,14 @@ export default function ScanResults({ results }: { results: ScanResult }) {
                                   </span>
                                 </div>
                               </div>
-                              <button 
-                                className="ml-4 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-                                onClick={() => handleAddToTasks(violation)}
-                              >
-                                + Zu Aufgaben
-                              </button>
+                              {showAddToTasks && (
+                                <button 
+                                  className="ml-4 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                                  onClick={() => handleAddToTasks(violation)}
+                                >
+                                  + Zu Aufgaben
+                                </button>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -598,14 +659,16 @@ export default function ScanResults({ results }: { results: ScanResult }) {
                     </div>
                     <p className="text-gray-600 dark:text-gray-400 mb-4">{translateDescription(violation.description)}</p>
                     
-                    <div className="flex gap-2 mb-4">
-                      <button 
-                        className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-                        onClick={() => handleAddToTasks(violation)}
-                      >
-                        + Zu Aufgaben hinzufügen
-                      </button>
-                    </div>
+                    {showAddToTasks && (
+                      <div className="flex gap-2 mb-4">
+                        <button 
+                          className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                          onClick={() => handleAddToTasks(violation)}
+                        >
+                          + Zu Aufgaben hinzufügen
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -632,19 +695,18 @@ export default function ScanResults({ results }: { results: ScanResult }) {
                     </div>
                     <p className="text-gray-600 dark:text-gray-400 mb-4">{translateDescription(violation.description)}</p>
                     
-                    <div className="flex gap-2 mb-4">
-                      <button 
-                        className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-                        onClick={() => handleAddToTasks(violation)}
-                      >
-                        + Zu Aufgaben hinzufügen
-                      </button>
-                    </div>
+                    {showAddToTasks && (
+                      <div className="flex gap-2 mb-4">
+                        <button 
+                          className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                          onClick={() => handleAddToTasks(violation)}
+                        >
+                          + Zu Aufgaben hinzufügen
+                        </button>
+                      </div>
+                    )}
                     
-                    {/* Removed showFullDetails && block as it's not in the new structure */}
-                    <div className="text-sm text-gray-600">
-                      🔒 Registrieren Sie sich, um Details und Lösungsvorschläge zu sehen
-                    </div>
+                    {/* Details sind nun für alle Benutzer verfügbar */}
                   </div>
                 ))}
               </div>
@@ -685,7 +747,7 @@ export default function ScanResults({ results }: { results: ScanResult }) {
             ) : (
               <div className="space-y-4">
                 {filterByLevel(results.incomplete, 'Alle').map((item, index) => (
-                  <div key={index} className={`bg-card p-4 rounded-lg ${index >= Math.ceil(filterByLevel(results.incomplete, 'Alle').length / 2) && showPremiumHint ? 'blur-sm' : ''}`}>
+                  <div key={index} className="bg-card p-4 rounded-lg">
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="text-lg font-medium text-foreground">{item.id}: {translateHelp(item.help)}</h3>
                       <div className="px-2 py-1 text-xs font-medium rounded bg-yellow-900 text-yellow-300">

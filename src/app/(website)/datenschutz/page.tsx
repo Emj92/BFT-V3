@@ -101,6 +101,86 @@ export default function DatenschutzPage() {
                     <li>Uhrzeit der Serveranfrage</li>
                     <li>IP-Adresse</li>
                   </ul>
+                  <p className="text-sm text-muted-foreground mt-3">
+                    Diese Daten werden nicht mit anderen Datenquellen zusammengeführt.
+                  </p>
+                </div>
+                
+                <div>
+                  <h4 className="font-semibold mb-2">Registrierung und Account-Verwaltung</h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Zur Nutzung bestimmter Funktionen können Sie sich auf unserer Website registrieren. 
+                    Die dazu erhobenen Daten ergeben sich aus der Eingabemaske bei der Registrierung. 
+                    Dazu gehören:
+                  </p>
+                  <ul className="text-sm text-muted-foreground list-disc ml-6 space-y-1">
+                    <li>E-Mail-Adresse</li>
+                    <li>Name (optional)</li>
+                    <li>Passwort (verschlüsselt gespeichert)</li>
+                    <li>Gewähltes Paket/Bundle</li>
+                    <li>Credit-Stand und Transaktionshistorie</li>
+                    <li>Nutzungsstatistiken (Scans, Reports, etc.)</li>
+                    <li>Zeitstempel der Registrierung und letzten Anmeldung</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">Sicherheitsmonitoring und Missbrauchserkennung</h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Zum Schutz unserer Plattform und aller Nutzer führen wir kontinuierlich 
+                    Sicherheitsmonitoring durch. Dabei werden folgende Daten erhoben und analysiert:
+                  </p>
+                  <ul className="text-sm text-muted-foreground list-disc ml-6 space-y-1">
+                    <li>IP-Adressen und deren geografische Herkunft</li>
+                    <li>Geräteinformationen und Browser-Fingerprinting</li>
+                    <li>Nutzungsmuster und -häufigkeit</li>
+                    <li>Zahlungsverhalten und Transaktionsdaten</li>
+                    <li>Zeitstempel aller Aktivitäten</li>
+                    <li>Fehlgeschlagene Anmeldeversuche</li>
+                    <li>Verdächtige Aktivitäten oder Automatisierung</li>
+                  </ul>
+                  <p className="text-sm text-muted-foreground mt-3">
+                    <strong>Rechtsgrundlage:</strong> Diese Datenverarbeitung erfolgt auf Basis unserer 
+                    berechtigten Interessen (Art. 6 Abs. 1 lit. f DSGVO) zum Schutz vor Betrug, 
+                    Missbrauch und zur Gewährleistung der IT-Sicherheit.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">Dateneinsicht bei Missbrauchsverdacht</h4>
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-3">
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300 font-semibold mb-2">
+                      Wichtiger Hinweis zur Dateneinsicht
+                    </p>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                      Bei Verdacht auf Betrug, Missbrauch oder andere Vertragsverletzungen behalten wir uns 
+                      das Recht vor, alle verfügbaren Nutzungsdaten einzusehen, zu analysieren und 
+                      für rechtliche Schritte zu verwenden.
+                    </p>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Dies umfasst insbesondere:
+                  </p>
+                  <ul className="text-sm text-muted-foreground list-disc ml-6 space-y-1">
+                    <li>Vollständige Account-Historie und alle Aktivitäten</li>
+                    <li>Zahlungsdaten und Transaktionsverläufe</li>
+                    <li>IP-Adressen und Verbindungsdaten</li>
+                    <li>Geräteinformationen und Browser-Details</li>
+                    <li>Alle gespeicherten Logs und Metadaten</li>
+                    <li>Korrespondenz und Support-Tickets</li>
+                    <li>Scan-Historien und generierte Reports</li>
+                  </ul>
+                  <p className="text-sm text-muted-foreground mt-3">
+                    <strong>Rechtsgrundlage:</strong> Diese umfassende Dateneinsicht erfolgt zur 
+                    Vertragsabwicklung (Art. 6 Abs. 1 lit. b DSGVO), zum Schutz berechtigter Interessen 
+                    (Art. 6 Abs. 1 lit. f DSGVO) und zur Erfüllung rechtlicher Verpflichtungen 
+                    (Art. 6 Abs. 1 lit. c DSGVO).
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-3">
+                    Die eingesehenen Daten können an Strafverfolgungsbehörden, Anwälte oder andere 
+                    zuständige Stellen weitergegeben werden, sofern dies zur Durchsetzung unserer 
+                    Rechte oder zur Aufklärung von Straftaten erforderlich ist.
+                  </p>
                 </div>
                 
                 <div>

@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "BundleType" AS ENUM ('STARTER', 'PRO', 'BUSINESS', 'AGENCY');
+CREATE TYPE "BundleType" AS ENUM ('FREE', 'STARTER', 'PRO', 'ENTERPRISE');
 
 -- CreateEnum
 CREATE TYPE "TransactionType" AS ENUM ('PURCHASE', 'SCAN', 'REPORT', 'WCAG_COACH');
@@ -9,11 +9,11 @@ CREATE TYPE "ReportType" AS ENUM ('ACCESSIBILITY_DECLARATION', 'SCAN_REPORT', 'W
 
 -- AlterTable
 ALTER TABLE "User" ADD COLUMN     "avatarUrl" TEXT,
-ADD COLUMN     "bundle" "BundleType" NOT NULL DEFAULT 'STARTER',
+ADD COLUMN     "bundle" "BundleType" NOT NULL DEFAULT 'FREE',
 ADD COLUMN     "bundlePurchasedAt" TIMESTAMP(3),
 ADD COLUMN     "city" TEXT,
 ADD COLUMN     "country" TEXT,
-ADD COLUMN     "credits" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN     "credits" INTEGER NOT NULL DEFAULT 10,
 ADD COLUMN     "firstName" TEXT,
 ADD COLUMN     "houseNumber" TEXT,
 ADD COLUMN     "lastName" TEXT,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 
@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Prüfen ob E-Mail bestätigt wurde (nur in Production)
-    if (process.env.NODE_ENV === 'production' && !user.emailVerified) {
+    // Prüfen ob E-Mail bestätigt wurde
+    if (!user.emailVerified) {
       return NextResponse.json(
         { 
           error: 'E-Mail nicht bestätigt', 

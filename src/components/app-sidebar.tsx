@@ -74,7 +74,6 @@ import { useEffect, useState } from "react"
 import { useBundle } from "@/hooks/useBundle"
 import { useWebsites, Website } from "@/hooks/useWebsites"
 import { useLanguage } from "@/contexts/LanguageContext"
-import { LanguageToggle } from "./language-toggle"
 
 // Benutzer-Daten aus API laden
 interface User {
@@ -170,8 +169,8 @@ export default function AppSidebar() {
     selectWebsite 
   } = useWebsites()
 
-  // Prüfe ob Benutzer Zugang zu Premium-Features hat basierend auf bundleInfo
-  const hasPremiumSupport = bundleInfo && bundleInfo.id !== 'free'
+  // Prüfe ob Benutzer Zugang zu Support-Features hat basierend auf bundleInfo (ab Starter verfügbar)
+  const hasPremiumSupport = bundleInfo && bundleInfo.id !== 'FREE'
 
   useEffect(() => {
     const initializeUser = async () => {
@@ -243,7 +242,8 @@ export default function AppSidebar() {
     
     // Prüfe ob Benutzer berechtigt ist
     if (!hasPremiumSupport) {
-      alert('Support-Tickets sind nur für bezahlte Pakete (ab Starter) verfügbar. Bitte upgraden Sie Ihr Paket.')
+      // Zeige Upgrade-Dialog oder bessere UX statt Alert
+      console.log('Support-Tickets sind nur ab dem STARTER-Paket verfügbar.')
       return
     }
     
@@ -314,7 +314,8 @@ export default function AppSidebar() {
           title: isGerman ? 'BFE-Generator' : 'BFE Generator',
           url: "/barrierefreiheitsgenerator",
           icon: FileCheck,
-          tooltip: isGerman ? "Barrierefreiheitserklärung-Generator" : "Accessibility Declaration Generator",
+          tooltip: hasPremiumSupport ? (isGerman ? "Barrierefreiheitserklärung-Generator" : "Accessibility Declaration Generator") : (isGerman ? "Nur ab STARTER-Paket verfügbar" : "Only available from STARTER package"),
+          disabled: !hasPremiumSupport
         },
       ],
       settings: [
@@ -346,16 +347,14 @@ export default function AppSidebar() {
         title: isGerman ? "Ticket erstellen" : "Create Ticket",
         url: "/support/create",
         icon: <MessageSquare className="h-4 w-4" />,
-        badge: hasPremiumSupport ? undefined : "STA",
-        tooltip: hasPremiumSupport ? undefined : (isGerman ? "Nur ab Starter Paket verfügbar" : "Only available from Starter package"),
+        tooltip: hasPremiumSupport ? undefined : (isGerman ? "Nur ab STARTER-Paket verfügbar" : "Only available from STARTER package"),
         disabled: !hasPremiumSupport
       },
       {
-        title: isGerman ? "Meine Tickets" : "My Tickets",
+        title: isGerman ? "Meine Tickets" : "My Tickets", 
         url: "/support/tickets",
         icon: <Ticket className="h-4 w-4" />,
-        badge: hasPremiumSupport ? undefined : "STA",
-        tooltip: hasPremiumSupport ? undefined : (isGerman ? "Nur ab Starter Paket verfügbar" : "Only available from Starter package"),
+        tooltip: hasPremiumSupport ? undefined : (isGerman ? "Nur ab STARTER-Paket verfügbar" : "Only available from STARTER package"),
         disabled: !hasPremiumSupport
       },
       {
@@ -438,16 +437,35 @@ export default function AppSidebar() {
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <SidebarMenuButton asChild className="h-8 px-3 text-sm font-normal hover:bg-accent hover:text-accent-foreground transition-colors" disabled={item.disabled}>
-                            <a href={item.url} className="flex items-center gap-3">
-                              <item.icon className="h-4 w-4" />
-                              <span>{item.title}</span>
-                              {item.badge && (
-                                <span className="bg-blue-500 text-white text-xs font-normal py-0.5 px-1.5 rounded ml-auto">
-                                  {item.badge}
-                                </span>
-                              )}
-                            </a>
+                          <SidebarMenuButton 
+                            asChild={!item.disabled}
+                            className={`h-8 px-3 text-sm font-normal transition-colors ${item.disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-accent hover:text-accent-foreground"}`}
+                            onClick={item.disabled ? (e) => e.preventDefault() : undefined}
+                          >
+                            {item.disabled ? (
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1">
+                                  <item.icon className="h-4 w-4" />
+                                  <span className="text-yellow-500 text-xs">⚠</span>
+                                </div>
+                                <span>{item.title}</span>
+                                {item.badge && (
+                                  <span className="bg-blue-500 text-white text-xs font-normal py-0.5 px-1.5 rounded ml-auto">
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <a href={item.url} className="flex items-center gap-3">
+                                <item.icon className="h-4 w-4" />
+                                <span>{item.title}</span>
+                                {item.badge && (
+                                  <span className="bg-blue-500 text-white text-xs font-normal py-0.5 px-1.5 rounded ml-auto">
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </a>
+                            )}
                           </SidebarMenuButton>
                         </TooltipTrigger>
                         <TooltipContent 
@@ -459,16 +477,32 @@ export default function AppSidebar() {
                       </Tooltip>
                     </TooltipProvider>
                   ) : (
-                    <SidebarMenuButton asChild className="h-8 px-3 text-sm font-normal hover:bg-accent hover:text-accent-foreground transition-colors" disabled={item.disabled}>
-                      <a href={item.url} className="flex items-center gap-3">
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                        {item.badge && (
-                          <span className="bg-blue-500 text-white text-xs font-normal py-0.5 px-1.5 rounded ml-auto">
-                            {item.badge}
-                          </span>
-                        )}
-                      </a>
+                    <SidebarMenuButton 
+                      asChild={!item.disabled}
+                      className={`h-8 px-3 text-sm font-normal transition-colors ${item.disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-accent hover:text-accent-foreground"}`}
+                      onClick={item.disabled ? (e) => e.preventDefault() : undefined}
+                    >
+                      {item.disabled ? (
+                        <div className="flex items-center gap-3">
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                          {item.badge && (
+                            <span className="bg-blue-500 text-white text-xs font-normal py-0.5 px-1.5 rounded ml-auto">
+                              {item.badge}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <a href={item.url} className="flex items-center gap-3">
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                          {item.badge && (
+                            <span className="bg-blue-500 text-white text-xs font-normal py-0.5 px-1.5 rounded ml-auto">
+                              {item.badge}
+                            </span>
+                          )}
+                        </a>
+                      )}
                     </SidebarMenuButton>
                   )}
                 </SidebarMenuItem>
@@ -486,33 +520,75 @@ export default function AppSidebar() {
             <SidebarMenu className="space-y-0">
               {supportItems.map((item, index) => (
                 <SidebarMenuItem key={index}>
-                  <SidebarMenuButton
-                    asChild={!item.disabled}
-                    className={`h-8 ${item.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                    onClick={item.disabled ? (e) => handleSupportClick(e, item.url) : undefined}
-                  >
-                    {item.disabled ? (
-                      <div className="flex items-center gap-2">
-                        {item.icon}
-                        <span className="flex-1">{item.title}</span>
-                        {item.badge && (
-                          <Badge variant="secondary" className="text-xs">
-                            {item.badge}
-                          </Badge>
-                        )}
-                      </div>
-                    ) : (
-                      <a href={item.url} className="flex items-center gap-2">
-                        {item.icon}
-                        <span className="flex-1">{item.title}</span>
-                        {item.badge && (
-                          <Badge variant="secondary" className="text-xs">
-                            {item.badge}
-                          </Badge>
-                        )}
-                      </a>
-                    )}
-                  </SidebarMenuButton>
+                  {item.tooltip ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <SidebarMenuButton
+                            asChild={!item.disabled}
+                            className={`h-8 ${item.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                            onClick={item.disabled ? (e) => handleSupportClick(e, item.url) : undefined}
+                          >
+                            {item.disabled ? (
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1">
+                                  {item.icon}
+                                  <span className="text-yellow-500 text-xs">⚠</span>
+                                </div>
+                                <span className="flex-1">{item.title}</span>
+                                {item.badge && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {item.badge}
+                                  </Badge>
+                                )}
+                              </div>
+                            ) : (
+                              <a href={item.url} className="flex items-center gap-2">
+                                {item.icon}
+                                <span className="flex-1">{item.title}</span>
+                                {item.badge && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {item.badge}
+                                  </Badge>
+                                )}
+                              </a>
+                            )}
+                          </SidebarMenuButton>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{item.tooltip}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <SidebarMenuButton
+                      asChild={!item.disabled}
+                      className={`h-8 ${item.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                      onClick={item.disabled ? (e) => handleSupportClick(e, item.url) : undefined}
+                    >
+                      {item.disabled ? (
+                        <div className="flex items-center gap-2">
+                          {item.icon}
+                          <span className="flex-1">{item.title}</span>
+                          {item.badge && (
+                            <Badge variant="secondary" className="text-xs">
+                              {item.badge}
+                            </Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <a href={item.url} className="flex items-center gap-2">
+                          {item.icon}
+                          <span className="flex-1">{item.title}</span>
+                          {item.badge && (
+                            <Badge variant="secondary" className="text-xs">
+                              {item.badge}
+                            </Badge>
+                          )}
+                        </a>
+                      )}
+                    </SidebarMenuButton>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -566,67 +642,84 @@ export default function AppSidebar() {
 
       {/* Website-Auswahl am unteren Ende */}
       <SidebarFooter className="p-4 border-t">
-        <div className="space-y-2">
-          <Select value={selectedWebsite?.id || ""} onValueChange={handleWebsiteSelect}>
-            <SelectTrigger className="w-full justify-between">
-              <div className="flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                <span>
-                  {selectedWebsite 
-                    ? selectedWebsite.name 
-                    : (language === 'de' ? "Website auswählen" : "Select Website")
-                  }
-                </span>
-              </div>
-            </SelectTrigger>
-            <SelectContent className="w-64" align="end">
-              {/* Dynamische Website-Liste */}
-              {websites.map((website) => (
-                <div key={website.id} className="group relative">
-                  <SelectItem value={website.id} className="pr-8">
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4" />
-                      <span className="font-normal">{website.name}</span>
+        <div className="space-y-3">
+          {/* Website Selector */}
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              {language === 'de' ? 'Website auswählen' : 'Select Website'}
+            </Label>
+            <div className="relative">
+              <Select 
+                value={selectedWebsite?.id || ""} 
+                onValueChange={handleWebsiteSelect}
+              >
+                <SelectTrigger className="w-full">
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    <span>
+                      {selectedWebsite 
+                        ? selectedWebsite.name 
+                        : (language === 'de' ? "Website auswählen..." : "Select website...")
+                      }
+                    </span>
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="w-64 z-[50]" align="end" side="bottom">
+                  {/* Dynamische Website-Liste */}
+                  {websites.map((website) => (
+                    <div key={website.id} className="group relative">
+                      <SelectItem 
+                        value={website.id} 
+                        className="pr-8"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4" />
+                          <span className="font-normal">{website.name}</span>
+                        </div>
+                      </SelectItem>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          handleDeleteWebsite(website)
+                        }}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-red-100 transition-all duration-200 z-10"
+                        aria-label={`${website.name} löschen`}
+                      >
+                        <span className="text-red-500 hover:text-red-700 text-sm font-bold">×</span>
+                      </Button>
                     </div>
-                  </SelectItem>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      handleDeleteWebsite(website)
-                    }}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 z-50 opacity-0 group-hover:opacity-100 text-gray-600 hover:bg-red-100 hover:text-red-600 transition-all duration-200"
-                    title={language === 'de' ? 'Website löschen' : 'Delete website'}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              
-              {/* Website hinzufügen Button */}
-              <div className="p-2 border-t">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleOpenAddWebsiteDialog}
-                  className="w-full flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  {language === 'de' ? 'Website hinzufügen' : 'Add Website'}
-                </Button>
-              </div>
-            </SelectContent>
-          </Select>
+                  ))}
+                  
+                  {/* Trennlinie */}
+                  {websites.length > 0 && (
+                    <div className="my-1 border-t border-border" />
+                  )}
+                  
+                  {/* Website hinzufügen Button */}
+                  <div className="p-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setAddWebsiteDialogOpen(true)}
+                      className="w-full justify-start text-sm h-8"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      {language === 'de' ? 'Website hinzufügen' : 'Add Website'}
+                    </Button>
+                  </div>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
-        
-
       </SidebarFooter>
 
-      {/* Delete Website Dialog */}
+      {/* Delete Website Dialog with higher z-index */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="z-[100]">
           <AlertDialogHeader>
             <AlertDialogTitle>
               {language === 'de' ? 'Website löschen' : 'Delete Website'}
@@ -652,9 +745,9 @@ export default function AppSidebar() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Add Website Dialog */}
+      {/* Add Website Dialog with higher z-index */}
       <Dialog open={addWebsiteDialogOpen} onOpenChange={setAddWebsiteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] z-[100]">
           <DialogHeader>
             <DialogTitle>
               {language === 'de' ? 'Neue Website hinzufügen' : 'Add New Website'}

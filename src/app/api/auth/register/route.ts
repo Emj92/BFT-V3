@@ -1,116 +1,79 @@
-import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import bcrypt from 'bcrypt';
-import { Role } from '@prisma/client';
-import crypto from 'crypto';
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { BundleType, Role } from '@prisma/client'
+import * as bcrypt from 'bcryptjs'
+import { sendVerificationEmail } from '@/lib/email'
+import { randomBytes } from 'crypto'
 
-// Rate-Limiting: Max 10 Registrierungen pro Stunde
-const REGISTRATION_LIMIT = 10;
-const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 Stunde in Millisekunden
-
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const { email, password, name } = await req.json();
-    
-    if (!email || !password) {
+    const { email, password, name } = await request.json()
+
+    // Validierung
+    if (!email || !password || !name) {
       return NextResponse.json(
-        { error: 'E-Mail und Passwort sind erforderlich' },
+        { error: 'Alle Felder sind erforderlich' },
         { status: 400 }
-      );
+      )
     }
 
-    // Rate-Limiting prüfen
-    const oneHourAgo = new Date(Date.now() - RATE_LIMIT_WINDOW);
-    const recentRegistrations = await prisma.user.count({
-      where: {
-        createdAt: {
-          gte: oneHourAgo
-        }
-      }
-    });
-
-    if (recentRegistrations >= REGISTRATION_LIMIT) {
-      return NextResponse.json(
-        { 
-          error: 'Registrierungslimit erreicht. Bitte versuchen Sie es später erneut.',
-          details: `Maximal ${REGISTRATION_LIMIT} Registrierungen pro Stunde erlaubt.`
-        },
-        { status: 429 } // Too Many Requests
-      );
-    }
-    
-    // Prüfen, ob der Benutzer bereits existiert
+    // Prüfe ob E-Mail bereits existiert
     const existingUser = await prisma.user.findUnique({
       where: { email }
-    });
-    
+    })
+
     if (existingUser) {
       return NextResponse.json(
-        { error: 'Ein Benutzer mit dieser E-Mail existiert bereits' },
-        { status: 409 }
-      );
+        { error: 'E-Mail bereits registriert' },
+        { status: 400 }
+      )
     }
-    
+
     // Passwort hashen
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
-    // E-Mail-Bestätigungstoken generieren
-    const emailVerificationToken = crypto.randomBytes(32).toString('hex');
-    const emailTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 Stunden
-    
-    // Benutzer erstellen (unbestätigt)
+    const hashedPassword = await bcrypt.hash(password, 12)
+
+    // Verifizierungstoken generieren
+    const verificationToken = randomBytes(32).toString('hex')
+    const tokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 Stunden
+
+    // Benutzer erstellen mit Email-Verification
     const user = await prisma.user.create({
       data: {
         email,
-        name: name || email.split('@')[0],
         password: hashedPassword,
-        role: Role.USER,
-        emailVerified: false,
-        emailVerificationToken,
-        emailTokenExpiry
+        name,
+        emailVerified: false, // Email muss verifiziert werden
+        emailVerificationToken: verificationToken,
+        emailTokenExpiry: tokenExpiry,
+        bundle: BundleType.FREE, // Neue User bekommen FREE Bundle
+        credits: 5, // FREE User starten mit 5 Credits
+        role: Role.USER
       }
-    });
+    })
 
-    // E-Mail-Bestätigung senden (Simulation)
+    // Bestätigungs-Email senden
     try {
-      const verificationLink = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/verify-email?token=${emailVerificationToken}`;
-      
-      // TODO: Hier würde normalerweise ein echter E-Mail-Service verwendet
-      console.log('E-Mail-Bestätigungslink:', verificationLink);
-      console.log('An:', email);
-      console.log('Benutzer erstellt, wartet auf E-Mail-Bestätigung');
-      
-      // In Produktion würde hier der E-Mail-Service aufgerufen:
-      // await sendVerificationEmail(email, verificationLink);
-      
+      const emailResult = await sendVerificationEmail(email, verificationToken, name)
+      console.log('Email-Versand:', emailResult.message)
     } catch (emailError) {
-      console.error('Fehler beim Senden der Bestätigungs-E-Mail:', emailError);
-      // Benutzer trotzdem als erstellt betrachten
+      console.error('Fehler beim Email-Versand:', emailError)
+      // Registrierung trotzdem fortsetzen, aber Hinweis geben
     }
+
+    // Erfolgreiche Antwort (ohne Passwort)
+    const { password: _, emailVerificationToken: __, ...userWithoutSensitiveData } = user
     
     return NextResponse.json({
-      success: true,
-      message: 'Registrierung erfolgreich. Bitte überprüfen Sie Ihre E-Mails zur Bestätigung.',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        emailVerified: user.emailVerified
-      },
-      verificationRequired: true
-    });
+      message: 'Registrierung erfolgreich! Bitte prüfen Sie Ihr E-Mail-Postfach für den Bestätigungslink.',
+      user: userWithoutSensitiveData,
+      emailSent: true
+    })
+
   } catch (error) {
-    console.error('Registration error:', error);
-    
-    // Detaillierte Fehlermeldung für Debugging
-    const errorMessage = error instanceof Error ? error.message : 'Unbekannter Fehler';
-    
+    console.error('Registrierung fehlgeschlagen:', error)
     return NextResponse.json(
-      { 
-        error: 'Fehler bei der Registrierung', 
-        details: errorMessage 
-      },
+      { error: 'Interner Server-Fehler' },
       { status: 500 }
-    );
+    )
   }
 }

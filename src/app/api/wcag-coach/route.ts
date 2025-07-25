@@ -54,83 +54,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Nachricht ist erforderlich' }, { status: 400 });
     }
 
-    // Rate-Limiting prüfen
-    const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-    // Aktuelle Anfragen zählen - mit Fallback für fehlende Tabelle
-    let hourlyCount = 0;
-    let dailyCount = 0;
-    let monthlyCount = 0;
-
-    try {
-      const counts = await Promise.all([
-        prisma.wcagSession.count({
-          where: {
-            userId,
-            createdAt: { gte: oneHourAgo }
-          }
-        }),
-        prisma.wcagSession.count({
-          where: {
-            userId,
-            createdAt: { gte: oneDayAgo }
-          }
-        }),
-        prisma.wcagSession.count({
-          where: {
-            userId,
-            createdAt: { gte: oneMonthAgo }
-          }
-        })
-      ]);
-      
-      [hourlyCount, dailyCount, monthlyCount] = counts;
-    } catch (error) {
-      console.error('Fehler beim Zählen der WCAG Sessions:', error);
-      // Fallback zu Standard-Werten wenn Tabelle nicht existiert
-      hourlyCount = 0;
-      dailyCount = 0;
-      monthlyCount = 0;
-    }
-
-    // Bundle-spezifische Limits
-    const bundleType = user.bundle || 'FREE';
-    const monthlyLimit = RATE_LIMITS.MONTHLY[bundleType as keyof typeof RATE_LIMITS.MONTHLY];
-
-    // Rate-Limits überprüfen
-    if (hourlyCount >= RATE_LIMITS.HOURLY) {
+    // Credits prüfen und verwenden (1 Credit für WCAG Coach)
+    if (user.credits < 1) {
       return NextResponse.json({ 
-        error: 'Stündliches Limit erreicht', 
-        message: `Sie haben Ihr stündliches Limit von ${RATE_LIMITS.HOURLY} Anfragen erreicht. Bitte warten Sie eine Stunde.`,
-        rateLimitExceeded: true,
-        rateLimitType: 'hourly'
-      }, { status: 429 });
+        error: 'Nicht genügend Credits',
+        message: 'Sie benötigen 1 Credit für die WCAG Coach Nutzung.',
+        creditsRequired: 1,
+        creditsAvailable: user.credits
+      }, { status: 402 }); // Payment Required
     }
 
-    if (dailyCount >= RATE_LIMITS.DAILY) {
-      return NextResponse.json({ 
-        error: 'Tägliches Limit erreicht', 
-        message: `Sie haben Ihr tägliches Limit von ${RATE_LIMITS.DAILY} Anfragen erreicht. Bitte warten Sie bis morgen.`,
-        rateLimitExceeded: true,
-        rateLimitType: 'daily'
-      }, { status: 429 });
-    }
+    // Credits abziehen
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        credits: user.credits - 1
+      }
+    });
 
-    if (monthlyCount >= monthlyLimit) {
-      return NextResponse.json({ 
-        error: 'Monatliches Limit erreicht', 
-        message: `Sie haben Ihr monatliches Limit von ${monthlyLimit} Anfragen erreicht. Upgraden Sie Ihr Paket für mehr Anfragen.`,
-        rateLimitExceeded: true,
-        rateLimitType: 'monthly',
-        currentBundle: bundleType,
-        upgradeAvailable: true
-      }, { status: 429 });
-    }
+    // Credit-Transaktion protokollieren
+    await prisma.creditTransaction.create({
+      data: {
+        userId,
+        amount: -1,
+        type: 'WCAG_COACH',
+        description: 'WCAG Coach - KI-Beratung'
+      }
+    });
 
-    // Erweiteter Claude API System-Prompt
+    // Erweiterner Claude API System-Prompt
     const systemPrompt = `Du bist ein Experte für Web-Barrierefreiheit und hilfst deutschen Website-Betreibern dabei, ihre Websites nach WCAG 2.1 AA und BITV 2.0 Standards zugänglich zu machen. 
 
 Deine Aufgaben:
@@ -205,11 +157,15 @@ Sei hilfsbereit, geduldig und gründlich in deinen Erklärungen. Wenn der Benutz
 
     // Prüfe auf gültigen API-Key
     if (!CLAUDE_API_KEY) {
+      console.error('Claude API Key nicht gefunden');
       return NextResponse.json({ 
-        error: 'KI-Service nicht konfiguriert', 
-        message: 'Der KI-Service ist nicht richtig konfiguriert. Bitte wenden Sie sich an den Support.'
-      }, { status: 503 });
+        response: 'Der WCAG Coach ist derzeit nicht verfügbar. Bitte wenden Sie sich an den Support.',
+        success: false,
+        error: 'KI-Service nicht konfiguriert'
+      }, { status: 200 }); // Status 200 damit Frontend die Nachricht anzeigt
     }
+
+    console.log('Sende Anfrage an Claude API...');
 
     // Claude API-Anfrage mit neuem Modell
     const claudeResponse = await fetch(CLAUDE_API_URL, {
@@ -222,23 +178,51 @@ Sei hilfsbereit, geduldig und gründlich in deinen Erklärungen. Wenn der Benutz
       body: JSON.stringify({
         model: 'claude-3-5-haiku-20241022', // Neueres Modell
         max_tokens: 2500, // Erhöhte Token-Anzahl für detailliertere Antworten
-        temperature: 1,
+        temperature: 0.7,
         system: systemPrompt,
         messages
       })
     });
 
+    console.log('Claude Response Status:', claudeResponse.status);
+
     if (!claudeResponse.ok) {
       const errorText = await claudeResponse.text();
-      console.error('Claude API Error:', errorText);
-      return NextResponse.json({ 
-        error: 'KI-Service temporär nicht verfügbar', 
-        message: 'Unser KI-Service ist momentan nicht verfügbar. Bitte versuchen Sie es später erneut.'
-      }, { status: 503 });
+      console.error('Claude API Error:', claudeResponse.status, errorText);
+      
+      // Fallback-Antwort statt Fehler
+      const fallbackMessage = `Entschuldigung, ich kann Ihnen momentan nicht weiterhelfen. 
+
+**Mögliche Ursachen:**
+- Der KI-Service ist temporär nicht verfügbar
+- API-Konfiguration fehlt
+
+**Was Sie tun können:**
+1. Versuchen Sie es in ein paar Minuten erneut
+2. Kontaktieren Sie den Support über das Support-Ticket System
+3. Nutzen Sie die WCAG-Bibliothek für häufige Fragen
+
+**Häufige WCAG-Probleme:**
+- **Alt-Texte**: Fügen Sie beschreibende alt-Attribute zu Bildern hinzu
+- **Kontrast**: Stellen Sie sicher, dass Text mindestens 4.5:1 Kontrast hat
+- **Tastaturnavigation**: Alle interaktiven Elemente müssen per Tastatur erreichbar sein
+- **Überschriften**: Verwenden Sie eine logische H1-H6 Struktur
+
+Bitte versuchen Sie es später erneut.`;
+
+      return NextResponse.json({
+        response: fallbackMessage,
+        success: true,
+        fallback: true
+      }, { status: 200 });
     }
 
     const claudeData = await claudeResponse.json();
-    const assistantMessage = claudeData.content?.[0]?.text || 'Entschuldigung, ich konnte keine Antwort generieren.';
+    console.log('Claude Response Data:', claudeData);
+    
+    const assistantMessage = claudeData.content?.[0]?.text || claudeData.message || 'Entschuldigung, ich konnte keine Antwort generieren.';
+
+    console.log('Assistant Message Length:', assistantMessage.length);
 
     // Session in Datenbank speichern - mit Fallback für fehlende Tabelle
     try {
@@ -247,30 +231,19 @@ Sei hilfsbereit, geduldig und gründlich in deinen Erklärungen. Wenn der Benutz
           userId,
           userMessage: message,
           assistantResponse: assistantMessage,
-          createdAt: now
+          createdAt: new Date()
         }
       });
     } catch (error) {
-      console.error('Fehler beim Speichern der WCAG Session:', error);
+      console.error('Fehler beim Speichern der WCAG Session (ignoriert):', error);
       // Fortfahren auch wenn Speichern fehlschlägt
     }
 
-    // Aktuelle Rate-Limit-Statistiken für Response
-    const stats = {
-      hourlyUsed: hourlyCount + 1,
-      hourlyLimit: RATE_LIMITS.HOURLY,
-      dailyUsed: dailyCount + 1,
-      dailyLimit: RATE_LIMITS.DAILY,
-      monthlyUsed: monthlyCount + 1,
-      monthlyLimit: monthlyLimit,
-      bundleType
-    };
-
     return NextResponse.json({
-      message: assistantMessage,
-      stats,
-      timestamp: now.toISOString()
-    });
+      response: assistantMessage,
+      success: true,
+      timestamp: new Date().toISOString()
+    }, { status: 200 });
 
   } catch (error) {
     console.error('WCAG Coach API Error:', error);
