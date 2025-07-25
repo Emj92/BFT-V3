@@ -486,7 +486,11 @@ export default function AdminPage() {
   // Credits-Bearbeitung abbrechen
   const handleCancelEditCredits = (userId: string) => {
     setEditingCredits(prev => ({ ...prev, [userId]: false }))
-    setTempCredits(prev => ({ ...prev, [userId]: undefined }))
+    setTempCredits(prev => {
+      const newState = { ...prev }
+      delete newState[userId]
+      return newState
+    })
   }
 
   if (loading) {

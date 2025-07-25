@@ -4,7 +4,7 @@ import crypto from 'crypto'
 import nodemailer from 'nodemailer'
 
 // IMAP/SMTP Konfiguration - hier würdest du deine echten Daten verwenden
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   host: 'mail.your-domain.com', // Ersetze mit deinen IMAP-Einstellungen
   port: 587,
   secure: false,

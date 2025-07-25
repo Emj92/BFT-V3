@@ -788,6 +788,23 @@ export default function EinstellungenPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {/* Rabatt-Hinweis */}
+                  <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg">
+                    <h4 className="font-semibold text-green-800 mb-2">💰 Mengenrabatte verfügbar!</h4>
+                    <div className="text-sm text-green-700 space-y-1">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+                        <div><strong>10 Credits:</strong> 1,50€/Credit</div>
+                        <div><strong>25 Credits:</strong> 1,20€/Credit <span className="text-green-600 font-semibold">(20% Rabatt)</span></div>
+                        <div><strong>50 Credits:</strong> 1,00€/Credit <span className="text-green-600 font-semibold">(33% Rabatt)</span></div>
+                        <div><strong>100 Credits:</strong> 0,85€/Credit <span className="text-green-600 font-semibold">(43% Rabatt)</span></div>
+                        <div><strong>250 Credits:</strong> 0,70€/Credit <span className="text-green-600 font-semibold">(53% Rabatt)</span></div>
+                      </div>
+                      <p className="text-xs mt-2 text-green-600">
+                        💡 <strong>Tipp:</strong> Je mehr Credits Sie kaufen, desto günstiger wird der Einzelpreis!
+                      </p>
+                    </div>
+                  </div>
+                  
                   <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-3">
                     {(showAllCredits ? creditPackages : creditPackages.slice(0, 3)).map((pkg, index) => (
                       <div 

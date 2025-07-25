@@ -31,6 +31,10 @@ model User {
   emailVerificationToken String?
   emailTokenExpiry DateTime?
   
+  // Password Reset
+  resetToken String?
+  resetTokenExpiry DateTime?
+  
   // Credit System
   credits       Int       @default(5) // Free User bekommen 5 Credits zum Start
   bundle        BundleType    @default(FREE)
