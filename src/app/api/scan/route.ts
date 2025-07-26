@@ -1,4 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic';
 import { scanUrl } from '@/lib/accessibility-scanner';
 import { isValidUrl, formatUrl } from '@/lib/utils';
 import { getServerSession, authOptions } from '@/lib/auth';

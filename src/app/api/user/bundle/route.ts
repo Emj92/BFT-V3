@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 import { PrismaClient, BundleType } from '@prisma/client'
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'

@@ -15,12 +15,14 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   swcMinify: true,
-  // Exclude problematic pages from static generation if needed
-  exportPathMap: async function (defaultPathMap) {
-    const pathMap = { ...defaultPathMap }
-    // Remove verify-email from static generation
-    delete pathMap['/verify-email']
-    return pathMap
+  // Deaktiviere statische Optimierung für die gesamte App
+  // da sie hauptsächlich dynamische Inhalte hat
+  trailingSlash: false,
+  // Alle Seiten als Server-Side Rendering behandeln
+  pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
+  // Verhindere, dass Next.js versucht statische Seiten zu generieren
+  generateBuildId: async () => {
+    return 'build-' + Date.now()
   }
 };
 

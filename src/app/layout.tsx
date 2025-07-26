@@ -5,6 +5,9 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import dynamic from 'next/dynamic';
 
+// Force dynamic rendering für das gesamte Layout
+export const dynamic = 'force-dynamic';
+
 
 
 const inter = Inter({ subsets: ['latin'] });
