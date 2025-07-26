@@ -1646,16 +1646,19 @@ export default function HomePage() {
             <p className="text-muted-foreground">
               2025 BFE-Generator. Alle Rechte vorbehalten.
             </p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-muted-foreground hover:text-foreground">
+            <div className="flex flex-wrap gap-6 justify-center md:justify-end mt-4 md:mt-0">
+              <Link href="/impressum" className="text-muted-foreground hover:text-foreground transition-colors">
                 Impressum
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground">
+              </Link>
+              <Link href="/datenschutz" className="text-muted-foreground hover:text-foreground transition-colors">
                 Datenschutz
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground">
+              </Link>
+              <Link href="/agb" className="text-muted-foreground hover:text-foreground transition-colors">
                 AGB
-              </a>
+              </Link>
+              <Link href="/barrierefreiheit" className="text-muted-foreground hover:text-foreground transition-colors">
+                Barrierefreiheit
+              </Link>
             </div>
           </div>
         </div>
