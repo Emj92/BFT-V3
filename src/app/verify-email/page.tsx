@@ -8,10 +8,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react'
 import Link from 'next/link'
 
+// Diese Seite ist dynamisch und soll nicht statisch generiert werden
+export const dynamic = 'force-dynamic'
+
 export default function VerifyEmailPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const token = searchParams.get('token')
+  const token = searchParams?.get('token')
   
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
