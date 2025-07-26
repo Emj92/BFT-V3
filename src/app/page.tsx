@@ -1249,26 +1249,14 @@ export default function HomePage() {
                   <Button 
                     className="w-full"
                     onClick={() => {
-                      // Weiterleitung zu Payment mit STARTER Bundle
-                      const paymentData = {
-                        type: 'bundle',
-                        bundle: 'STARTER',
-                        interval: 'monthly'
-                      };
-                      fetch('/api/payments/create', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(paymentData)
-                      })
-                      .then(res => res.json())
-                      .then(data => {
-                        if (data.success) {
-                          window.location.href = data.paymentUrl;
-                        } else {
-                          alert('Fehler: ' + data.error);
-                        }
-                      })
-                      .catch(err => alert('Netzwerkfehler'));
+                      // Prüfe Authentifizierung zuerst
+                      if (!isRegistered) {
+                        // Leite zur Registrierung mit Paket-Info weiter
+                        window.location.href = '/register?package=STARTER&interval=monthly';
+                      } else {
+                        // Benutzer ist eingeloggt, leite zu Einstellungen weiter
+                        window.location.href = '/einstellungen?upgrade=STARTER';
+                      }
                     }}
                   >
                     Jetzt starten
@@ -1340,26 +1328,14 @@ export default function HomePage() {
                   <Button 
                     className="w-full"
                     onClick={() => {
-                      // Weiterleitung zu Payment mit PRO Bundle
-                      const paymentData = {
-                        type: 'bundle',
-                        bundle: 'PRO',
-                        interval: 'monthly'
-                      };
-                      fetch('/api/payments/create', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(paymentData)
-                      })
-                      .then(res => res.json())
-                      .then(data => {
-                        if (data.success) {
-                          window.location.href = data.paymentUrl;
-                        } else {
-                          alert('Fehler: ' + data.error);
-                        }
-                      })
-                      .catch(err => alert('Netzwerkfehler'));
+                      // Prüfe Authentifizierung zuerst
+                      if (!isRegistered) {
+                        // Leite zur Registrierung mit Paket-Info weiter
+                        window.location.href = '/register?package=PRO&interval=monthly';
+                      } else {
+                        // Benutzer ist eingeloggt, leite zu Einstellungen weiter
+                        window.location.href = '/einstellungen?upgrade=PRO';
+                      }
                     }}
                   >
                     Jetzt starten
@@ -1428,26 +1404,14 @@ export default function HomePage() {
                   <Button 
                     className="w-full bg-yellow-600 hover:bg-yellow-700"
                     onClick={() => {
-                      // Weiterleitung zu Payment mit ENTERPRISE Bundle
-                      const paymentData = {
-                        type: 'bundle',
-                        bundle: 'ENTERPRISE',
-                        interval: 'monthly'
-                      };
-                      fetch('/api/payments/create', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(paymentData)
-                      })
-                      .then(res => res.json())
-                      .then(data => {
-                        if (data.success) {
-                          window.location.href = data.paymentUrl;
-                        } else {
-                          alert('Fehler: ' + data.error);
-                        }
-                      })
-                      .catch(err => alert('Netzwerkfehler'));
+                      // Prüfe Authentifizierung zuerst
+                      if (!isRegistered) {
+                        // Leite zur Registrierung mit Paket-Info weiter
+                        window.location.href = '/register?package=ENTERPRISE&interval=monthly';
+                      } else {
+                        // Benutzer ist eingeloggt, leite zu Einstellungen weiter
+                        window.location.href = '/einstellungen?upgrade=ENTERPRISE';
+                      }
                     }}
                   >
                     Kontakt aufnehmen

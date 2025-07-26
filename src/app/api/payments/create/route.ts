@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createBundlePayment, createCreditPayment } from '@/lib/mollie'
 import { verify } from 'jsonwebtoken'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     // User Authentication prüfen
@@ -20,10 +22,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ungültiger Token' }, { status: 401 })
     }
 
-    const { type, bundle, interval, credits } = await request.json()
+    const { type, bundle, interval, credits, teamMemberId } = await request.json()
 
     // Validierung
-    if (!type || (type !== 'bundle' && type !== 'credits')) {
+    if (!type || (type !== 'bundle' && type !== 'credits' && type !== 'team_member')) {
       return NextResponse.json({ error: 'Ungültiger Payment-Typ' }, { status: 400 })
     }
 
@@ -77,6 +79,44 @@ export async function POST(request: NextRequest) {
         amount: result.amount,
         credits: result.credits
       })
+    }
+
+    if (type === 'team_member') {
+      if (!teamMemberId) {
+        return NextResponse.json({ error: 'Team-Member-ID ist erforderlich' }, { status: 400 })
+      }
+
+      // Feste Preise für Team-Mitglieder
+      const teamMemberPrice = 5.00; // 5€ pro Monat
+      
+      try {
+        const payment = await mollie.payments.create({
+          amount: {
+            currency: 'EUR',
+            value: teamMemberPrice.toFixed(2)
+          },
+          description: 'Weiteres Teammitglied - Monatsabo',
+          redirectUrl: `${process.env.NEXTAUTH_URL}/dashboard?payment=success`,
+          webhookUrl: `${process.env.NEXTAUTH_URL}/api/webhooks/mollie`,
+          metadata: {
+            type: 'team_member',
+            teamMemberId: teamMemberId,
+            userId: userId,
+            userEmail: userEmail
+          }
+        });
+
+        return NextResponse.json({
+          success: true,
+          paymentUrl: payment.getCheckoutUrl(),
+          paymentId: payment.id,
+          amount: teamMemberPrice
+        });
+
+      } catch (mollieError) {
+        console.error('Mollie Team Member Payment Error:', mollieError);
+        return NextResponse.json({ error: 'Fehler bei der Team-Member-Zahlung' }, { status: 400 });
+      }
     }
 
   } catch (error) {

@@ -1,8 +1,9 @@
 import { createMollieClient } from '@mollie/api-client'
 
-// Mollie Client erstellen
+// Mollie Client erstellen - Test-Schlüssel für Entwicklung
 const mollie = createMollieClient({
-  apiKey: process.env.MOLLIE_API_KEY || 'test_pNM4JDMjN2V6V2sHyQRzvJEapQBGqk'
+  apiKey: process.env.MOLLIE_API_KEY || 'test_pNM4JDMjN2V6V2sHyQRzvJEapQBGqk',
+  profileId: process.env.MOLLIE_PROFILE_ID || 'pfl_QZSB9J3RJj'
 })
 
 export interface PaymentData {

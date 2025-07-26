@@ -690,7 +690,29 @@ export default function EinstellungenPage() {
                                 {getDiscountPercent(creditAmount)}% Rabatt
                               </div>
                             )}
-                            <Button className="mt-2">
+                            <Button 
+                              className="mt-2"
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch('/api/payments/create', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      type: 'credits',
+                                      credits: creditAmount
+                                    })
+                                  });
+                                  const data = await response.json();
+                                  if (data.success) {
+                                    window.location.href = data.paymentUrl;
+                                  } else {
+                                    alert('Fehler: ' + data.error);
+                                  }
+                                } catch (error) {
+                                  alert('Netzwerkfehler beim Kaufen der Credits');
+                                }
+                              }}
+                            >
                               {creditAmount} Credit{creditAmount > 1 ? 's' : ''} kaufen
                             </Button>
                           </div>
@@ -766,6 +788,28 @@ export default function EinstellungenPage() {
                             className={`w-full ${pkg.popular ? 'bg-primary hover:bg-primary/90' : ''}`}
                             variant={pkg.popular ? 'default' : 'outline'}
                             disabled={pkg.id === 'free'}
+                            onClick={async () => {
+                              if (pkg.id === 'free') return;
+                              try {
+                                const response = await fetch('/api/payments/create', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    type: 'bundle',
+                                    bundle: pkg.name,
+                                    interval: 'monthly'
+                                  })
+                                });
+                                const data = await response.json();
+                                if (data.success) {
+                                  window.location.href = data.paymentUrl;
+                                } else {
+                                  alert('Fehler: ' + data.error);
+                                }
+                              } catch (error) {
+                                alert('Netzwerkfehler beim Upgrade');
+                              }
+                            }}
                           >
                             {pkg.id === 'free' ? 'Aktuell aktiv' : pkg.popular ? 'Jetzt upgraden' : 'Auswählen'}
                           </Button>
@@ -825,7 +869,30 @@ export default function EinstellungenPage() {
                           </div>
                         </div>
                         <div className="mt-4">
-                          <Button className="w-full" size="sm">
+                          <Button 
+                            className="w-full" 
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const response = await fetch('/api/payments/create', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    type: 'credits',
+                                    credits: pkg.credits
+                                  })
+                                });
+                                const data = await response.json();
+                                if (data.success) {
+                                  window.location.href = data.paymentUrl;
+                                } else {
+                                  alert('Fehler: ' + data.error);
+                                }
+                              } catch (error) {
+                                alert('Netzwerkfehler beim Credit-Kauf');
+                              }
+                            }}
+                          >
                             Kaufen
                           </Button>
                         </div>
@@ -853,9 +920,25 @@ export default function EinstellungenPage() {
                           <Button 
                             className="w-full bg-purple-600 hover:bg-purple-700" 
                             size="sm"
-                            onClick={() => {
-                              // Hier würde der Kauf-Dialog geöffnet werden
-                              alert('Team-Mitglied Kauf wird implementiert')
+                            onClick={async () => {
+                              try {
+                                const response = await fetch('/api/payments/create', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    type: 'team_member',
+                                    teamMemberId: pkg.id
+                                  })
+                                });
+                                const data = await response.json();
+                                if (data.success) {
+                                  window.location.href = data.paymentUrl;
+                                } else {
+                                  alert('Fehler: ' + data.error);
+                                }
+                              } catch (error) {
+                                alert('Netzwerkfehler beim Team-Mitglied-Kauf');
+                              }
                             }}
                           >
                             Kaufen
