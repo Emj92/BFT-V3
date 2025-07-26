@@ -64,12 +64,13 @@ function Chart({ score, level }: { score: number; level: string }) {
   const strokeDashoffset = circumference - (score * circumference);
 
   return (
-    <div className="relative w-48 h-48 mx-auto">
+    <div className="relative w-48 h-48 mx-auto flex items-center justify-center">
       {/* SVG Kreisdiagramm */}
       <svg
         height={radius * 2}
         width={radius * 2}
-        className="absolute inset-0"
+        className="absolute"
+        style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
       >
         {/* Hintergrund-Kreis */}
         <circle
@@ -96,8 +97,8 @@ function Chart({ score, level }: { score: number; level: string }) {
         />
       </svg>
       
-      {/* Zentraler Text */}
-      <div className="absolute inset-0 flex items-center justify-center">
+      {/* Zentraler Text - perfekt zentriert */}
+      <div className="relative z-10 flex items-center justify-center">
         <div className="text-center leading-none">
           <div className={`text-3xl font-bold leading-none ${getColorClass()}`}>
             {Math.round(score * 100)}%

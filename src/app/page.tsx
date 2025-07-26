@@ -13,6 +13,7 @@ import { formatUrl, isValidUrl } from '@/lib/utils'
 import ScanResults from '@/components/scan-results'
 import { HomepageDisclaimer, useHomepageDisclaimer } from '@/components/homepage-disclaimer'
 import { FirstLoginDisclaimer, useFirstLoginDisclaimer } from '@/components/first-login-disclaimer'
+import { CookieBanner } from '@/components/cookie-banner'
 import type { ScanResult } from '@/lib/accessibility-scanner'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
@@ -137,19 +138,16 @@ export default function HomePage() {
     }
   }
 
-  // Zeige Disclaimer wenn nötig
+  // Zeige Disclaimer wenn nötig - nur einen zur Zeit
   useEffect(() => {
-    if (showDisclaimer) {
+    if (!isRegistered && showDisclaimer) {
+      // Für nicht-registrierte Nutzer: Homepage-Disclaimer
       setDisclaimerOpen(true)
-    }
-  }, [showDisclaimer])
-
-  // Zeige ersten Login Disclaimer wenn nötig
-  useEffect(() => {
-    if (showFirstLoginDisclaimer && isRegistered) {
+    } else if (isRegistered && showFirstLoginDisclaimer) {
+      // Für registrierte Nutzer: First-Login-Disclaimer (nur einmal)
       setFirstLoginDisclaimerOpen(true)
     }
-  }, [showFirstLoginDisclaimer, isRegistered])
+  }, [showDisclaimer, showFirstLoginDisclaimer, isRegistered])
 
   // Scan-Handler
   const handleSubmit = async (e: React.FormEvent) => {
@@ -202,6 +200,18 @@ export default function HomePage() {
       }
       setResults(data)
       incrementScanCount()
+      
+      // Auto-Scroll zu den Ergebnissen nach kurzer Verzögerung
+      setTimeout(() => {
+        const resultsSection = document.getElementById('scan-results')
+        if (resultsSection) {
+          resultsSection.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start',
+            inline: 'nearest'
+          })
+        }
+      }, 500)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ein unbekannter Fehler ist aufgetreten')
     } finally {
@@ -292,6 +302,19 @@ export default function HomePage() {
             <nav className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-foreground hover:text-blue-600 transition-colors">{t('homepage.features')}</a>
               <a href="#pricing" className="text-foreground hover:text-blue-600 transition-colors">{t('homepage.pricing')}</a>
+              <a href="#ueber-uns" className="text-foreground hover:text-blue-600 transition-colors">Über uns</a>
+              <div className="h-4 w-px bg-gray-300 mx-4"></div>
+              <a 
+                href="https://www.meindl-webdesign.de" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-foreground hover:text-blue-600 transition-colors flex items-center gap-2"
+              >
+                Webdesign Hilfe
+                <Badge variant="secondary" className="bg-blue-100 text-blue-600 text-xs">
+                  beliebt
+                </Badge>
+              </a>
             </nav>
 
             {/* Right side - Theme Switcher, Language Toggle and CTA */}
@@ -340,6 +363,20 @@ export default function HomePage() {
                           <nav className="container mx-auto px-4 py-4 space-y-4">
                             <a href="#features" className="block text-foreground hover:text-blue-600 transition-colors">{t('homepage.features')}</a>
                             <a href="#pricing" className="block text-foreground hover:text-blue-600 transition-colors">{t('homepage.pricing')}</a>
+                            <a href="#ueber-uns" className="block text-foreground hover:text-blue-600 transition-colors">Über uns</a>
+                            <div className="border-t pt-4">
+                              <a 
+                                href="https://www.meindl-webdesign.de" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 text-foreground hover:text-blue-600 transition-colors"
+                              >
+                                Webdesign Hilfe
+                                <Badge variant="secondary" className="bg-blue-100 text-blue-600 text-xs">
+                                  beliebt
+                                </Badge>
+                              </a>
+                            </div>
                 <div className="pt-4 border-t space-y-2">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-muted-foreground">{t('language.switch')}</span>
@@ -467,7 +504,7 @@ export default function HomePage() {
 
         {/* Scan-Ergebnisse */}
         {results && !isLoading && (
-          <section className="py-20 bg-background">
+          <section id="scan-results" className="py-20 bg-background">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
               <ScanResults results={results} showFullDetails={isRegistered} />
               
@@ -906,6 +943,162 @@ export default function HomePage() {
                     </p>
                   </div>
                 </Card>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Über uns Section */}
+        <section id="ueber-uns" className="py-20 bg-muted/30">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center mb-16">
+                <h2 className="text-3xl md:text-4xl font-bold mb-6">
+                  Das Team hinter barriere-frei24.de
+                </h2>
+                <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+                  Erfahrene Webdesigner und Barrierefreiheits-Experten, die seit 2017 
+                  über 70 erfolgreiche Projekte realisiert haben.
+                </p>
+              </div>
+
+              <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
+                <div>
+                  <h3 className="text-2xl font-bold mb-6">
+                    Professionelle Barrierefreiheit seit 2017
+                  </h3>
+                  <p className="text-lg text-muted-foreground mb-6">
+                    Meindl Webdesign wurde 2017 von Erwin Meindl gegründet und befindet sich seit dem in stetigem Wachstum. 
+                    Nach über 70 erfolgreichen Projekten haben wir sehr viel Erfahrung gesammelt, die wir gerne an Sie weitergeben.
+                  </p>
+                  <p className="text-lg text-muted-foreground mb-6">
+                    Unser Team ist ein Zusammenschluss aus ausgewählten Experten, in dem jede Person einen essenziellen 
+                    Teil des Prozesses übernimmt. Wir legen besonderen Wert auf eine gute Kundenbindung auf Augenhöhe.
+                  </p>
+                  <div className="space-y-4">
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-6 w-6 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h4 className="font-semibold mb-1">Schnelle Kommunikation</h4>
+                        <p className="text-muted-foreground">Wir antworten in 95% aller Fälle noch am selben Tag</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-6 w-6 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h4 className="font-semibold mb-1">Viel Erfahrung</h4>
+                        <p className="text-muted-foreground">Wir gehören zu den wirklich erfahrenen Webdesignern mit Fokus auf Barrierefreiheit</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3">
+                      <CheckCircle className="h-6 w-6 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h4 className="font-semibold mb-1">Mit Kopf UND Herz</h4>
+                        <p className="text-muted-foreground">Wir arbeiten mit viel Liebe zum Detail und überlegen uns jedes Mal, wo es noch besser geht</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="relative">
+                  <Card className="p-8 border-0 shadow-2xl">
+                    <div className="text-center">
+                      <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                        <Users className="h-8 w-8 text-blue-600" />
+                      </div>
+                      <h3 className="text-2xl font-bold mb-4">70+</h3>
+                      <p className="text-muted-foreground">
+                        Erfolgreiche Projekte seit 2017 mit Fokus auf 
+                        Barrierefreiheit und professionelles Webdesign
+                      </p>
+                    </div>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Team Vorteile vs andere */}
+              <div className="grid md:grid-cols-2 gap-8">
+                <Card className="border-green-200 bg-green-50/50">
+                  <CardHeader>
+                    <CardTitle className="text-green-800 flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5" />
+                      Unser Team
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl">☄️</div>
+                      <div>
+                        <h4 className="font-semibold text-green-800">Schnelle Kommunikation</h4>
+                        <p className="text-sm text-green-700">Wir antworten in 95% aller Fälle noch am selben Tag</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl">🤝</div>
+                      <div>
+                        <h4 className="font-semibold text-green-800">Großartiger Service</h4>
+                        <p className="text-sm text-green-700">Uns liegt wirklich viel an gutem Service. Wir kommen dem Kunden gerne zuvor!</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl">🌈</div>
+                      <div>
+                        <h4 className="font-semibold text-green-800">Herausragendes Design</h4>
+                        <p className="text-sm text-green-700">Sie bekommen keine 0815 Lösung, die in der Masse untergeht</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-red-200 bg-red-50/50">
+                  <CardHeader>
+                    <CardTitle className="text-red-800 flex items-center gap-2">
+                      <X className="h-5 w-5" />
+                      Andere Anbieter
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl">🤦‍♀️</div>
+                      <div>
+                        <h4 className="font-semibold text-red-800">Laaange Antwortzeiten</h4>
+                        <p className="text-sm text-red-700">Viele Anbieter brauchen Tage, teilweise Wochen für eine Antwort</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl">🤦‍♀️</div>
+                      <div>
+                        <h4 className="font-semibold text-red-800">Du bist einer von Tausend</h4>
+                        <p className="text-sm text-red-700">Bei den ganz großen Playern gehst du in der Masse unter</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl">🤦‍♀️</div>
+                      <div>
+                        <h4 className="font-semibold text-red-800">0815-Design</h4>
+                        <p className="text-sm text-red-700">Ihre Website basiert auf einer Vorlage von vor langer Zeit</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* CTA */}
+              <div className="text-center mt-12">
+                <p className="text-lg text-muted-foreground mb-6">
+                  Möchten Sie uns näher kennenlernen oder haben Fragen zu Barrierefreiheit?
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button asChild size="lg">
+                    <a href="mailto:kontakt@barriere-frei24.de">
+                      Kontakt aufnehmen
+                    </a>
+                  </Button>
+                  <Button asChild variant="outline" size="lg">
+                    <a href="https://www.meindl-webdesign.de" target="_blank" rel="noopener noreferrer">
+                      Mehr über unser Team
+                    </a>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -1653,6 +1846,9 @@ export default function HomePage() {
           setFirstLoginDisclaimerOpen(false)
         }}
       />
+      
+      {/* Cookie Banner */}
+      <CookieBanner />
     </div>
   )
 }
