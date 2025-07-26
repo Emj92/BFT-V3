@@ -26,24 +26,24 @@ export default function BackgroundAnimation() {
     // Erstelle geometrische Formen
     const createShapes = () => {
       const newShapes: Shape[] = []
-      // Verbesserte Farben mit besserer Sichtbarkeit im Light Mode
+      // Deutlich sichtbarere Farben für Light Mode
       const lightColors = [
-        'rgba(59, 130, 246, 0.08)', // blue - erhöht von 0.1 auf 0.08
-        'rgba(139, 92, 246, 0.08)', // purple - erhöht von 0.1 auf 0.08  
-        'rgba(236, 72, 153, 0.06)', // pink - erhöht von 0.1 auf 0.06
-        'rgba(16, 185, 129, 0.07)', // emerald - erhöht von 0.1 auf 0.07
-        'rgba(245, 158, 11, 0.06)', // amber - erhöht von 0.1 auf 0.06
-        'rgba(99, 102, 241, 0.08)', // indigo - erhöht von 0.1 auf 0.08
+        'rgba(59, 130, 246, 0.15)', // blue - deutlich erhöht für bessere Sichtbarkeit
+        'rgba(139, 92, 246, 0.15)', // purple - deutlich erhöht
+        'rgba(236, 72, 153, 0.12)', // pink - deutlich erhöht
+        'rgba(16, 185, 129, 0.14)', // emerald - deutlich erhöht
+        'rgba(245, 158, 11, 0.13)', // amber - deutlich erhöht
+        'rgba(99, 102, 241, 0.15)', // indigo - deutlich erhöht
       ]
       
-      // Dark Mode Farben bleiben gleich
+      // Dark Mode Farben auch verstärkt
       const darkColors = [
-        'rgba(59, 130, 246, 0.12)', // blue
-        'rgba(139, 92, 246, 0.12)', // purple  
-        'rgba(236, 72, 153, 0.10)', // pink
-        'rgba(16, 185, 129, 0.11)', // emerald
-        'rgba(245, 158, 11, 0.10)', // amber
-        'rgba(99, 102, 241, 0.12)', // indigo
+        'rgba(59, 130, 246, 0.18)', // blue - verstärkt
+        'rgba(139, 92, 246, 0.18)', // purple - verstärkt  
+        'rgba(236, 72, 153, 0.15)', // pink - verstärkt
+        'rgba(16, 185, 129, 0.16)', // emerald - verstärkt
+        'rgba(245, 158, 11, 0.15)', // amber - verstärkt
+        'rgba(99, 102, 241, 0.18)', // indigo - verstärkt
       ]
 
       // Erkenne Theme (falls verfügbar)

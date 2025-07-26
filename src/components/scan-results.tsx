@@ -104,7 +104,7 @@ function Chart({ score, level }: { score: number; level: string }) {
             {Math.round(score * 100)}%
           </div>
           <div className="text-xs text-gray-500 mt-1 leading-none">
-            WCAG {level}
+            Barrierefreiheitsscore lt. WCAG {level}
           </div>
         </div>
       </div>

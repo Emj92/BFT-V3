@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { GlobalNavigation } from "@/components/global-navigation"
-import { MessageSquare, Send, Paperclip, AlertTriangle, Lock, Crown } from "lucide-react"
+import { MessageSquare, Send, Paperclip, AlertTriangle, Lock, Crown, Mail } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useBundle } from "@/hooks/useBundle"
 
@@ -128,6 +128,26 @@ export default function CreateTicketPage() {
                   Um Support-Tickets zu erstellen und professionelle Hilfe von echten Menschen zu erhalten, 
                   benötigen Sie mindestens das STARTER-Paket.
                 </p>
+                
+                {/* E-Mail Alternative für FREE-Nutzer */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <h4 className="text-blue-800 font-semibold mb-2 flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    Alternative: Direkte E-Mail
+                  </h4>
+                  <p className="text-blue-700 text-sm mb-3">
+                    Als FREE-Nutzer können Sie uns auch direkt per E-Mail kontaktieren:
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                    onClick={() => window.location.href = 'mailto:support@barriere-frei24.de?subject=Support%20Anfrage%20(FREE%20Account)&body=Hallo,%0D%0A%0D%0ABitte%20beschreiben%20Sie%20hier%20Ihr%20Problem%20oder%20Ihre%20Frage:%0D%0A%0D%0A'}
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    support@barriere-frei24.de
+                  </Button>
+                </div>
+                
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button 
                     onClick={() => router.push("/einstellungen")}

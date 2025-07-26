@@ -319,12 +319,20 @@ export default function HomePage() {
 
             {/* Right side - Theme Switcher, Language Toggle and CTA */}
             <div className="flex items-center space-x-4">
-              <Button asChild variant="outline" className="hidden md:inline-flex text-gray-600 border-gray-300 hover:bg-gray-50">
-                <Link href="/login">Login</Link>
-              </Button>
-              <Button asChild className="hidden md:inline-flex">
-                <Link href="/register">{t('homepage.getStarted')}</Link>
-              </Button>
+              {!isRegistered ? (
+                <Button asChild variant="outline" className="hidden md:inline-flex text-gray-600 border-gray-300 hover:bg-gray-50">
+                  <Link href="/login">Login</Link>
+                </Button>
+              ) : (
+                <Button asChild variant="outline" className="hidden md:inline-flex text-gray-600 border-gray-300 hover:bg-gray-50">
+                  <Link href="/dashboard">Dashboard</Link>
+                </Button>
+              )}
+              {!isRegistered && (
+                <Button asChild className="hidden md:inline-flex">
+                  <Link href="/register">{t('homepage.getStarted')}</Link>
+                </Button>
+              )}
               
               {/* Language Toggle */}
               <LanguageToggle />
@@ -382,12 +390,20 @@ export default function HomePage() {
                     <span className="text-sm text-muted-foreground">{t('language.switch')}</span>
                     <LanguageToggle />
                   </div>
-                  <Link href="/login">
-                    <Button variant="outline" className="w-full">{t('homepage.login')}</Button>
-                  </Link>
-                  <Link href="/register">
-                    <Button className="w-full">{t('homepage.getStarted')}</Button>
-                  </Link>
+                  {!isRegistered ? (
+                    <Link href="/login">
+                      <Button variant="outline" className="w-full">{t('homepage.login')}</Button>
+                    </Link>
+                  ) : (
+                    <Link href="/dashboard">
+                      <Button variant="outline" className="w-full">Dashboard</Button>
+                    </Link>
+                  )}
+                  {!isRegistered && (
+                    <Link href="/register">
+                      <Button className="w-full">{t('homepage.getStarted')}</Button>
+                    </Link>
+                  )}
                 </div>
               </nav>
             </div>
@@ -1441,14 +1457,25 @@ export default function HomePage() {
                   
                   <Button 
                     className="w-full"
-                    onClick={() => {
-                      // Prüfe Authentifizierung zuerst
-                      if (!isRegistered) {
-                        // Leite zur Registrierung mit Paket-Info weiter
-                        window.location.href = '/register?package=STARTER&interval=monthly';
-                      } else {
-                        // Benutzer ist eingeloggt, leite zu Einstellungen weiter
-                        window.location.href = '/einstellungen?upgrade=STARTER';
+                    onClick={async () => {
+                      try {
+                        const response = await fetch('/api/payments/create', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            type: 'bundle',
+                            bundle: 'STARTER',
+                            interval: 'monthly'
+                          })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                          window.location.href = data.paymentUrl;
+                        } else {
+                          alert('Fehler: ' + data.error);
+                        }
+                      } catch (error) {
+                        alert('Netzwerkfehler beim Erstellen der Zahlung');
                       }
                     }}
                   >
@@ -1520,14 +1547,25 @@ export default function HomePage() {
                   
                   <Button 
                     className="w-full"
-                    onClick={() => {
-                      // Prüfe Authentifizierung zuerst
-                      if (!isRegistered) {
-                        // Leite zur Registrierung mit Paket-Info weiter
-                        window.location.href = '/register?package=PRO&interval=monthly';
-                      } else {
-                        // Benutzer ist eingeloggt, leite zu Einstellungen weiter
-                        window.location.href = '/einstellungen?upgrade=PRO';
+                    onClick={async () => {
+                      try {
+                        const response = await fetch('/api/payments/create', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            type: 'bundle',
+                            bundle: 'PRO',
+                            interval: 'monthly'
+                          })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                          window.location.href = data.paymentUrl;
+                        } else {
+                          alert('Fehler: ' + data.error);
+                        }
+                      } catch (error) {
+                        alert('Netzwerkfehler beim Erstellen der Zahlung');
                       }
                     }}
                   >
@@ -1597,14 +1635,8 @@ export default function HomePage() {
                   <Button 
                     className="w-full bg-yellow-600 hover:bg-yellow-700"
                     onClick={() => {
-                      // Prüfe Authentifizierung zuerst
-                      if (!isRegistered) {
-                        // Leite zur Registrierung mit Paket-Info weiter
-                        window.location.href = '/register?package=ENTERPRISE&interval=monthly';
-                      } else {
-                        // Benutzer ist eingeloggt, leite zu Einstellungen weiter
-                        window.location.href = '/einstellungen?upgrade=ENTERPRISE';
-                      }
+                      // ENTERPRISE ist auf Anfrage - öffne E-Mail
+                      window.location.href = 'mailto:kontakt@barriere-frei24.de?subject=Enterprise%20Paket%20Anfrage&body=Hallo,%0D%0A%0D%0AIch%20interessiere%20mich%20für%20das%20Enterprise%20Paket.%20Bitte%20kontaktieren%20Sie%20mich%20für%20ein%20individuelles%20Angebot.%0D%0A%0D%0AVielen%20Dank!';
                     }}
                   >
                     Kontakt aufnehmen
@@ -1781,17 +1813,19 @@ export default function HomePage() {
                   className="h-10 w-auto" 
                 />
               </div>
-              <p className="text-muted-foreground">
-                <strong>Erwin Meindl</strong><br />
-                Barrierefreiheit für alle Websites. 
-                Professionelle WCAG-Compliance-Tools.
+              <h3 className="font-semibold mb-3">Über Mich</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Ich entwickle professionelle Tools zur Barrierefreiheits-Prüfung von Websites. 
+                Mit über 70 erfolgreichen Projekten seit 2017 helfe ich dabei, Websites 
+                WCAG-konform und für alle zugänglich zu machen. Von automatisierten Scans 
+                bis hin zu detaillierten Compliance-Berichten - alles aus einer Hand.
               </p>
             </div>
             
             {/* Rechts - Kontaktdaten */}
-            <div>
+            <div className="text-center md:text-left">
               <h3 className="font-semibold mb-4">Kontakt</h3>
-              <div className="space-y-2 text-muted-foreground">
+              <div className="space-y-0.5 text-muted-foreground leading-snug">
                 <p>E-Mail: kontakt@barriere-frei24.de</p>
                 <p>Tel: +49 (0) 89 32 80 47 77</p>
                 <p>Mobil: +49 (0) 151 222 62 199</p>
@@ -1814,7 +1848,7 @@ export default function HomePage() {
                 AGB
               </Link>
               <Link href="/barrierefreiheit" className="text-muted-foreground hover:text-foreground transition-colors">
-                Barrierefreiheit
+                Barrierefreiheits-Erklärung
               </Link>
             </div>
           </div>

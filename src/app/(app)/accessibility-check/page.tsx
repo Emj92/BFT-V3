@@ -612,6 +612,7 @@ export default function AccessibilityCheckPage() {
                     onFocus={() => setIsUrlDropdownOpen(websites.length > 0)}
                     className="text-base h-12"
                     data-url-dropdown="true"
+                    autoComplete="off"
                   />
                   {websites.length > 0 && isUrlDropdownOpen && (
                     <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-60 overflow-auto" data-url-dropdown="true">

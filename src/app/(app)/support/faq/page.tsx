@@ -28,8 +28,8 @@ const faqCategories = [
       },
       {
         id: "grundlagen-2",
-        question: "Was sind die WCAG 2.1 Standards?",
-        answer: "Die Web Content Accessibility Guidelines (WCAG) 2.1 sind internationale Standards für die Barrierefreiheit von Webinhalten. Sie definieren drei Konformitätsstufen: A (Mindeststandard), AA (Standard für die meisten Websites) und AAA (höchster Standard). Die meisten Gesetze fordern mindestens AA-Konformität."
+        question: "Was sind die WCAG 2.1 Standards und die Prüfparameter A, AA, AAA?",
+        answer: "Die Web Content Accessibility Guidelines (WCAG) 2.1 sind internationale Standards für die Barrierefreiheit von Webinhalten mit drei Konformitätsstufen:\n\n• **Level A (Mindeststandard)**: Grundlegende Barrierefreiheit. Erfüllt die wichtigsten Anforderungen wie Alt-Texte für Bilder, Tastaturzugänglichkeit und grundlegende Kontraste.\n\n• **Level AA (Standard)**: Erweiterte Barrierefreiheit. Dies ist der gesetzlich geforderte Standard für die meisten Websites. Beinhaltet höhere Kontrastanforderungen (4,5:1), erweiterte Tastaturbedienung und bessere Strukturierung.\n\n• **Level AAA (Höchster Standard)**: Optimale Barrierefreiheit. Sehr hohe Kontraste (7:1), erweiterte Hilfestellungen und maximale Zugänglichkeit. Schwer vollständig umsetzbar, daher meist nur für spezielle Bereiche.\n\nDie meisten Gesetze fordern mindestens AA-Konformität. Unser Tool zeigt Ihnen alle Level-Probleme mit entsprechender Kennzeichnung an."
       },
       {
         id: "grundlagen-3",

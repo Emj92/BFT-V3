@@ -181,7 +181,7 @@ export default function DashboardPage() {
             throw new Error('Serverfehler beim Laden der Daten')
           }
           
-          // Kombiniere API-Daten (ohne lokale Demo-Daten)
+          // Kombiniere API-Daten mit lokalen Accessibility-Check Scans
           const apiWebsites = apiData?.websites || []
           const totalApiWebsites = apiWebsites.length
           const totalApiScans = apiWebsites.reduce((sum: number, website: any) => 
@@ -190,45 +190,113 @@ export default function DashboardPage() {
           const apiScans = apiWebsites.flatMap((website: any) => 
             website.pages ? website.pages.flatMap((page: any) => page.scans || []) : [])
           
-          if (totalApiScans > 0) {
-            const totalWebsites = totalApiWebsites
-            const totalScans = totalApiScans
+          // Lade lokale Accessibility-Check Scans
+          const localScans = JSON.parse(localStorage.getItem('website-scans') || '[]')
+          const totalLocalScans = localScans.length
+          
+          // Berücksichtige sowohl API-Scans als auch lokale Scans
+          const combinedScans = totalApiScans + totalLocalScans
+          
+          if (combinedScans > 0) {
+            // Kombiniere Websites (lokale Scans zählen als zusätzliche Websites)
+            const uniqueLocalWebsites = new Set(localScans.map((scan: any) => scan.website)).size
+            const totalWebsites = totalApiWebsites + uniqueLocalWebsites
+            const totalScans = combinedScans
             
-            // Verwende nur API-Scores
-            const allScores = apiScans.map((scan: any) => scan.score || 0)
+            // Kombiniere API-Scores mit lokalen Scores
+            const apiScores = apiScans.map((scan: any) => scan.score || 0)
+            const localScores = localScans.map((scan: any) => scan.score / 100 || 0) // lokale Scores sind in %
+            const allScores = [...apiScores, ...localScores]
             
             const avgScore = allScores.length > 0 ? allScores.reduce((sum: number, score: number) => sum + score, 0) / allScores.length : 0
             
-            // Nur API kritische Issues
+            // API + lokale kritische Issues
             const apiCriticalIssues = apiScans.reduce((sum: number, scan: any) => {
               if (scan.violations && Array.isArray(scan.violations)) {
                 return sum + scan.violations.filter((v: any) => v.impact === 'critical').length
               }
               return sum
             }, 0)
+            
+            const localCriticalIssues = localScans.reduce((sum: number, scan: any) => 
+              sum + (scan.criticalIssues || 0), 0)
 
             setStats({
               totalWebsites,
               totalScans,
               avgScore,
-              criticalIssues: apiCriticalIssues,
+              criticalIssues: apiCriticalIssues + localCriticalIssues,
               completionRate: totalScans > 0 ? 1 : 0,
               wcagACompliance: avgScore > 0.8 ? 1 : avgScore > 0.6 ? 0.8 : 0.6,
               wcagAACompliance: avgScore,
               wcagAAACompliance: avgScore > 0.9 ? avgScore : 0.4
             })
 
-            // Nur API-Aktivitäten
-            const apiActivities = apiScans.slice(0, 4).map((scan: any, index: number) => ({
-              id: index + 1,
-              type: "scan",
-              description: `Website-Scan abgeschlossen`,
-              timestamp: new Date(scan.createdAt).toLocaleDateString('de-DE'),
-              status: scan.status || "abgeschlossen",
+            // Kombiniere API- und lokale Aktivitäten
+            const apiActivities = apiScans.map((scan: any) => ({
+              ...scan,
+              source: 'api',
+              timestamp: new Date(scan.createdAt),
               score: scan.score
             }))
+            
+            const localActivities = localScans.map((scan: any) => ({
+              ...scan,
+              source: 'local',
+              timestamp: new Date(scan.date),
+              score: scan.score / 100,
+              createdAt: scan.date
+            }))
+            
+            // Sortiere nach Datum (neueste zuerst) und nimm die ersten 4
+            const allActivities = [...apiActivities, ...localActivities]
+              .sort((a, b) => b.timestamp - a.timestamp)
+              .slice(0, 4)
+              .map((activity, index) => ({
+                id: index + 1,
+                type: "scan",
+                description: activity.source === 'api' 
+                  ? `Website-Scan abgeschlossen`
+                  : `Accessibility-Check für ${activity.website} abgeschlossen`,
+                timestamp: activity.timestamp.toLocaleDateString('de-DE'),
+                status: activity.status || "abgeschlossen",
+                score: activity.score
+              }))
 
-            setRecentActivities(apiActivities)
+            setRecentActivities(allActivities)
+          } else if (totalLocalScans > 0) {
+            // Nur lokale Scans vorhanden
+            const uniqueLocalWebsites = new Set(localScans.map((scan: any) => scan.website)).size
+            const localScores = localScans.map((scan: any) => scan.score / 100 || 0)
+            const avgScore = localScores.reduce((sum: number, score: number) => sum + score, 0) / localScores.length
+            const localCriticalIssues = localScans.reduce((sum: number, scan: any) => 
+              sum + (scan.criticalIssues || 0), 0)
+            
+            setStats({
+              totalWebsites: uniqueLocalWebsites,
+              totalScans: totalLocalScans,
+              avgScore,
+              criticalIssues: localCriticalIssues,
+              completionRate: 1,
+              wcagACompliance: avgScore > 0.8 ? 1 : avgScore > 0.6 ? 0.8 : 0.6,
+              wcagAACompliance: avgScore,
+              wcagAAACompliance: avgScore > 0.9 ? avgScore : 0.4
+            })
+            
+            // Lokale Aktivitäten
+            const localActivities = localScans
+              .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              .slice(0, 4)
+              .map((scan: any, index: number) => ({
+                id: index + 1,
+                type: "scan",
+                description: `Accessibility-Check für ${scan.website} abgeschlossen`,
+                timestamp: new Date(scan.date).toLocaleDateString('de-DE'),
+                status: scan.status || "abgeschlossen",
+                score: scan.score / 100
+              }))
+            
+            setRecentActivities(localActivities)
           } else {
             // Keine Websites vorhanden - das ist kein Fehler, sondern ein normaler Zustand
             setStats({
