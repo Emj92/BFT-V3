@@ -37,7 +37,7 @@ model User {
   
   // Credit System
   credits       Int       @default(5) // Free User bekommen 5 Credits zum Start
-  bundle        BundleType    @default(FREE)
+  bundle        BundleType   
   bundlePurchasedAt DateTime?
   
   // Team-System für Enterprise
