@@ -1,7 +1,7 @@
 module.exports = {
   apps: [{
-    name: 'barriere-frei24-app',
-    script: './.next/standalone/server.js',
+    name: 'barriere-frei24-app-backup',
+    script: 'server.js',
     cwd: '/var/www/barriere-frei24-app',
     env: {
       NODE_ENV: 'production',
@@ -16,6 +16,11 @@ module.exports = {
     out_file: './logs/out.log',
     log_file: './logs/combined.log',
     watch: false,
-    ignore_watch: ['node_modules', 'logs']
+    ignore_watch: ['node_modules', 'logs'],
+    // Prerender-Manifest Problem umgehen
+    env_production: {
+      NODE_ENV: 'production',
+      NEXT_RUNTIME: 'nodejs'
+    }
   }]
 }; 
