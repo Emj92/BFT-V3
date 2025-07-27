@@ -295,14 +295,7 @@ export default function AccessibilityCheckPage() {
     }
   }
 
-  // Handler für Unterseiten-Scanning Checkbox
-  const handleSubpageScanningChange = (checked: boolean) => {
-    if (!hasProVersion && checked) {
-      setShowUpgradeDialog(true)
-      return
-    }
-    setEnableSubpageScanning(checked)
-  }
+
 
   // Automatisch URL setzen wenn Website ausgewählt wird 
   useEffect(() => {

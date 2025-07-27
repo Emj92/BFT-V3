@@ -21,6 +21,7 @@ import { Clock } from "lucide-react"
 import { AlertTriangle } from "lucide-react"
 import { CheckCircle } from "lucide-react"
 import { XCircle } from "lucide-react"
+import { X } from "lucide-react"
 import { Eye } from "lucide-react"
 import { Download } from "lucide-react"
 import { RefreshCw } from "lucide-react"
@@ -49,6 +50,7 @@ export default function WebsiteScansPage() {
   const { websites } = useWebsites()
   const [isRepeatDialogOpen, setIsRepeatDialogOpen] = useState(false)
   const [scanToRepeat, setScanToRepeat] = useState<WebsiteScan | null>(null)
+  const [isCleaningUp, setIsCleaningUp] = useState(false)
 
   // Lade Scans beim Komponenten-Mount
   useEffect(() => {
@@ -366,6 +368,44 @@ export default function WebsiteScansPage() {
     }
   }
 
+  // Demo-Daten bereinigen
+  const handleCleanupDemoData = async () => {
+    if (!confirm('Möchten Sie wirklich alle Demo-Daten (Beispiel Website, Test Website, etc.) entfernen?')) {
+      return
+    }
+
+    setIsCleaningUp(true)
+    
+    try {
+      // Bereinige localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('website-scans')
+        console.log('localStorage bereinigt')
+      }
+
+      // Bereinige Datenbank über API
+      const response = await fetch('/api/cleanup-demo-data', {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        alert(`Demo-Daten erfolgreich entfernt: ${result.deletedScans} Scans und ${result.deletedWebsites} Websites gelöscht`)
+        
+        // Lade Scans neu
+        await loadScans()
+      } else {
+        const error = await response.json()
+        alert(`Fehler beim Entfernen der Demo-Daten: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Fehler beim Bereinigen der Demo-Daten:', error)
+      alert('Fehler beim Bereinigen der Demo-Daten')
+    } finally {
+      setIsCleaningUp(false)
+    }
+  }
+
   return (
     <>
       <SidebarInset>
@@ -429,6 +469,26 @@ export default function WebsiteScansPage() {
                     <SelectItem value="fehler">Fehler</SelectItem>
                   </SelectContent>
                 </Select>
+
+                {/* Demo-Daten entfernen Button */}
+                <Button
+                  variant="outline"
+                  onClick={handleCleanupDemoData}
+                  disabled={isCleaningUp}
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  {isCleaningUp ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Bereinige...
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Demo-Daten entfernen
+                    </>
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
