@@ -41,9 +41,24 @@ export async function DELETE(request: NextRequest) {
     const deletedScans = await prisma.scan.deleteMany({
       where: {
         userId,
+        page: {
+          OR: [
+            ...demoUrls.map(url => ({ url: url })),
+            ...demoSites.map(site => ({ url: { contains: site } }))
+          ]
+        }
+      }
+    })
+
+    // Lösche Pages mit Demo-URLs
+    const deletedPages = await prisma.page.deleteMany({
+      where: {
+        website: {
+          project: { ownerId: userId }
+        },
         OR: [
-          ...demoUrls.map(url => ({ websiteUrl: url })),
-          ...demoSites.map(site => ({ websiteUrl: { contains: site } }))
+          ...demoUrls.map(url => ({ url: url })),
+          ...demoSites.map(site => ({ url: { contains: site } }))
         ]
       }
     })
@@ -66,12 +81,13 @@ export async function DELETE(request: NextRequest) {
       }
     })
 
-    console.log(`Demo-Bereinigung abgeschlossen: ${deletedScans.count} Scans und ${deletedWebsites.count} Websites gelöscht`)
+    console.log(`Demo-Bereinigung abgeschlossen: ${deletedScans.count} Scans, ${deletedPages.count} Pages und ${deletedWebsites.count} Websites gelöscht`)
 
     return NextResponse.json({
       success: true,
-      message: `${deletedScans.count} Demo-Scans und ${deletedWebsites.count} Demo-Websites erfolgreich gelöscht`,
+      message: `${deletedScans.count} Demo-Scans, ${deletedPages.count} Demo-Pages und ${deletedWebsites.count} Demo-Websites erfolgreich gelöscht`,
       deletedScans: deletedScans.count,
+      deletedPages: deletedPages.count,
       deletedWebsites: deletedWebsites.count
     })
 

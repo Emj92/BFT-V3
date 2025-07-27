@@ -16,43 +16,19 @@ export async function GET() {
         name: true,
         firstName: true,
         lastName: true,
-        street: true,
-        houseNumber: true,
-        city: true,
-        country: true,
-        phone: true,
-        avatarUrl: true,
         role: true,
         credits: true,
         bundle: true,
         bundlePurchasedAt: true,
         createdAt: true,
         updatedAt: true,
-        organization: true,
         organizationId: true,
-        scans: {
+        // Vereinfachte Beziehungen
+        _count: {
           select: {
-            id: true
-          }
-        },
-        projects: {
-          select: {
-            id: true
-          }
-        },
-        transactions: {
-          select: {
-            id: true
-          }
-        },
-        reports: {
-          select: {
-            id: true
-          }
-        },
-        notificationsRead: {
-          select: {
-            id: true
+            scans: true,
+            projects: true,
+            supportTickets: true
           }
         }
       }
@@ -62,7 +38,9 @@ export async function GET() {
     const usersWithExtendedData = users.map(user => ({
       ...user,
       isActive: true, // Alle Benutzer sind standardmäßig aktiv
-      openTickets: 0 // TODO: Implementiere echte Ticket-Zählung nach Prisma-Client Update
+      openTickets: user._count?.supportTickets || 0,
+      scansCount: user._count?.scans || 0,
+      projectsCount: user._count?.projects || 0
     }))
     
     return NextResponse.json({ 
