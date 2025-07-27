@@ -254,9 +254,55 @@ export default function AccessibilityCheckPage() {
   const { websites, selectedWebsite } = useWebsites()
   const { bundleInfo } = useBundle()
   const { t } = useLanguage()
+  
+  // State für ausgewählte Fehler
+  const [selectedErrors, setSelectedErrors] = useState<Set<number>>(new Set())
+  const [showAddToTasksButton, setShowAddToTasksButton] = useState(false)
 
   // Korrigierte Pro-Version-Prüfung - nutzt die hasProFeatures aus der Bundle-API
   const hasProVersion = bundleInfo?.hasProFeatures || false
+
+  // Handler für Checkbox-Änderungen
+  const handleErrorSelection = (index: number, checked: boolean) => {
+    const newSelectedErrors = new Set(selectedErrors)
+    if (checked) {
+      newSelectedErrors.add(index)
+    } else {
+      newSelectedErrors.delete(index)
+    }
+    setSelectedErrors(newSelectedErrors)
+    setShowAddToTasksButton(newSelectedErrors.size > 0)
+  }
+
+  // Handler für "Alle Fehler zu Aufgaben hinzufügen"
+  const handleAddSelectedToTasks = async () => {
+    if (!scanResults || selectedErrors.size === 0) return
+
+    const filteredResults = getFilteredResults()
+    const selectedItems = Array.from(selectedErrors).map(index => filteredResults[index])
+    
+    try {
+      // Hier würde die API-Anfrage zum Hinzufügen der Aufgaben stehen
+      // Für jetzt zeigen wir nur eine Bestätigung
+      alert(`${selectedErrors.size} Fehler wurden zu den Aufgaben hinzugefügt!`)
+      
+      // Reset der Auswahl
+      setSelectedErrors(new Set())
+      setShowAddToTasksButton(false)
+    } catch (error) {
+      console.error('Fehler beim Hinzufügen zu Aufgaben:', error)
+      alert('Fehler beim Hinzufügen zu Aufgaben')
+    }
+  }
+
+  // Handler für Unterseiten-Scanning Checkbox
+  const handleSubpageScanningChange = (checked: boolean) => {
+    if (!hasProVersion && checked) {
+      setShowUpgradeDialog(true)
+      return
+    }
+    setEnableSubpageScanning(checked)
+  }
 
   // Automatisch URL setzen wenn Website ausgewählt wird 
   useEffect(() => {
@@ -917,38 +963,66 @@ export default function AccessibilityCheckPage() {
             {/* Detaillierte Ergebnisse */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl">
-                  Detaillierte Prüfergebnisse
-                  {activeFilter !== 'all' && (
-                    <span className="ml-2 text-sm font-normal text-muted-foreground">
-                      - {activeFilter === 'critical' ? 'Kritische Probleme' :
-                         activeFilter === 'serious' ? 'Schwerwiegende Probleme' :
-                         activeFilter === 'positive' ? 'Positive Ergebnisse' :
-                         activeFilter === 'total' ? 'Alle Ergebnisse' : 'Alle Probleme'}
-                    </span>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-xl">
+                      Detaillierte Prüfergebnisse
+                      {activeFilter !== 'all' && (
+                        <span className="ml-2 text-sm font-normal text-muted-foreground">
+                          - {activeFilter === 'critical' ? 'Kritische Probleme' :
+                             activeFilter === 'serious' ? 'Schwerwiegende Probleme' :
+                             activeFilter === 'positive' ? 'Positive Ergebnisse' :
+                             activeFilter === 'total' ? 'Alle Ergebnisse' : 'Alle Probleme'}
+                        </span>
+                      )}
+                      {selectedPageFilter !== 'alle' && (
+                        <span className="ml-2 text-sm font-normal text-blue-600">
+                          - Gefiltert nach: {new URL(selectedPageFilter).pathname || '/'}
+                        </span>
+                      )}
+                    </CardTitle>
+                    <CardDescription className="text-base">
+                      {activeFilter === 'positive' 
+                        ? `Erfolgreich bestandene Tests für ${scanResults.url}`
+                        : `Gefundene Barrierefreiheitsprobleme für ${scanResults.url}`
+                      }
+                    </CardDescription>
+                    {activeFilter !== 'all' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleFilterChange('all')}
+                        className="mt-2 w-fit"
+                      >
+                        Alle anzeigen
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {/* Buttons rechts */}
+                  {activeFilter !== 'positive' && (
+                    <div className="flex gap-2">
+                      {showAddToTasksButton && (
+                        <Button
+                          onClick={handleAddSelectedToTasks}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Alle Fehler zu Aufgaben hinzufügen
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        onClick={handleAddSelectedToTasks}
+                        disabled={selectedErrors.size === 0}
+                        className={selectedErrors.size > 0 ? "border-green-500 text-green-600 hover:bg-green-50" : ""}
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Zu Aufgaben hinzufügen
+                      </Button>
+                    </div>
                   )}
-                  {selectedPageFilter !== 'alle' && (
-                    <span className="ml-2 text-sm font-normal text-blue-600">
-                      - Gefiltert nach: {new URL(selectedPageFilter).pathname || '/'}
-                    </span>
-                  )}
-                </CardTitle>
-                <CardDescription className="text-base">
-                  {activeFilter === 'positive' 
-                    ? `Erfolgreich bestandene Tests für ${scanResults.url}`
-                    : `Gefundene Barrierefreiheitsprobleme für ${scanResults.url}`
-                  }
-                </CardDescription>
-                {activeFilter !== 'all' && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleFilterChange('all')}
-                    className="mt-2 w-fit"
-                  >
-                    Alle anzeigen
-                  </Button>
-                )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -961,7 +1035,15 @@ export default function AccessibilityCheckPage() {
                         key={index} 
                         className={`transition-all duration-200 ${isHidden ? 'opacity-30' : ''}`}
                       >
-                        <div className="flex items-start justify-between p-6 border rounded-lg">
+                        <div className="flex items-start gap-4 p-6 border rounded-lg">
+                          {/* Checkbox für nicht-positive Ergebnisse */}
+                          {!isPositive && (
+                            <Checkbox
+                              checked={selectedErrors.has(index)}
+                              onCheckedChange={(checked) => handleErrorSelection(index, checked as boolean)}
+                              className="mt-1"
+                            />
+                          )}
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <TooltipProvider>

@@ -25,7 +25,7 @@ export function LanguageToggle() {
           title={t('language.switch')}
         >
           <Image
-            src={language === 'de' ? '/deutschland.jpg' : '/usa.jpg'}
+            src={language === 'de' ? '/deutschland.png' : '/america.png'}
             alt={language === 'de' ? 'Deutsch' : 'English'}
             width={32}
             height={24}
@@ -41,7 +41,7 @@ export function LanguageToggle() {
         >
           <div className="flex items-center gap-2">
             <Image
-              src="/deutschland.jpg"
+              src="/deutschland.png"
               alt="Deutsch"
               width={20}
               height={15}
@@ -58,7 +58,7 @@ export function LanguageToggle() {
         >
           <div className="flex items-center gap-2">
             <Image
-              src="/usa.jpg"
+              src="/america.png"
               alt="English"
               width={20}
               height={15}

@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { GlobalNavigation } from "@/components/global-navigation"
-import { MessageSquare, Send, Paperclip, AlertTriangle, Lock, Crown, Mail } from "lucide-react"
+import { MessageSquare, Send, Paperclip, AlertTriangle, Lock, Crown, Mail, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useBundle } from "@/hooks/useBundle"
 
@@ -29,6 +29,8 @@ export default function CreateTicketPage() {
     category: "",
     description: ""
   })
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
 
   // Prüfe ob Benutzer berechtigt ist
   const isEligible = bundleInfo && bundleInfo.bundle !== 'FREE'
@@ -91,6 +93,39 @@ export default function CreateTicketPage() {
       ...prev,
       [field]: value
     }))
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) {
+      setSelectedFile(null)
+      setFileError(null)
+      return
+    }
+
+    // Prüfe Dateityp
+    const allowedTypes = ['image/png', 'image/jpg', 'image/jpeg']
+    if (!allowedTypes.includes(file.type)) {
+      setFileError('Nur PNG und JPG Dateien sind erlaubt')
+      setSelectedFile(null)
+      return
+    }
+
+    // Prüfe Dateigröße (2MB = 2 * 1024 * 1024 bytes)
+    const maxSize = 2 * 1024 * 1024
+    if (file.size > maxSize) {
+      setFileError('Datei ist zu groß. Maximum sind 2MB. Bitte komprimieren Sie die Datei.')
+      setSelectedFile(null)
+      return
+    }
+
+    setFileError(null)
+    setSelectedFile(file)
+  }
+
+  const removeFile = () => {
+    setSelectedFile(null)
+    setFileError(null)
   }
 
   if (loading) {
@@ -286,6 +321,69 @@ export default function CreateTicketPage() {
                   rows={8}
                   className="text-base resize-none"
                 />
+              </div>
+
+              {/* File Upload Bereich */}
+              <div className="space-y-2">
+                <Label className="text-base font-medium">
+                  Screenshot anhängen (optional)
+                </Label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  {selectedFile ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-center gap-2 text-green-600">
+                        <Paperclip className="h-5 w-5" />
+                        <span className="font-medium">{selectedFile.name}</span>
+                        <span className="text-sm text-gray-500">
+                          ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={removeFile}
+                        className="mx-auto"
+                      >
+                        Datei entfernen
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <Paperclip className="h-8 w-8 mx-auto text-gray-400" />
+                      <div>
+                        <label className="cursor-pointer">
+                          <Button type="button" variant="outline" asChild>
+                            <span>Datei auswählen</span>
+                          </Button>
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept=".png,.jpg,.jpeg"
+                            onChange={handleFileChange}
+                          />
+                        </label>
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        PNG oder JPG, max. 2MB
+                      </p>
+                      {fileError && (
+                        <p className="text-sm text-red-600 font-medium">
+                          {fileError}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500">
+                  💡 <strong>Tipp:</strong> Große Dateien können Sie kostenlos komprimieren mit Tools wie 
+                  <a href="https://tinypng.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1">
+                    TinyPNG
+                  </a> oder 
+                  <a href="https://compressjpeg.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1">
+                    CompressJPEG
+                  </a>
+                </p>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 pt-4">

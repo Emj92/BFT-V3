@@ -1744,10 +1744,20 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Elfsight Google Reviews Widget */}
+            {/* Platzhalter für zukünftige Bewertungen */}
             <div className="mb-16">
-              <script src="https://static.elfsight.com/platform/platform.js" async></script>
-              <div className="elfsight-app-85009f93-d91e-4625-8e75-c946421aeb27" data-elfsight-app-lazy></div>
+              <div className="text-center p-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                <div className="max-w-md mx-auto">
+                  <Star className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                    Bewertungen folgen bald
+                  </h3>
+                  <p className="text-gray-600">
+                    Es gibt noch keine produktspezifischen Bewertungen für unser Barrierefreiheits-Tool. 
+                    Sobald unsere ersten Kunden ihre Erfahrungen geteilt haben, werden die Bewertungen hier angezeigt.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
@@ -1801,11 +1811,11 @@ export default function HomePage() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-background border-t py-12" style={{ fontSize: '17px' }}>
+      <footer className="bg-background border-t pt-12 pb-7" style={{ fontSize: '17px' }}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-8 items-start">
             {/* Links - Logo und Über mich */}
-            <div>
+            <div className="flex flex-col h-full">
               <div className="flex items-center space-x-2 mb-4">
                 <img 
                   src="/logo2.png" 
@@ -1813,8 +1823,8 @@ export default function HomePage() {
                   className="h-10 w-auto" 
                 />
               </div>
-              <h3 className="font-semibold mb-3">Über Mich</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">
+              <h3 className="font-semibold mb-3 text-base">Über Mich</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed flex-1">
                 Ich entwickle professionelle Tools zur Barrierefreiheits-Prüfung von Websites. 
                 Mit über 70 erfolgreichen Projekten seit 2017 helfe ich dabei, Websites 
                 WCAG-konform und für alle zugänglich zu machen. Von automatisierten Scans 
@@ -1823,9 +1833,9 @@ export default function HomePage() {
             </div>
             
             {/* Rechts - Kontaktdaten */}
-            <div className="text-center md:text-right">
-              <h3 className="font-semibold mb-4 text-base">Kontaktdaten</h3>
-              <div className="space-y-0.5 text-muted-foreground leading-snug text-base">
+            <div className="text-center md:text-right flex flex-col h-full">
+              <h3 className="font-semibold mb-3 text-base">Kontaktdaten</h3>
+              <div className="space-y-0.5 text-muted-foreground leading-snug text-base flex-1">
                 <p>E-Mail: kontakt@barriere-frei24.de</p>
                 <p>Tel: +49 (0) 89 32 80 47 77</p>
                 <p>Mobil: +49 (0) 151 222 62 199</p>
