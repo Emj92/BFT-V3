@@ -59,26 +59,47 @@ export default function WebsiteScansPage() {
     try {
       setIsLoading(true)
       
-      // Lade Scans aus localStorage
-      const savedScans = localStorage.getItem('website-scans')
-      if (savedScans) {
-        const parsedScans = JSON.parse(savedScans)
-        setScans(parsedScans)
+      // Lade Scans aus der Datenbank
+      const response = await fetch('/api/scans')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          setScans(data.scans)
+        } else {
+          setScans([])
+        }
       } else {
-        // Keine Demo-Scans mehr - neue Nutzer starten mit leerer Liste
-        setScans([])
+        // Fallback: Lade aus localStorage wenn API nicht verfügbar
+        const savedScans = localStorage.getItem('website-scans')
+        if (savedScans) {
+          const parsedScans = JSON.parse(savedScans)
+          setScans(parsedScans)
+        } else {
+          setScans([])
+        }
       }
       
-      console.log('Scans geladen')
+      console.log('Scans erfolgreich geladen')
     } catch (error) {
       console.error('Fehler beim Laden der Scans:', error)
-      setScans([])
+      // Fallback: Lade aus localStorage bei Netzwerkfehlern
+      try {
+        const savedScans = localStorage.getItem('website-scans')
+        if (savedScans) {
+          const parsedScans = JSON.parse(savedScans)
+          setScans(parsedScans)
+        } else {
+          setScans([])
+        }
+      } catch (fallbackError) {
+        setScans([])
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Funktion zum Hinzufügen neuer Scans
+  // Funktion zum Hinzufügen neuer Scans (Fallback für localStorage)
   const addScan = (scanData: Partial<WebsiteScan>) => {
     const newScan: WebsiteScan = {
       id: Date.now(),
@@ -96,6 +117,11 @@ export default function WebsiteScansPage() {
     const updatedScans = [...scans, newScan]
     setScans(updatedScans)
     localStorage.setItem('website-scans', JSON.stringify(updatedScans))
+    
+    // Lade Scans neu von der API, um synchron zu bleiben
+    setTimeout(() => {
+      loadScans()
+    }, 1000)
   }
 
   // Exportiere addScan für andere Komponenten

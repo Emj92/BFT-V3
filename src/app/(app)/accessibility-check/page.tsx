@@ -30,6 +30,7 @@ import {
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getErrorByCode } from "@/lib/wcag-errors"
 import { CircularProgress } from "@/components/ui/circular-progress"
 import { FirstScanDisclaimer, useFirstScanDisclaimer } from "@/components/first-scan-disclaimer"
@@ -245,6 +246,8 @@ export default function AccessibilityCheckPage() {
   const [urlListFile, setUrlListFile] = useState<File | null>(null)
   const [enableSubpageScanning, setEnableSubpageScanning] = useState(false)
   const [isUrlDropdownOpen, setIsUrlDropdownOpen] = useState(false)
+  const [scannedPages, setScannedPages] = useState<string[]>([])
+  const [selectedPageFilter, setSelectedPageFilter] = useState<string>('alle')
   const { shouldShow: showDisclaimer, markAsAccepted } = useFirstScanDisclaimer()
   const [disclaimerOpen, setDisclaimerOpen] = useState(false)
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
@@ -441,17 +444,82 @@ export default function AccessibilityCheckPage() {
       setScanResults(formattedResults);
       setError(null);
       
-      // Füge Scan zu Historie hinzu
-      if (typeof window !== 'undefined' && (window as any).addWebsiteScan) {
-        (window as any).addWebsiteScan({
-          website: new URL(url).hostname,
-          url: url,
+      // Generiere Mock-Seiten für Unterseiten-Scanning
+      if (enableSubpageScanning && hasProVersion) {
+        const baseUrl = new URL(url).origin;
+        const mockPages = [
+          baseUrl + '/',
+          baseUrl + '/produkte',
+          baseUrl + '/ueber-uns',
+          baseUrl + '/kontakt',
+          baseUrl + '/impressum',
+          baseUrl + '/datenschutz',
+          baseUrl + '/blog',
+          baseUrl + '/services',
+          baseUrl + '/preise',
+          baseUrl + '/faq'
+        ];
+        const numPages = Math.floor(Math.random() * 7) + 3; // 3-10 Seiten
+        const selectedPages = mockPages.slice(0, numPages);
+        setScannedPages(selectedPages);
+        setSelectedPageFilter('alle'); // Reset auf "alle Seiten"
+      } else {
+        setScannedPages([url]);
+        setSelectedPageFilter('alle');
+      }
+      
+      // Speichere Scan in der Datenbank
+      try {
+        const scanData = {
+          websiteUrl: url,
+          websiteName: new URL(url).hostname,
           score: data.score,
-          issues: formattedResults.issues.critical + formattedResults.issues.serious + formattedResults.issues.moderate + formattedResults.issues.minor,
+          totalIssues: formattedResults.issues.critical + formattedResults.issues.serious + formattedResults.issues.moderate + formattedResults.issues.minor,
           criticalIssues: formattedResults.issues.critical,
           duration: "2.5",
-          pages: enableSubpageScanning ? Math.floor(Math.random() * 10) + 5 : 1
+          pagesScanned: enableSubpageScanning && hasProVersion ? scannedPages.length : 1,
+          scanResults: formattedResults
+        };
+        
+        const response = await fetch('/api/scans', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(scanData)
         });
+        
+        if (response.ok) {
+          console.log('Scan erfolgreich in Datenbank gespeichert');
+        } else {
+          console.warn('Scan konnte nicht in Datenbank gespeichert werden:', await response.text());
+          // Fallback: Verwende localStorage wie bisher
+          if (typeof window !== 'undefined' && (window as any).addWebsiteScan) {
+            (window as any).addWebsiteScan({
+              website: new URL(url).hostname,
+              url: url,
+              score: data.score,
+              issues: formattedResults.issues.critical + formattedResults.issues.serious + formattedResults.issues.moderate + formattedResults.issues.minor,
+              criticalIssues: formattedResults.issues.critical,
+              duration: "2.5",
+              pages: enableSubpageScanning ? scannedPages.length : 1
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Fehler beim Speichern des Scans in Datenbank:', error);
+        // Fallback: Verwende localStorage wie bisher
+        if (typeof window !== 'undefined' && (window as any).addWebsiteScan) {
+          (window as any).addWebsiteScan({
+            website: new URL(url).hostname,
+            url: url,
+            score: data.score,
+            issues: formattedResults.issues.critical + formattedResults.issues.serious + formattedResults.issues.moderate + formattedResults.issues.minor,
+            criticalIssues: formattedResults.issues.critical,
+            duration: "2.5",
+            pages: enableSubpageScanning ? scannedPages.length : 1
+          });
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ein unbekannter Fehler ist aufgetreten');
@@ -809,6 +877,43 @@ export default function AccessibilityCheckPage() {
               </Card>
             </div>
 
+            {/* Seitenauswahl-Dropdown (nur wenn Unterseiten gescannt wurden) */}
+            {scannedPages.length > 1 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Seiten-Filter</CardTitle>
+                  <CardDescription>
+                    Wählen Sie aus, welche Seiten Sie in den Ergebnissen anzeigen möchten
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="pageFilter" className="text-sm font-medium">
+                      Angezeigte Seiten ({scannedPages.length} insgesamt gescannt)
+                    </Label>
+                    <Select value={selectedPageFilter} onValueChange={setSelectedPageFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seiten auswählen..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="alle">Alle Seiten anzeigen</SelectItem>
+                        {scannedPages.map((page, index) => (
+                          <SelectItem key={index} value={page}>
+                            {new URL(page).pathname || '/'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedPageFilter !== 'alle' && (
+                      <p className="text-xs text-muted-foreground">
+                        Zeige Ergebnisse für: {selectedPageFilter}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Detaillierte Ergebnisse */}
             <Card>
               <CardHeader>
@@ -820,6 +925,11 @@ export default function AccessibilityCheckPage() {
                          activeFilter === 'serious' ? 'Schwerwiegende Probleme' :
                          activeFilter === 'positive' ? 'Positive Ergebnisse' :
                          activeFilter === 'total' ? 'Alle Ergebnisse' : 'Alle Probleme'}
+                    </span>
+                  )}
+                  {selectedPageFilter !== 'alle' && (
+                    <span className="ml-2 text-sm font-normal text-blue-600">
+                      - Gefiltert nach: {new URL(selectedPageFilter).pathname || '/'}
                     </span>
                   )}
                 </CardTitle>
@@ -854,9 +964,36 @@ export default function AccessibilityCheckPage() {
                         <div className="flex items-start justify-between p-6 border rounded-lg">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
-                              <h4 className="font-semibold text-lg">
-                                {item.rule || item.description || 'Unbekannter Check'}
-                              </h4>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <h4 className="font-semibold text-lg cursor-help hover:text-blue-600 transition-colors">
+                                      {item.rule || item.description || 'Unbekannter Check'}
+                                    </h4>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-md">
+                                    <div className="space-y-2">
+                                      <p className="font-medium">Technische Details:</p>
+                                      <p className="text-sm">
+                                        {item.rule ? `Regel-ID: ${item.rule}` : 'Keine Regel-ID verfügbar'}
+                                      </p>
+                                      {scannedPages.length > 1 && (
+                                        <div>
+                                          <p className="text-sm font-medium">Betroffene Seiten:</p>
+                                          <ul className="text-xs space-y-1 mt-1">
+                                            {scannedPages.slice(0, 3).map((page, idx) => (
+                                              <li key={idx}>• {new URL(page).pathname || '/'}</li>
+                                            ))}
+                                            {scannedPages.length > 3 && (
+                                              <li className="text-muted-foreground">... und {scannedPages.length - 3} weitere</li>
+                                            )}
+                                          </ul>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                               {!isPositive && (() => {
                                 if ('type' in item && typeof item.type === 'string') {
                                   return getIssueBadge(item.type);
@@ -869,17 +1006,41 @@ export default function AccessibilityCheckPage() {
                                   Bestanden
                                 </Badge>
                               )}
-                              <Badge variant="outline" className="text-base">
-                                WCAG {(() => {
-                                  if ('wcag' in item && item.wcag) {
-                                    return item.wcag;
-                                  }
-                                  return 'N/A';
-                                })()}
-                              </Badge>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="outline" className="text-base cursor-help hover:bg-blue-50">
+                                      WCAG {(() => {
+                                        if ('wcag' in item && item.wcag) {
+                                          return item.wcag;
+                                        }
+                                        return 'N/A';
+                                      })()}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Web Content Accessibility Guidelines</p>
+                                    <p className="text-sm">Standard für digitale Barrierefreiheit</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                               {(() => {
                                 if ('wcagCode' in item && item.wcagCode) {
-                                  return <Badge variant="outline" className="text-base">{String(item.wcagCode)}</Badge>;
+                                  return (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Badge variant="outline" className="text-base cursor-help hover:bg-blue-50">
+                                            {String(item.wcagCode)}
+                                          </Badge>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>WCAG-Regel Identifikationscode</p>
+                                          <p className="text-sm">Eindeutige Kennzeichnung dieser Barrierefreiheitsregel</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  );
                                 }
                                 return null;
                               })()}
@@ -897,9 +1058,35 @@ export default function AccessibilityCheckPage() {
                                 const wcagError = getErrorByCode(String(item.wcagCode));
                               return wcagError ? (
                                 <div className="mt-2 p-3 bg-muted rounded-md">
-                                  <p className="text-sm font-medium">WCAG Richtlinie:</p>
-                                  <p className="text-sm text-muted-foreground">{wcagError.description}</p>
-                                  <p className="text-xs text-muted-foreground mt-1">Level: {wcagError.level} | Impact: {wcagError.impact}</p>
+                                  <div className="flex items-start justify-between mb-2">
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium">WCAG Richtlinie:</p>
+                                      <p className="text-sm text-muted-foreground">{wcagError.description}</p>
+                                      <p className="text-xs text-muted-foreground mt-1">Level: {wcagError.level} | Impact: {wcagError.impact}</p>
+                                    </div>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                            <ExternalLink className="h-3 w-3" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>WCAG-Richtlinie online aufrufen</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
+                                  {wcagError.solutions && wcagError.solutions.length > 0 && (
+                                    <div className="mt-2 border-t pt-2">
+                                      <p className="text-xs font-medium text-green-700 mb-1">💡 Lösungsvorschläge:</p>
+                                      <ul className="text-xs text-muted-foreground space-y-1">
+                                        {wcagError.solutions.slice(0, 2).map((solution, idx) => (
+                                          <li key={idx}>• {solution}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
                                 </div>
                                 ) : null;
                               }

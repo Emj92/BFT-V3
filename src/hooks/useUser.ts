@@ -10,6 +10,8 @@ interface User {
   lastName?: string
   role: string
   isAdmin?: boolean
+  isTeamOwner?: boolean
+  teamId?: string
   credits: number
   bundle: string
   avatarUrl?: string

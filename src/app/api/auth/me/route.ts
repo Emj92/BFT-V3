@@ -37,6 +37,8 @@ export async function GET(req: NextRequest) {
         bundle: true,
         bundlePurchasedAt: true,
         avatarUrl: true,
+        isTeamOwner: true,
+        teamId: true,
         createdAt: true,
         updatedAt: true,
         _count: {

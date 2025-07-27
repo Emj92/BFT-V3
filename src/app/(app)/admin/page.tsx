@@ -120,6 +120,9 @@ export default function AdminPage() {
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
   const [editingCredits, setEditingCredits] = useState<{[userId: string]: boolean}>({})
   const [tempCredits, setTempCredits] = useState<{[userId: string]: number}>({})
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchType, setSearchType] = useState<'users' | 'teams'>('users')
+  const [teamData, setTeamData] = useState<any[]>([])
 
   // Benutzer laden
   const fetchUsers = async () => {
@@ -135,6 +138,44 @@ export default function AdminPage() {
       setUsers([]) // Fallback auf leeres Array
     }
   }
+
+  // Team-Daten laden
+  const fetchTeamData = async () => {
+    try {
+      const response = await fetch('/api/admin/teams')
+      if (response.ok) {
+        const data = await response.json()
+        setTeamData(data.teams || [])
+      }
+    } catch (error) {
+      console.error('Error fetching teams:', error)
+      setTeamData([])
+    }
+  }
+
+  // Gefilterte Benutzer basierend auf Suchbegriff
+  const filteredUsers = users.filter(user => {
+    if (!searchQuery) return true
+    const query = searchQuery.toLowerCase()
+    return (
+      user.name?.toLowerCase().includes(query) ||
+      user.email?.toLowerCase().includes(query) ||
+      user.bundle?.toLowerCase().includes(query) ||
+      user.role?.toLowerCase().includes(query)
+    )
+  })
+
+  // Gefilterte Teams basierend auf Suchbegriff
+  const filteredTeams = teamData.filter(team => {
+    if (!searchQuery) return true
+    const query = searchQuery.toLowerCase()
+    return (
+      team.name?.toLowerCase().includes(query) ||
+      team.company?.toLowerCase().includes(query) ||
+      team.owner?.name?.toLowerCase().includes(query) ||
+      team.owner?.email?.toLowerCase().includes(query)
+    )
+  })
 
   // Gesendete Benachrichtigungen laden
   const fetchSentNotifications = async () => {
@@ -161,6 +202,9 @@ export default function AdminPage() {
       // Lade echte Benutzer-Daten
       const userResponse = await fetch('/api/users')
       const userData = await userResponse.json()
+      
+      // Lade Team-Daten
+      await fetchTeamData()
       
       // Sicherstellen, dass tickets ein Array ist
       const ticketsArray = Array.isArray(ticketData) ? ticketData : (ticketData.tickets || [])
@@ -552,13 +596,32 @@ export default function AdminPage() {
                           Verwalten Sie Benutzerkonten und Berechtigungen
                         </CardDescription>
                       </div>
-                      <Button 
-                        onClick={() => setShowAddUserDialog(true)}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                      >
-                        <User className="mr-2 h-4 w-4" />
-                        Benutzer hinzufügen
-                      </Button>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Select value={searchType} onValueChange={(value: 'users' | 'teams') => setSearchType(value)}>
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="users">Benutzer</SelectItem>
+                              <SelectItem value="teams">Teams</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Input
+                            placeholder={searchType === 'users' ? 'Benutzer suchen...' : 'Teams suchen...'}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-64"
+                          />
+                        </div>
+                        <Button 
+                          onClick={() => setShowAddUserDialog(true)}
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                        >
+                          <User className="mr-2 h-4 w-4" />
+                          Benutzer hinzufügen
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -569,6 +632,7 @@ export default function AdminPage() {
                             <th className="px-4 py-2 text-left">Name</th>
                             <th className="px-4 py-2 text-left">E-Mail</th>
                             <th className="px-4 py-2 text-left">Rolle</th>
+                            <th className="px-4 py-2 text-left">Paket</th>
                             <th className="px-4 py-2 text-left">Credits</th>
                             <th className="px-4 py-2 text-left">Tickets</th>
                             <th className="px-4 py-2 text-left">Status</th>
@@ -577,7 +641,7 @@ export default function AdminPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {users.map((user) => (
+                          {searchType === 'users' ? filteredUsers.map((user) => (
                             <tr key={user.id} className="border-b">
                               <td className="px-4 py-2">{user.name}</td>
                               <td className="px-4 py-2">{user.email}</td>
@@ -590,6 +654,26 @@ export default function AdminPage() {
                                   }
                                 >
                                   {(user.role === 'ADMIN' || user.role === 'admin') ? 'Admin' : user.role === 'moderator' ? 'Moderator' : 'Kunde'}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-2">
+                                <Badge 
+                                  variant={
+                                    user.bundle === 'ENTERPRISE' ? 'default' :
+                                    user.bundle === 'PRO' ? 'default' : 
+                                    'secondary'
+                                  }
+                                  className={
+                                    user.bundle === 'ENTERPRISE' ? 
+                                      'bg-purple-600 text-white hover:bg-purple-700' :
+                                    user.bundle === 'PRO' ? 
+                                      'bg-blue-600 text-white hover:bg-blue-700' :
+                                    user.bundle === 'STARTER' ?
+                                      'bg-green-600 text-white hover:bg-green-700' :
+                                      'bg-gray-500 text-white hover:bg-gray-600'
+                                  }
+                                >
+                                  {user.bundle || 'FREE'}
                                 </Badge>
                               </td>
                               <td className="px-4 py-2">
@@ -650,6 +734,47 @@ export default function AdminPage() {
                                       Abbrechen
                                     </Button>
                                   )}
+                                </div>
+                              </td>
+                            </tr>
+                          )) : 
+                          // Teams-Ansicht
+                          filteredTeams.map((team) => (
+                            <tr key={team.id} className="border-b">
+                              <td className="px-4 py-2">{team.name}</td>
+                              <td className="px-4 py-2">{team.owner?.email || 'Unbekannt'}</td>
+                              <td className="px-4 py-2">
+                                <Badge className="bg-purple-600 text-white hover:bg-purple-700">
+                                  Team-Owner
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-2">
+                                <Badge className="bg-purple-600 text-white hover:bg-purple-700">
+                                  {team.owner?.bundle || 'ENTERPRISE'}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-2">
+                                <span className="font-medium">{team.memberCount}</span>
+                                <span className="text-muted-foreground">/{team.maxMembers} Mitglieder</span>
+                              </td>
+                              <td className="px-4 py-2">
+                                <span className="font-medium">{team.pendingInvitations}</span>
+                                <span className="text-muted-foreground"> ausstehend</span>
+                              </td>
+                              <td className="px-4 py-2">
+                                <Badge variant="default">
+                                  Aktiv
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-2">{team.createdAt ? formatDate(team.createdAt) : 'N/A'}</td>
+                              <td className="px-4 py-2">
+                                <div className="flex gap-2">
+                                  <Button variant="outline" size="sm" onClick={() => {
+                                    // Team-Details anzeigen (kann später implementiert werden)
+                                    alert(`Team: ${team.name}\\nOwner: ${team.owner?.name}\\nMitglieder: ${team.memberCount}`)
+                                  }}>
+                                    <Info className="h-4 w-4" />
+                                  </Button>
                                 </div>
                               </td>
                             </tr>

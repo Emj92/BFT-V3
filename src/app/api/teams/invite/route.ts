@@ -201,7 +201,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    if (!user || user.bundle !== 'ENTERPRISE') {
+    if (!user || (user.bundle !== 'ENTERPRISE' && !user.teamId)) {
       return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 403 })
     }
 

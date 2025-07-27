@@ -598,15 +598,15 @@ export default function HomePage() {
                       </p>
                     </div>
                     <div>
-                      <h3 className="font-medium mb-2 text-primary">Rechtliche Verpflichtung</h3>
+                      <h3 className="font-medium mb-2 text-primary">BFSG 2025 - Neue Rechtslage</h3>
                       <p className="text-muted-foreground text-sm">
-                        Für öffentliche Stellen ist Barrierefreiheit gesetzlich vorgeschrieben. Auch für private Anbieter wird dies zunehmend relevant.
+                        Ab 28. Juni 2025 verpflichtet das Barrierefreiheitsstärkungsgesetz (BFSG) auch private Unternehmen zur digitalen Barrierefreiheit bei E-Commerce und Online-Diensten.
                       </p>
                     </div>
                     <div>
-                      <h3 className="font-medium mb-2 text-primary">Größere Reichweite</h3>
+                      <h3 className="font-medium mb-2 text-primary">Bußgelder bis 100.000€</h3>
                       <p className="text-muted-foreground text-sm">
-                        Barrierefreie Websites erreichen mehr Menschen und verbessern die Nutzererfahrung für alle Besucher.
+                        Bei Verstößen gegen das BFSG drohen Bußgelder bis zu 100.000€. Stellen Sie rechtzeitig die Compliance Ihrer digitalen Angebote sicher.
                       </p>
                     </div>
                   </div>
@@ -1823,9 +1823,9 @@ export default function HomePage() {
             </div>
             
             {/* Rechts - Kontaktdaten */}
-            <div className="text-center md:text-left">
-              <h3 className="font-semibold mb-4">Kontakt</h3>
-              <div className="space-y-0.5 text-muted-foreground leading-snug">
+            <div className="text-center md:text-right">
+              <h3 className="font-semibold mb-4 text-base">Kontaktdaten</h3>
+              <div className="space-y-0.5 text-muted-foreground leading-snug text-base">
                 <p>E-Mail: kontakt@barriere-frei24.de</p>
                 <p>Tel: +49 (0) 89 32 80 47 77</p>
                 <p>Mobil: +49 (0) 151 222 62 199</p>

@@ -32,7 +32,7 @@ const translations = {
     
     // Homepage
     'homepage.title': 'Barrierefreie Websites für alle',
-    'homepage.subtitle': 'Prüfen Sie Ihre Website auf WCAG-Konformität mit unserem KI-gestützten Tool. Automatische Berichte, Compliance-Checks und praktische Verbesserungsvorschläge.',
+    'homepage.subtitle': 'Bereiten Sie sich auf das BFSG 2025 vor! Prüfen Sie Ihre Website auf WCAG-Konformität mit unserem KI-gestützten Tool. Automatische Berichte, Compliance-Checks und praktische Verbesserungsvorschläge.',
     'homepage.features': 'Features',
     'homepage.about': 'Über uns',
     'homepage.testimonials': 'Testimonials',
@@ -175,7 +175,7 @@ const translations = {
     
     // Homepage
     'homepage.title': 'Accessible Websites for Everyone',
-    'homepage.subtitle': 'Check your website for WCAG compliance with our AI-powered tool. Automatic reports, compliance checks, and practical improvement suggestions.',
+    'homepage.subtitle': 'Prepare for the BFSG 2025! Check your website for WCAG compliance with our AI-powered tool. Automatic reports, compliance checks, and practical improvement suggestions.',
     'homepage.features': 'Features',
     'homepage.about': 'About Us',
     'homepage.testimonials': 'Testimonials',

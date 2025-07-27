@@ -106,7 +106,7 @@ export default function EinstellungenPage() {
 
   // Team-Funktionen
   const loadTeamData = async () => {
-    if (bundleInfo?.bundle !== 'ENTERPRISE') return
+    if (bundleInfo?.bundle !== 'ENTERPRISE' && !user?.teamId) return
     
     try {
       const response = await fetch('/api/teams/invite')
@@ -170,7 +170,7 @@ export default function EinstellungenPage() {
 
   // Chat-Funktionen
   const loadChatMessages = async () => {
-    if (bundleInfo?.bundle !== 'ENTERPRISE') return
+    if (bundleInfo?.bundle !== 'ENTERPRISE' && !user?.teamId) return
     
     try {
       const response = await fetch('/api/teams/chat')
@@ -210,11 +210,11 @@ export default function EinstellungenPage() {
 
   // Team-Daten und Chat laden wenn Enterprise
   useEffect(() => {
-    if (bundleInfo?.bundle === 'ENTERPRISE') {
+    if (bundleInfo?.bundle === 'ENTERPRISE' || user?.teamId) {
       loadTeamData()
       loadChatMessages()
     }
-  }, [bundleInfo])
+  }, [bundleInfo, user?.teamId])
 
   // Auto-refresh Chat (alle 5 Sekunden)
   useEffect(() => {
@@ -477,7 +477,7 @@ export default function EinstellungenPage() {
             <TabsTrigger value="benachrichtigungen">Benachrichtigungen</TabsTrigger>
             <TabsTrigger value="rechnung">Rechnung & Bundles</TabsTrigger>
             <TabsTrigger value="team" onClick={() => {
-              if (bundleInfo?.bundle !== 'ENTERPRISE') {
+              if (bundleInfo?.bundle !== 'ENTERPRISE' && !user?.teamId) {
                 setShowTeamUpgrade(true)
               }
             }}>
@@ -1201,17 +1201,20 @@ export default function EinstellungenPage() {
 
           {/* Team/Mitglieder Tab */}
           <TabsContent value="team">
-            {bundleInfo?.bundle === 'ENTERPRISE' ? (
+            {bundleInfo?.bundle === 'ENTERPRISE' || user?.teamId ? (
               <div className="space-y-6">
                 {/* Team-Übersicht */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Users className="h-5 w-5" />
-                      Team-Verwaltung
+                      {user?.isTeamOwner ? 'Team-Verwaltung' : 'Team-Mitgliedschaft'}
                     </CardTitle>
                     <CardDescription>
-                      Verwalten Sie Ihr Enterprise-Team und laden Sie Mitglieder ein
+                      {user?.isTeamOwner 
+                        ? 'Verwalten Sie Ihr Enterprise-Team und laden Sie Mitglieder ein'
+                        : 'Sie sind Mitglied eines Enterprise-Teams'
+                      }
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -1253,7 +1256,7 @@ export default function EinstellungenPage() {
                                 <Badge variant="secondary">Admin</Badge>
                               )}
                             </div>
-                            {!member.isTeamOwner && (
+                            {user?.isTeamOwner && !member.isTeamOwner && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1273,42 +1276,44 @@ export default function EinstellungenPage() {
                       </div>
                     </div>
 
-                    {/* Einladung senden */}
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Neues Mitglied einladen</h4>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="inviteEmail">E-Mail-Adresse</Label>
-                          <Input
-                            id="inviteEmail"
-                            type="email"
-                            placeholder="name@beispiel.de"
-                            value={teamInviteEmail}
-                            onChange={(e) => setTeamInviteEmail(e.target.value)}
-                          />
+                    {/* Einladung senden - nur für Team-Owner */}
+                    {user?.isTeamOwner && (
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Neues Mitglied einladen</h4>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="inviteEmail">E-Mail-Adresse</Label>
+                            <Input
+                              id="inviteEmail"
+                              type="email"
+                              placeholder="name@beispiel.de"
+                              value={teamInviteEmail}
+                              onChange={(e) => setTeamInviteEmail(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="inviteMessage">Nachricht (optional)</Label>
+                            <Input
+                              id="inviteMessage"
+                              placeholder="Willkommen im Team!"
+                              value={teamInviteMessage}
+                              onChange={(e) => setTeamInviteMessage(e.target.value)}
+                            />
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="inviteMessage">Nachricht (optional)</Label>
-                          <Input
-                            id="inviteMessage"
-                            placeholder="Willkommen im Team!"
-                            value={teamInviteMessage}
-                            onChange={(e) => setTeamInviteMessage(e.target.value)}
-                          />
-                        </div>
+                        <Button onClick={sendTeamInvitation} disabled={!teamInviteEmail.trim()}>
+                          <Send className="h-4 w-4 mr-2" />
+                          Einladung senden
+                        </Button>
                       </div>
-                      <Button onClick={sendTeamInvitation} disabled={!teamInviteEmail.trim()}>
-                        <Send className="h-4 w-4 mr-2" />
-                        Einladung senden
-                      </Button>
-                    </div>
+                    )}
 
-                    {/* Ausstehende Einladungen */}
-                    {teamData?.invitations?.length > 0 && (
+                    {/* Ausstehende Einladungen - nur für Team-Owner */}
+                    {user?.isTeamOwner && teamData?.invitations?.length > 0 && (
                       <div className="space-y-4">
                         <h4 className="font-medium">Ausstehende Einladungen</h4>
                         <div className="space-y-2">
-                          {teamData.invitations.map((invitation: any) => (
+                          {teamData.invitations.filter((inv: any) => inv.status === 'PENDING').map((invitation: any) => (
                             <div key={invitation.id} className="flex items-center justify-between p-3 border rounded-lg bg-yellow-50">
                               <div>
                                 <div className="font-medium">{invitation.email}</div>
