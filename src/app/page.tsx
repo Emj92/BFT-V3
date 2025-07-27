@@ -1350,7 +1350,7 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-sm">14 Tage Speicherdauer</span>
+                    <span className="text-sm">90 Tage Speicherdauer</span>
                   </div>
                   
                   <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
@@ -1508,7 +1508,7 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-sm">365 Tage Speicherdauer</span>
+                    <span className="text-sm">6 Monate Speicherdauer</span>
                   </div>
                   
                   <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
@@ -1595,7 +1595,7 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-sm">Unbegrenzte Speicherdauer</span>
+                    <span className="text-sm">1 Jahr Speicherdauer</span>
                   </div>
                   
                   <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>

@@ -36,6 +36,7 @@ import { FirstScanDisclaimer, useFirstScanDisclaimer } from "@/components/first-
 import { useWebsites } from "@/hooks/useWebsites"
 import { useBundle } from "@/hooks/useBundle"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { UpgradeDialog } from "@/components/upgrade-dialog"
 
 // Typdefinitionen für Scan-Ergebnisse
 interface ScanIssueDetails {
@@ -246,6 +247,7 @@ export default function AccessibilityCheckPage() {
   const [isUrlDropdownOpen, setIsUrlDropdownOpen] = useState(false)
   const { shouldShow: showDisclaimer, markAsAccepted } = useFirstScanDisclaimer()
   const [disclaimerOpen, setDisclaimerOpen] = useState(false)
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
   const { websites, selectedWebsite } = useWebsites()
   const { bundleInfo } = useBundle()
   const { t } = useLanguage()
@@ -340,6 +342,10 @@ export default function AccessibilityCheckPage() {
   // Checkbox-Handler für enableSubpageScanning
   const handleSubpageScanningChange = (checked: boolean | 'indeterminate') => {
     if (typeof checked === 'boolean') {
+      if (!hasProVersion) {
+        setShowUpgradeDialog(true)
+        return
+      }
       setEnableSubpageScanning(checked)
     }
   }
@@ -662,58 +668,40 @@ export default function AccessibilityCheckPage() {
               </div>
             </div>
             <div className="grid gap-6 md:grid-cols-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="enableSubpageScanning"
+                  checked={hasProVersion ? enableSubpageScanning : false}
+                  onCheckedChange={handleSubpageScanningChange}
+                />
+                <Label htmlFor="enableSubpageScanning" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
+                  Unterseiten mitscannen
+                  {!hasProVersion && (
+                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
+                      <Crown className="h-3 w-3 mr-1" />
+                      PRO
+                    </Badge>
+                  )}
+                </Label>
+              </div>
               {hasProVersion && (
-                <>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="enableSubpageScanning"
-                      checked={enableSubpageScanning}
-                      onCheckedChange={handleSubpageScanningChange}
-                    />
-                    <Label htmlFor="enableSubpageScanning" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Unterseiten mitscannen
-                    </Label>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="urlList" className="text-sm font-medium">URL-Liste hochladen (.txt)</Label>
-                    <Input
-                      id="urlList"
-                      type="file"
-                      accept=".txt"
-                      onChange={handleFileUpload}
-                      className="text-sm"
-                    />
-                    {urlListFile && (
-                      <p className="text-xs text-muted-foreground">
-                        Datei ausgewählt: {urlListFile.name}
-                      </p>
-                    )}
-                  </div>
-                </>
+                <div className="space-y-2">
+                  <Label htmlFor="urlList" className="text-sm font-medium">URL-Liste hochladen (.txt)</Label>
+                  <Input
+                    id="urlList"
+                    type="file"
+                    accept=".txt"
+                    onChange={handleFileUpload}
+                    className="text-sm"
+                  />
+                  {urlListFile && (
+                    <p className="text-xs text-muted-foreground">
+                      Datei ausgewählt: {urlListFile.name}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
-            {!hasProVersion && (
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Crown className="h-4 w-4 text-yellow-500" />
-                  <span className="text-sm font-medium">PRO Features</span>
-                </div>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <Checkbox disabled />
-                    <Label className="opacity-50">Unterseiten mitscannen</Label>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="block text-sm font-medium opacity-50">URL-Liste hochladen</Label>
-                    <Input
-                      type="file"
-                      disabled
-                      className="opacity-50"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
             <Button 
               onClick={handleScan} 
               disabled={!url || isScanning}
@@ -1103,6 +1091,20 @@ export default function AccessibilityCheckPage() {
           open={disclaimerOpen}
           onClose={() => setDisclaimerOpen(false)}
           onAccept={handleDisclaimerAccept}
+        />
+
+        {/* Upgrade Dialog */}
+        <UpgradeDialog
+          open={showUpgradeDialog}
+          onOpenChange={setShowUpgradeDialog}
+          currentBundle={bundleInfo?.bundle || 'FREE'}
+          service="Unterseiten-Scanning"
+          limitType="feature"
+          onUpgradeComplete={() => {
+            setShowUpgradeDialog(false)
+            // Aktualisiere Bundle-Info nach Upgrade
+            window.location.reload()
+          }}
         />
       </main>
     </SidebarInset>

@@ -17,9 +17,11 @@ import { SidebarInset } from "@/components/ui/sidebar"
 import { LanguageToggle } from "@/components/language-toggle"
 import { useUser } from "@/hooks/useUser"
 import { useBundle } from "@/hooks/useBundle"
+import { UpgradeDialog } from "@/components/upgrade-dialog"
 import { 
   Settings, 
   User, 
+  Users,
   Bell, 
   Mail,
   Smartphone,
@@ -32,7 +34,8 @@ import {
   Send,
   AlertTriangle,
   Info,
-  CheckCircle
+  CheckCircle,
+  Crown
 } from "lucide-react"
 
 interface User {
@@ -55,11 +58,19 @@ export default function EinstellungenPage() {
   const [creditAmount, setCreditAmount] = useState(1)
   const [billingHistory, setBillingHistory] = useState([])
   const [billingLoading, setBillingLoading] = useState(true)
+  const [showTeamUpgrade, setShowTeamUpgrade] = useState(false)
+  const [teamData, setTeamData] = useState(null)
+  const [teamInviteEmail, setTeamInviteEmail] = useState("")
+  const [teamInviteMessage, setTeamInviteMessage] = useState("")
+  const [chatMessages, setChatMessages] = useState<any[]>([])
+  const [newChatMessage, setNewChatMessage] = useState("")
+  const [chatLoading, setChatLoading] = useState(false)
   const [settings, setSettings] = useState({
     // Profil - wird durch echte Benutzerdaten ersetzt
     firstName: "",
     lastName: "",
     street: "",
+    company: "",
     city: "",
     country: "",
     email: "",
@@ -92,6 +103,129 @@ export default function EinstellungenPage() {
     const normalPrice = 2.00
     return Math.round(((normalPrice - currentPrice) / normalPrice) * 100)
   }
+
+  // Team-Funktionen
+  const loadTeamData = async () => {
+    if (bundleInfo?.bundle !== 'ENTERPRISE') return
+    
+    try {
+      const response = await fetch('/api/teams/invite')
+      if (response.ok) {
+        const data = await response.json()
+        setTeamData(data)
+      }
+    } catch (error) {
+      console.error('Fehler beim Laden der Team-Daten:', error)
+    }
+  }
+
+  const sendTeamInvitation = async () => {
+    if (!teamInviteEmail.trim()) return
+    
+    try {
+      const response = await fetch('/api/teams/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: teamInviteEmail,
+          message: teamInviteMessage
+        })
+      })
+
+      if (response.ok) {
+        alert('Einladung erfolgreich versendet!')
+        setTeamInviteEmail("")
+        setTeamInviteMessage("")
+        loadTeamData() // Reload team data
+      } else {
+        const error = await response.json()
+        alert('Fehler: ' + error.error)
+      }
+    } catch (error) {
+      alert('Fehler beim Senden der Einladung')
+    }
+  }
+
+  const removeTeamMember = async (memberId: string) => {
+    if (!confirm('Möchten Sie dieses Teammitglied wirklich entfernen?')) return
+    
+    try {
+      const response = await fetch('/api/teams/member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'remove', memberId })
+      })
+
+      if (response.ok) {
+        alert('Teammitglied erfolgreich entfernt')
+        loadTeamData()
+      } else {
+        const error = await response.json()
+        alert('Fehler: ' + error.error)
+      }
+    } catch (error) {
+      alert('Fehler beim Entfernen des Teammitglieds')
+    }
+  }
+
+  // Chat-Funktionen
+  const loadChatMessages = async () => {
+    if (bundleInfo?.bundle !== 'ENTERPRISE') return
+    
+    try {
+      const response = await fetch('/api/teams/chat')
+      if (response.ok) {
+        const data = await response.json()
+        setChatMessages(data.messages || [])
+      }
+    } catch (error) {
+      console.error('Fehler beim Laden der Chat-Nachrichten:', error)
+    }
+  }
+
+  const sendChatMessage = async () => {
+    if (!newChatMessage.trim() || chatLoading) return
+    
+    setChatLoading(true)
+    try {
+      const response = await fetch('/api/teams/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: newChatMessage })
+      })
+
+      if (response.ok) {
+        setNewChatMessage("")
+        loadChatMessages() // Reload messages
+      } else {
+        const error = await response.json()
+        alert('Fehler: ' + error.error)
+      }
+    } catch (error) {
+      alert('Fehler beim Senden der Nachricht')
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
+  // Team-Daten und Chat laden wenn Enterprise
+  useEffect(() => {
+    if (bundleInfo?.bundle === 'ENTERPRISE') {
+      loadTeamData()
+      loadChatMessages()
+    }
+  }, [bundleInfo])
+
+  // Auto-refresh Chat (alle 5 Sekunden)
+  useEffect(() => {
+    if (bundleInfo?.bundle === 'ENTERPRISE') {
+      const interval = setInterval(() => {
+        loadChatMessages()
+      }, 5000)
+      
+      return () => clearInterval(interval)
+    }
+  }, [bundleInfo])
 
   const handleSave = async () => {
     try {
@@ -185,7 +319,7 @@ export default function EinstellungenPage() {
       period: "/ Monat",
       websitesManaged: 1,
       scansPerMonth: 5,
-      storage: "14 Tage",
+      storage: "90 Tage",
       features: [
         "Accessibility Check",
         "Dashboard (Grundansicht)"
@@ -233,7 +367,7 @@ export default function EinstellungenPage() {
       period: "/ Monat",
       websitesManaged: 10,
       scansPerMonth: "unbegrenzt",
-      storage: "365 Tage",
+      storage: "6 Monate",
       features: [
         "Alle STARTER Features",
         "WCAG Coach (50 Nutzungen/Monat)",
@@ -243,7 +377,7 @@ export default function EinstellungenPage() {
         "Priorisierter Support"
       ],
       limitations: [
-        "365 Tage Speicherdauer"
+        "6 Monate Speicherdauer"
       ],
       support: "E-Mail Support mit Priorität",
       popular: true
@@ -257,7 +391,7 @@ export default function EinstellungenPage() {
       period: "/ Auf Anfrage", 
       websitesManaged: "Unbegrenzt/Individuell",
       scansPerMonth: "unbegrenzt",
-      storage: "Unbegrenzt",
+      storage: "1 Jahr",
       features: [
         "Alle PROFESSIONAL Features",
         "Team-Funktionen (nur hier verfügbar!)",
@@ -271,7 +405,7 @@ export default function EinstellungenPage() {
         "SLA Garantie"
       ],
       limitations: [
-        "Unbegrenzte Features"
+        "1 Jahr Speicherdauer"
       ],
       support: "24/7 Premium Support + persönlicher Ansprechpartner",
       popular: false
@@ -338,10 +472,18 @@ export default function EinstellungenPage() {
       />
       <div className="flex flex-1 flex-col gap-6 p-6 md:gap-8 md:p-8">
         <Tabs defaultValue="profil" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="profil">Profil</TabsTrigger>
             <TabsTrigger value="benachrichtigungen">Benachrichtigungen</TabsTrigger>
             <TabsTrigger value="rechnung">Rechnung & Bundles</TabsTrigger>
+            <TabsTrigger value="team" onClick={() => {
+              if (bundleInfo?.bundle !== 'ENTERPRISE') {
+                setShowTeamUpgrade(true)
+              }
+            }}>
+              <Users className="h-4 w-4 mr-2" />
+              Team/Mitglieder
+            </TabsTrigger>
           </TabsList>
 
           {/* Profil */}
@@ -376,13 +518,24 @@ export default function EinstellungenPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="street">Straße</Label>
-                  <Input
-                    id="street"
-                    value={settings.street}
-                    onChange={(e) => handleSettingChange("street", e.target.value)}
-                  />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="street">Straße</Label>
+                    <Input
+                      id="street"
+                      value={settings.street}
+                      onChange={(e) => handleSettingChange("street", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="company">Unternehmen (optional)</Label>
+                    <Input
+                      id="company"
+                      placeholder="z.B. Meindl Webdesign"
+                      value={settings.company}
+                      onChange={(e) => handleSettingChange("company", e.target.value)}
+                    />
+                  </div>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -614,7 +767,20 @@ export default function EinstellungenPage() {
                           <span className="font-medium">Aktuelles Paket</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant={(bundleInfo?.bundle === 'PRO' || user?.bundle === 'PRO') ? 'default' : 'secondary'}>
+                          <Badge 
+                            variant={
+                              (bundleInfo?.bundle === 'ENTERPRISE' || user?.bundle === 'ENTERPRISE') ? 'default' :
+                              (bundleInfo?.bundle === 'PRO' || user?.bundle === 'PRO') ? 'default' : 
+                              'secondary'
+                            }
+                            className={
+                              (bundleInfo?.bundle === 'ENTERPRISE' || user?.bundle === 'ENTERPRISE') ? 
+                              'bg-purple-600 hover:bg-purple-700 text-white' : 
+                              (bundleInfo?.bundle === 'PRO' || user?.bundle === 'PRO') ? 
+                              'bg-blue-600 hover:bg-blue-700 text-white' : 
+                              ''
+                            }
+                          >
                             {bundleInfo?.bundle || user?.bundle || 'FREE'}
                           </Badge>
                           {(bundleInfo?.isProActive || user?.bundle === 'PRO') && (
@@ -1032,7 +1198,256 @@ export default function EinstellungenPage() {
               </Card>
             </div>
           </TabsContent>
+
+          {/* Team/Mitglieder Tab */}
+          <TabsContent value="team">
+            {bundleInfo?.bundle === 'ENTERPRISE' ? (
+              <div className="space-y-6">
+                {/* Team-Übersicht */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Team-Verwaltung
+                    </CardTitle>
+                    <CardDescription>
+                      Verwalten Sie Ihr Enterprise-Team und laden Sie Mitglieder ein
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Unternehmensinfo */}
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                      <div className="grid gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Unternehmen:</span>
+                          <span>{settings.company || user?.name || 'Nicht angegeben'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Team-ID:</span>
+                          <span className="font-mono text-sm bg-background px-2 py-1 rounded border">
+                            {teamData?.team?.id?.slice(0, 8) || 'TEAM_' + user?.id?.slice(0, 8)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Mitglieder:</span>
+                          <span>{teamData?.members?.length || 1} / {teamData?.team?.maxMembers || 3}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mitglieder-Liste */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Team-Mitglieder</h4>
+                      <div className="space-y-2">
+                        {teamData?.members?.map((member: any) => (
+                          <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
+                                <User className="h-4 w-4" />
+                              </div>
+                              <div>
+                                <div className="font-medium">{member.name || member.email}</div>
+                                <div className="text-sm text-muted-foreground">{member.email}</div>
+                              </div>
+                              {member.isTeamOwner && (
+                                <Badge variant="secondary">Admin</Badge>
+                              )}
+                            </div>
+                            {!member.isTeamOwner && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeTeamMember(member.id)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        )) || (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p>Noch keine weiteren Teammitglieder</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Einladung senden */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Neues Mitglied einladen</h4>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="inviteEmail">E-Mail-Adresse</Label>
+                          <Input
+                            id="inviteEmail"
+                            type="email"
+                            placeholder="name@beispiel.de"
+                            value={teamInviteEmail}
+                            onChange={(e) => setTeamInviteEmail(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="inviteMessage">Nachricht (optional)</Label>
+                          <Input
+                            id="inviteMessage"
+                            placeholder="Willkommen im Team!"
+                            value={teamInviteMessage}
+                            onChange={(e) => setTeamInviteMessage(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <Button onClick={sendTeamInvitation} disabled={!teamInviteEmail.trim()}>
+                        <Send className="h-4 w-4 mr-2" />
+                        Einladung senden
+                      </Button>
+                    </div>
+
+                    {/* Ausstehende Einladungen */}
+                    {teamData?.invitations?.length > 0 && (
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Ausstehende Einladungen</h4>
+                        <div className="space-y-2">
+                          {teamData.invitations.map((invitation: any) => (
+                            <div key={invitation.id} className="flex items-center justify-between p-3 border rounded-lg bg-yellow-50">
+                              <div>
+                                <div className="font-medium">{invitation.email}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  Eingeladen am {new Date(invitation.createdAt).toLocaleDateString('de-DE')}
+                                </div>
+                              </div>
+                              <Badge variant="outline" className="bg-yellow-100">Ausstehend</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Team-Chat */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        Team-Chat
+                        <Badge variant="outline" className="bg-green-100 text-green-800">Live</Badge>
+                      </h4>
+                      
+                      {/* Chat-Fenster */}
+                      <div className="border rounded-lg bg-background">
+                        {/* Chat-Nachrichten */}
+                        <div className="h-64 overflow-y-auto p-4 space-y-3 bg-muted/20">
+                          {chatMessages.length === 0 ? (
+                            <div className="text-center text-muted-foreground py-8">
+                              <Mail className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                              <p>Noch keine Nachrichten</p>
+                              <p className="text-sm">Schreiben Sie die erste Nachricht!</p>
+                            </div>
+                          ) : (
+                            chatMessages.map((msg: any) => (
+                              <div key={msg.id} className="flex gap-3">
+                                <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <User className="h-4 w-4" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-medium text-sm">
+                                      {msg.sender.name || msg.sender.email}
+                                    </span>
+                                    {msg.sender.isTeamOwner && (
+                                      <Badge variant="secondary" className="text-xs">Admin</Badge>
+                                    )}
+                                    <span className="text-xs text-muted-foreground">
+                                      {new Date(msg.createdAt).toLocaleString('de-DE', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        day: '2-digit',
+                                        month: '2-digit'
+                                      })}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm bg-background p-2 rounded border">
+                                    {msg.message}
+                                  </p>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                        
+                        {/* Chat-Eingabe */}
+                        <div className="border-t p-3 bg-background">
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Nachricht eingeben..."
+                              value={newChatMessage}
+                              onChange={(e) => setNewChatMessage(e.target.value)}
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault()
+                                  sendChatMessage()
+                                }
+                              }}
+                              disabled={chatLoading}
+                            />
+                            <Button 
+                              onClick={sendChatMessage} 
+                              disabled={!newChatMessage.trim() || chatLoading}
+                              size="sm"
+                            >
+                              {chatLoading ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground" />
+                              ) : (
+                                <Send className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Enter zum Senden • Nachrichten werden alle 5 Sekunden automatisch aktualisiert
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <Card className="border-yellow-500 bg-yellow-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-yellow-700">
+                    <Crown className="h-5 w-5" />
+                    Team-Funktionen nur für Enterprise
+                  </CardTitle>
+                  <CardDescription className="text-yellow-600">
+                    Team-Verwaltung und Mitglieder-Einladungen sind nur im Enterprise-Paket verfügbar
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-4">
+                    <p className="text-yellow-700 mb-4">
+                      Mit dem Enterprise-Paket können Sie bis zu 3 Teammitglieder einladen und gemeinsam an Projekten arbeiten.
+                    </p>
+                    <Button onClick={() => setShowTeamUpgrade(true)}>
+                      <Crown className="h-4 w-4 mr-2" />
+                      Auf Enterprise upgraden
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
         </Tabs>
+
+        {/* Team Upgrade Dialog */}
+        <UpgradeDialog
+          open={showTeamUpgrade}
+          onOpenChange={setShowTeamUpgrade}
+          currentBundle={bundleInfo?.bundle || 'FREE'}
+          service="Team-Funktionen"
+          limitType="feature"
+          onUpgradeComplete={() => {
+            setShowTeamUpgrade(false)
+            window.location.reload()
+          }}
+        />
       </div>
     </SidebarInset>
   )

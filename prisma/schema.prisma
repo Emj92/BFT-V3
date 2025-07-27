@@ -46,6 +46,7 @@ model User {
   team          Team?     @relation(fields: [teamId], references: [id])
   sentTeamInvitations TeamInvitation[] @relation("InvitationSender")
   receivedTeamInvitations TeamInvitation[] @relation("InvitationReceiver")
+  teamChatMessages TeamChatMessage[]
   
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -400,6 +401,7 @@ model Team {
   // Beziehungen
   members     User[]
   invitations TeamInvitation[]
+  chatMessages TeamChatMessage[]
 }
 
 // Team-Einladungen
@@ -433,4 +435,22 @@ enum InvitationStatus {
   DECLINED   // Abgelehnt
   EXPIRED    // Abgelaufen
   CANCELLED  // Vom Sender storniert
+}
+
+// Team-Chat Nachrichten
+model TeamChatMessage {
+  id          String    @id @default(cuid())
+  
+  // Nachrichteninhalt
+  message     String    // Die Chat-Nachricht
+  
+  // Beziehungen
+  sender      User      @relation(fields: [senderId], references: [id])
+  senderId    String
+  team        Team      @relation(fields: [teamId], references: [id])
+  teamId      String
+  
+  // Metadaten
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
