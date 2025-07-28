@@ -7,16 +7,16 @@ export function EarlyBirdBanner() {
   const [isVisible, setIsVisible] = useState(true)
   const [spotsLeft, setSpotsLeft] = useState(67) // Startwert für verbleibende Plätze
 
-  // Reduziere Plätze zufällig alle paar Sekunden um Dringlichkeit zu erzeugen
+  // Reduziere Plätze zufällig alle paar Minuten um Dringlichkeit zu erzeugen (weniger aggressiv)
   useEffect(() => {
     const interval = setInterval(() => {
       setSpotsLeft(prev => {
-        if (prev > 50 && Math.random() < 0.3) {
+        if (prev > 50 && Math.random() < 0.1) { // Reduzierte Wahrscheinlichkeit
           return prev - 1
         }
         return prev
       })
-    }, 30000) // Alle 30 Sekunden
+    }, 300000) // Alle 5 Minuten statt 30 Sekunden
 
     return () => clearInterval(interval)
   }, [])

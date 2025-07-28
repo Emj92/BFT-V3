@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Bell, Users, Check, X, Clock } from "lucide-react"
 import { useUser } from "@/hooks/useUser"
+import { useSSE } from "@/hooks/useSSE"
 
 interface TeamInvitation {
   id: string
@@ -30,16 +31,29 @@ export function TeamInvitationBell() {
   const [showDialog, setShowDialog] = useState(false)
   const [loading, setLoading] = useState(false)
   const { user } = useUser()
+  
+  // SSE-Hook für Echtzeit-Team-Einladungen
+  const { addEventListener, removeEventListener, isConnected } = useSSE()
 
   useEffect(() => {
     if (user) {
       loadInvitations()
-      
-      // Polling alle 2 Minuten für neue Einladungen (reduziert von 30 Sekunden)
-      const interval = setInterval(loadInvitations, 120000)
-      return () => clearInterval(interval)
     }
   }, [user])
+
+  // SSE-Event-Listener für Echtzeit-Team-Einladungen
+  useEffect(() => {
+    const handleTeamInvitation = (data: any) => {
+      console.log('Neue Team-Einladung erhalten:', data)
+      loadInvitations() // Einladungen neu laden
+    }
+
+    const removeTeamInvitationListener = addEventListener('team_invitation', handleTeamInvitation)
+
+    return () => {
+      removeTeamInvitationListener()
+    }
+  }, [addEventListener, removeEventListener])
 
   const loadInvitations = async () => {
     try {

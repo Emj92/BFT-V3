@@ -17,6 +17,7 @@ import { SidebarInset } from "@/components/ui/sidebar"
 import { LanguageToggle } from "@/components/language-toggle"
 import { useUser } from "@/hooks/useUser"
 import { useBundle } from "@/hooks/useBundle"
+import { useSSE } from "@/hooks/useSSE"
 import { UpgradeDialog } from "@/components/upgrade-dialog"
 import { 
   Settings, 
@@ -54,6 +55,9 @@ interface User {
 export default function EinstellungenPage() {
   const { user, loading } = useUser()
   const { bundleInfo, loading: bundleLoading } = useBundle()
+  
+  // SSE-Hook für Echtzeit-Team-Chat
+  const { addEventListener, removeEventListener, isConnected } = useSSE()
   
   const [creditAmount, setCreditAmount] = useState(1)
   const [billingHistory, setBillingHistory] = useState([])
@@ -216,16 +220,21 @@ export default function EinstellungenPage() {
     }
   }, []) // Leere Dependencies - lädt nur beim Mount
 
-  // Auto-refresh Chat (alle 30 Sekunden - reduziert von 5 Sekunden)
+  // SSE-Event-Listener für Echtzeit-Chat-Nachrichten
   useEffect(() => {
     if (bundleInfo?.bundle === 'ENTERPRISE' && user?.teamId) {
-      const interval = setInterval(() => {
-        loadChatMessages()
-      }, 30000) // Reduziert von 5000ms auf 30000ms
-      
-      return () => clearInterval(interval)
+      const handleTeamChatMessage = (data: any) => {
+        console.log('Neue Team-Chat-Nachricht erhalten:', data)
+        loadChatMessages() // Chat-Nachrichten neu laden
+      }
+
+      const removeChatMessageListener = addEventListener('team_chat_message', handleTeamChatMessage)
+
+      return () => {
+        removeChatMessageListener()
+      }
     }
-  }, [bundleInfo, user?.teamId])
+  }, [bundleInfo, user?.teamId, addEventListener, removeEventListener])
 
   const handleSave = async () => {
     try {

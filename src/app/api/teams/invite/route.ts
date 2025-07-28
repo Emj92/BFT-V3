@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import jwt from 'jsonwebtoken'
 import { prisma } from '@/lib/prisma'
+import { notifyTeamInvitation } from '@/lib/sse-broadcaster'
 
 export async function POST(request: NextRequest) {
   try {

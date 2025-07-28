@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Bell, Check, Info, AlertTriangle, CheckCircle, XCircle, Zap, Trash2 } from "lucide-react"
+import { useSSE } from "@/hooks/useSSE"
 
 interface Notification {
   id: string
@@ -31,6 +32,9 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null)
   const [isAnimating, setIsAnimating] = useState(false)
   const previousUnreadCountRef = useRef(0)
+  
+  // SSE-Hook für Echtzeitbenachrichtigungen
+  const { addEventListener, removeEventListener, isConnected } = useSSE()
   
   // Notification-Ton erstellen
   const playNotificationSound = () => {
@@ -243,13 +247,37 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
   }
 
   useEffect(() => {
+    // Initiale Notifications laden
     fetchNotifications()
-    
-    // Alle 2 Minuten aktualisieren (reduziert von 30 Sekunden)
-    const interval = setInterval(fetchNotifications, 120000)
-    
-    return () => clearInterval(interval)
   }, [])
+
+  // SSE-Event-Listener für Echtzeitbenachrichtigungen
+  useEffect(() => {
+    const handleNewNotification = (data: any) => {
+      console.log('Neue Benachrichtigung erhalten:', data)
+      fetchNotifications() // Notifications neu laden
+      
+      // Animiere die Benachrichtigungsglocke
+      setIsAnimating(true)
+      setTimeout(() => setIsAnimating(false), 600)
+      
+      // Spiele Benachrichtigungston
+      playNotificationSound()
+    }
+
+    const handleNotificationRead = (data: any) => {
+      console.log('Benachrichtigung als gelesen markiert:', data)
+      fetchNotifications() // Notifications neu laden
+    }
+
+    const removeNewNotificationListener = addEventListener('new_notification', handleNewNotification)
+    const removeNotificationReadListener = addEventListener('notification_read', handleNotificationRead)
+
+    return () => {
+      removeNewNotificationListener()
+      removeNotificationReadListener()
+    }
+  }, [addEventListener, removeEventListener])
 
   return (
     <>

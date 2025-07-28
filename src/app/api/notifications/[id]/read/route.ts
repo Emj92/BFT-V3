@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
+import { notifyNotificationRead } from '@/lib/sse-broadcaster'
 
 // POST /api/notifications/[id]/read - Benachrichtigung als gelesen markieren
 export async function POST(
@@ -73,6 +74,9 @@ export async function POST(
         notificationId: params.id
       }
     })
+
+    // SSE-Event senden dass Benachrichtigung gelesen wurde
+    notifyNotificationRead(user.id, params.id)
 
     return NextResponse.json({
       success: true,

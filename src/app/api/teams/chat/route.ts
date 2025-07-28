@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import jwt from 'jsonwebtoken'
 import { prisma } from '@/lib/prisma'
+import { notifyTeamChatMessage } from '@/lib/sse-broadcaster'
 
 // POST: Nachricht senden
 export async function POST(request: NextRequest) {
@@ -55,6 +56,14 @@ export async function POST(request: NextRequest) {
           }
         }
       }
+    })
+
+    // SSE-Event an alle Team-Mitglieder senden
+    notifyTeamChatMessage(user.teamId!, {
+      id: chatMessage.id,
+      message: chatMessage.message,
+      createdAt: chatMessage.createdAt,
+      sender: chatMessage.sender
     })
 
     return NextResponse.json({

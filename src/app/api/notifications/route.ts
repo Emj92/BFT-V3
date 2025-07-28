@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import prisma from '@/lib/prisma'
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
+import { notifyNewNotification } from '@/lib/sse-broadcaster'
 
 // GET /api/notifications - Alle Benachrichtigungen für den aktuellen Benutzer abrufen
 export async function GET(request: NextRequest) {
@@ -135,6 +136,25 @@ export async function POST(request: NextRequest) {
         createdBy: user.id
       }
     })
+
+    // SSE-Event an alle Benutzer senden (da globale Benachrichtigung)
+    if (notification.isGlobal) {
+      // Alle Benutzer über neue globale Benachrichtigung informieren
+      const allUsers = await prisma.user.findMany({
+        select: { id: true }
+      })
+      
+      allUsers.forEach(user => {
+        notifyNewNotification(user.id, {
+          id: notification.id,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          createdAt: notification.createdAt,
+          isRead: false
+        })
+      })
+    }
 
     return NextResponse.json({
       success: true,
