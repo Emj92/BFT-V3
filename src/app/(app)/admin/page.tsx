@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { GlobalNavigation } from "@/components/global-navigation"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { AdminCharts } from "@/components/admin-charts"
+import { AdminGlobalNotifications } from "@/components/admin-global-notifications"
 import { toast } from "sonner"
 import { 
   Users, 
@@ -906,36 +907,7 @@ export default function AdminPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="max-h-96 overflow-y-auto">
-                      <table className="w-full table-auto">
-                        <thead className="bg-gray-100 dark:bg-gray-800 sticky top-0">
-                          <tr>
-                            <th className="px-4 py-2 text-left">Titel</th>
-                            <th className="px-4 py-2 text-left">Nachricht</th>
-                            <th className="px-4 py-2 text-left">Erstellt am</th>
-                            <th className="px-4 py-2 text-left">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {/* Keine Demo-Daten - echte Benachrichtigungen werden hier geladen */}
-                          {sentNotifications.map((notification) => (
-                            <tr key={notification.id}>
-                              <td className="px-4 py-2">{notification.title}</td>
-                              <td className="px-4 py-2">{notification.message}</td>
-                              <td className="px-4 py-2">{formatDate(notification.createdAt)}</td>
-                              <td className="px-4 py-2">{notification.status}</td>
-                            </tr>
-                          ))}
-                          {sentNotifications.length === 0 && (
-                            <tr>
-                              <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
-                                Keine Benachrichtigungen vorhanden
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                    <AdminGlobalNotifications />
                   </CardContent>
                 </Card>
               </TabsContent>

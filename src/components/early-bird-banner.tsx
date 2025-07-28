@@ -24,10 +24,16 @@ export function EarlyBirdBanner() {
   if (!isVisible) return null
 
   return (
-    <div className="bg-blue-600 text-white py-2 px-4 relative">
+    <div className="bg-blue-600 text-white py-1.5 px-4 relative">
       <div className="flex items-center justify-center text-sm font-medium">
         <span>
-          🎯 Jetzt einen der <strong>{spotsLeft}</strong> Early-Bird Plätze sichern und <strong>10% sparen</strong>
+          🎯 Jetzt einen der <strong>{spotsLeft}</strong> verbleibenden Early-Bird Plätze sichern und{' '}
+          <a 
+            href="/einstellungen#pro-paket" 
+            className="underline hover:text-blue-200 font-bold"
+          >
+            10% auf das PRO Paket sparen
+          </a>
         </span>
         <button
           onClick={() => setIsVisible(false)}

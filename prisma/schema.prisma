@@ -61,6 +61,7 @@ model User {
   ticketMessages TicketMessage[]
   wcagSessions  WcagSession[]
   bfeGenerations BfeGeneration[]
+  globalNotifications GlobalNotification[]
 }
 
 // Rollen für Benutzer
@@ -372,6 +373,22 @@ model WcagSession {
 }
 
 // BFE-Generierungen für Barrierefreiheitserklärungen
+// Globale Benachrichtigungen für Admin
+model GlobalNotification {
+  id              String    @id @default(cuid())
+  message         String
+  link            String?
+  linkText        String?
+  backgroundColor String    @default("#3b82f6")
+  textColor       String    @default("#ffffff")
+  targetPackages  String[]  // ["ALL", "FREE", "STARTER", "PRO", "ENTERPRISE"]
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  createdBy       String
+  createdByUser   User      @relation(fields: [createdBy], references: [id])
+}
+
 model BfeGeneration {
   id          String    @id @default(cuid())
   user        User      @relation(fields: [userId], references: [id])

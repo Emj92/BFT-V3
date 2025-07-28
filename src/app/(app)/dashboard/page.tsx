@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { GlobalNavigation } from "@/components/global-navigation"
+import { PaymentSuccessDialog, usePaymentSuccess } from "@/components/payment-success-dialog"
 import { SidebarInset } from "@/components/ui/sidebar"
 import { 
   Globe, 
@@ -94,6 +95,7 @@ interface RecentActivity {
 }
 
 export default function DashboardPage() {
+  const { showSuccess, packageName, closeSuccess } = usePaymentSuccess()
   const [isLoading, setIsLoading] = useState(true)
   const [stats, setStats] = useState<DashboardStats>({
     totalWebsites: 0,
@@ -329,7 +331,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <SidebarInset>
+    <>
+      <PaymentSuccessDialog
+        open={showSuccess}
+        onClose={closeSuccess}
+        packageName={packageName}
+      />
+      <SidebarInset>
       <GlobalNavigation title="Dashboard" />
       
       <main className="flex flex-1 flex-col gap-6 p-6 md:gap-8 md:p-8 relative">
@@ -573,5 +581,6 @@ export default function DashboardPage() {
         </div>
       </main>
     </SidebarInset>
+    </>
   )
 }

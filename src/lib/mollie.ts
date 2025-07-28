@@ -45,6 +45,11 @@ const BUNDLE_PRICES = {
     yearly: 295.60, // 29€ * 12 * 0.85 (15% Rabatt)
     title: 'PROFESSIONAL - Für Unternehmen'
   },
+  PROFESSIONAL: {
+    monthly: 29.00,
+    yearly: 295.60, // 29€ * 12 * 0.85 (15% Rabatt)
+    title: 'PROFESSIONAL - Für Unternehmen'
+  },
   ENTERPRISE: {
     monthly: 79.00,
     yearly: 805.40, // 79€ * 12 * 0.85 (15% Rabatt)
@@ -77,7 +82,7 @@ export async function createBundlePayment(data: PaymentData & { interval: 'month
         value: amount.toFixed(2)
       },
       description: description,
-      redirectUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard?payment=success`,
+      redirectUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard?payment=success&bundle=${data.bundle}`,
       webhookUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/webhooks/mollie`,
       metadata: {
         type: 'bundle',
@@ -117,7 +122,7 @@ export async function createCreditPayment(data: CreditPackageData) {
         value: creditPackage.price.toFixed(2)
       },
       description: creditPackage.title,
-      redirectUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard?payment=success`,
+      redirectUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard?payment=success&credits=${data.credits}`,
       webhookUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/webhooks/mollie`,
       metadata: {
         type: 'credits',
