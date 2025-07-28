@@ -186,35 +186,13 @@ export default function WCAGCoachPage() {
       
       <div className="flex h-full flex-col">
         <main className="flex flex-1 flex-col gap-6 p-6 relative">
-          {/* Credit-Status */}
-          <div className="flex items-center justify-between">
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Benutzungshinweis:</strong> Geben Sie hier ausführlich Ihren Barrierefreiheitsfehler ein und beschreiben Sie, mit welchen Tools Ihre Website erstellt wurde (z.B. Elementor, Divi, WordPress, HTML/CSS). Je detaillierter Ihre Beschreibung, desto gezielter kann ich Ihnen helfen.
-              </AlertDescription>
-            </Alert>
-            
-            <Card className="w-64">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4" />
-                    <span className="text-sm font-medium">Credits</span>
-                  </div>
-                  <Badge variant={hasCredits ? "default" : "destructive"}>
-                    {user?.credits || 0}
-                  </Badge>
-                </div>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  1 Credit pro Anfrage
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {user?.bundle || 'FREE'} Paket
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Benutzungshinweis */}
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Benutzungshinweis:</strong> Geben Sie hier ausführlich Ihren Barrierefreiheitsfehler ein und beschreiben Sie, mit welchen Tools Ihre Website erstellt wurde (z.B. Elementor, Divi, WordPress, HTML/CSS). Je detaillierter Ihre Beschreibung, desto gezielter kann ich Ihnen helfen.
+            </AlertDescription>
+          </Alert>
 
           {/* Chat-Bereich */}
           <Card className="flex-1 flex flex-col">
@@ -323,7 +301,7 @@ export default function WCAGCoachPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Crown className="h-5 w-5 text-yellow-500" />
+              <Crown className="h-5 w-5 text-blue-500" />
               Nicht genügend Credits
             </DialogTitle>
             <DialogDescription>

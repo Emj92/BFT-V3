@@ -35,8 +35,8 @@ export function TeamInvitationBell() {
     if (user) {
       loadInvitations()
       
-      // Polling alle 30 Sekunden für neue Einladungen
-      const interval = setInterval(loadInvitations, 30000)
+      // Polling alle 2 Minuten für neue Einladungen (reduziert von 30 Sekunden)
+      const interval = setInterval(loadInvitations, 120000)
       return () => clearInterval(interval)
     }
   }, [user])

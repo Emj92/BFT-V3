@@ -51,6 +51,7 @@ export default function WebsiteScansPage() {
   const [isRepeatDialogOpen, setIsRepeatDialogOpen] = useState(false)
   const [scanToRepeat, setScanToRepeat] = useState<WebsiteScan | null>(null)
   const [isCleaningUp, setIsCleaningUp] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Lade Scans beim Komponenten-Mount
   useEffect(() => {
@@ -406,6 +407,34 @@ export default function WebsiteScansPage() {
     }
   }
 
+  // Funktion zum Löschen aller Scans
+  const handleDeleteAllScans = async () => {
+    if (!confirm('Möchten Sie wirklich ALLE Scans unwiderruflich löschen?')) {
+      return
+    }
+
+    setIsDeleting(true)
+    
+    try {
+      const response = await fetch('/api/scans', {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        alert('Alle Scans wurden erfolgreich gelöscht')
+        await loadScans() // Reload scans
+      } else {
+        const error = await response.json()
+        alert(`Fehler beim Löschen der Scans: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Fehler beim Löschen der Scans:', error)
+      alert('Fehler beim Löschen der Scans')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <>
       <SidebarInset>
@@ -414,11 +443,31 @@ export default function WebsiteScansPage() {
         <div className="flex flex-1 flex-col gap-6 p-6 md:gap-8 md:p-8">
           {/* Header */}
           <div className="flex flex-col gap-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Website-Scans</h1>
-              <p className="text-muted-foreground">
-                Übersicht aller durchgeführten Barrierefreiheits-Scans
-              </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">Website-Scans</h1>
+                <p className="text-muted-foreground">
+                  Übersicht aller durchgeführten Barrierefreiheits-Scans
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={handleDeleteAllScans}
+                disabled={isDeleting || filteredScans.length === 0}
+                className="text-red-600 border-red-200 hover:bg-red-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Lösche...
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Alle Scans löschen
+                  </>
+                )}
+              </Button>
             </div>
           </div>
 
@@ -470,25 +519,7 @@ export default function WebsiteScansPage() {
                   </SelectContent>
                 </Select>
 
-                {/* Demo-Daten entfernen Button */}
-                <Button
-                  variant="outline"
-                  onClick={handleCleanupDemoData}
-                  disabled={isCleaningUp}
-                  className="text-red-600 border-red-200 hover:bg-red-50"
-                >
-                  {isCleaningUp ? (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Bereinige...
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Demo-Daten entfernen
-                    </>
-                  )}
-                </Button>
+
               </div>
             </CardContent>
           </Card>

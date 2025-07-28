@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import jwt from 'jsonwebtoken'
 import { prisma } from '@/lib/prisma'
 
-// GET: Lade alle Scans für den aktuellen Benutzer
+// GET /api/scans - Alle Scans des Benutzers abrufen
 export async function GET(request: NextRequest) {
   try {
     const token = cookies().get('auth-token')?.value
@@ -15,15 +15,14 @@ export async function GET(request: NextRequest) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'barrierefrei-secret-key') as { id: string }
     const userId = decoded.id
 
-    // Alle Scans für den Benutzer abrufen
+    // Lade Scans über die User -> Project -> Website -> Page -> Scan Kette
     const scans = await prisma.scan.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       include: {
-        website: {
-          select: {
-            url: true,
-            name: true
+        page: {
+          include: {
+            website: true
           }
         }
       }
@@ -32,22 +31,17 @@ export async function GET(request: NextRequest) {
     // Scans in das erwartete Format umwandeln
     const formattedScans = scans.map(scan => ({
       id: scan.id,
-      website: scan.website?.name || scan.websiteUrl || 'Unbekannte Website',
-      url: scan.website?.url || scan.websiteUrl,
+      website: scan.page?.website?.name || 'Unbekannte Website',
+      url: scan.page?.url || 'Unbekannte URL',
       status: scan.status || 'abgeschlossen',
       score: scan.score || 0,
-      issues: scan.totalIssues || 0,
-      criticalIssues: scan.criticalIssues || 0,
-      date: scan.createdAt.toLocaleDateString('de-DE'),
-      duration: scan.duration || '0',
-      pages: scan.pagesScanned || 1,
-      createdAt: scan.createdAt
+      issues: scan.violations || 0,
+      criticalIssues: scan.violations || 0,
+      createdAt: scan.createdAt,
+      completedAt: scan.completedAt
     }))
 
-    return NextResponse.json({
-      success: true,
-      scans: formattedScans
-    })
+    return NextResponse.json(formattedScans)
 
   } catch (error) {
     console.error('Scan-Abruf Fehler:', error)
@@ -57,7 +51,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: Neuen Scan speichern
+// POST /api/scans - Neuen Scan speichern
 export async function POST(request: NextRequest) {
   try {
     const token = cookies().get('auth-token')?.value
@@ -84,20 +78,56 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Website-URL erforderlich' }, { status: 400 })
     }
 
-    // Überprüfe oder erstelle die Website
+    // Finde oder erstelle ein Standard-Projekt für den User
+    let project = await prisma.project.findFirst({
+      where: {
+        ownerId: userId,
+        name: "Standard-Projekt"
+      }
+    })
+
+    if (!project) {
+      project = await prisma.project.create({
+        data: {
+          name: "Standard-Projekt",
+          description: "Automatisch erstelltes Projekt für Scans",
+          ownerId: userId
+        }
+      })
+    }
+
+    // Finde oder erstelle Website
     let website = await prisma.website.findFirst({
       where: {
-        userId,
-        url: websiteUrl
+        projectId: project.id,
+        baseUrl: websiteUrl
       }
     })
 
     if (!website) {
       website = await prisma.website.create({
         data: {
-          url: websiteUrl,
+          baseUrl: websiteUrl,
           name: websiteName || new URL(websiteUrl).hostname,
-          userId
+          projectId: project.id
+        }
+      })
+    }
+
+    // Finde oder erstelle Page
+    let page = await prisma.page.findFirst({
+      where: {
+        websiteId: website.id,
+        url: websiteUrl
+      }
+    })
+
+    if (!page) {
+      page = await prisma.page.create({
+        data: {
+          url: websiteUrl,
+          title: websiteName || new URL(websiteUrl).hostname,
+          websiteId: website.id
         }
       })
     }
@@ -106,15 +136,12 @@ export async function POST(request: NextRequest) {
     const scan = await prisma.scan.create({
       data: {
         userId,
-        websiteId: website.id,
-        websiteUrl,
+        pageId: page.id,
         score: score || 0,
-        totalIssues: totalIssues || 0,
-        criticalIssues: criticalIssues || 0,
-        duration: duration || '0',
-        pagesScanned: pagesScanned || 1,
-        status: 'abgeschlossen',
-        results: scanResults ? JSON.stringify(scanResults) : null
+        violations: totalIssues || 0,
+        status: 'COMPLETED',
+        results: scanResults || null,
+        completedAt: new Date()
       }
     })
 
@@ -123,19 +150,50 @@ export async function POST(request: NextRequest) {
       scan: {
         id: scan.id,
         website: website.name,
-        url: website.url,
+        url: page.url,
         status: scan.status,
         score: scan.score,
-        issues: scan.totalIssues,
-        criticalIssues: scan.criticalIssues,
+        issues: scan.violations,
+        criticalIssues: scan.violations,
         date: scan.createdAt.toLocaleDateString('de-DE'),
-        duration: scan.duration,
-        pages: scan.pagesScanned
+        duration: duration || '0',
+        pages: pagesScanned || 1
       }
     })
 
   } catch (error) {
     console.error('Scan-Speicher Fehler:', error)
+    return NextResponse.json({ 
+      error: 'Interner Serverfehler' 
+    }, { status: 500 })
+  }
+}
+
+// DELETE /api/scans - Alle Scans des Benutzers löschen
+export async function DELETE(request: NextRequest) {
+  try {
+    const token = cookies().get('auth-token')?.value
+    
+    if (!token) {
+      return NextResponse.json({ error: 'Nicht authentifiziert' }, { status: 401 })
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'barrierefrei-secret-key') as { id: string }
+    const userId = decoded.id
+
+    // Lösche alle Scans des Benutzers
+    const deletedScans = await prisma.scan.deleteMany({
+      where: { userId }
+    })
+
+    return NextResponse.json({
+      success: true,
+      deletedCount: deletedScans.count,
+      message: `${deletedScans.count} Scans erfolgreich gelöscht`
+    })
+
+  } catch (error) {
+    console.error('Scan-Lösch Fehler:', error)
     return NextResponse.json({ 
       error: 'Interner Serverfehler' 
     }, { status: 500 })

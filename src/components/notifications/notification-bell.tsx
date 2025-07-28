@@ -245,8 +245,8 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
   useEffect(() => {
     fetchNotifications()
     
-    // Alle 30 Sekunden aktualisieren
-    const interval = setInterval(fetchNotifications, 30000)
+    // Alle 2 Minuten aktualisieren (reduziert von 30 Sekunden)
+    const interval = setInterval(fetchNotifications, 120000)
     
     return () => clearInterval(interval)
   }, [])

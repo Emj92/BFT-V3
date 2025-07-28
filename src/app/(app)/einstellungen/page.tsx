@@ -170,7 +170,7 @@ export default function EinstellungenPage() {
 
   // Chat-Funktionen
   const loadChatMessages = async () => {
-    if (bundleInfo?.bundle !== 'ENTERPRISE' && !user?.teamId) return
+    if (bundleInfo?.bundle !== 'ENTERPRISE' || !user?.teamId) return
     
     try {
       const response = await fetch('/api/teams/chat')
@@ -208,24 +208,24 @@ export default function EinstellungenPage() {
     }
   }
 
-  // Team-Daten und Chat laden wenn Enterprise
+  // Team-Daten und Chat laden wenn Enterprise (nur einmal beim Mount)
   useEffect(() => {
-    if (bundleInfo?.bundle === 'ENTERPRISE' || user?.teamId) {
+    if (bundleInfo?.bundle === 'ENTERPRISE' && user?.teamId) {
       loadTeamData()
       loadChatMessages()
     }
-  }, [bundleInfo, user?.teamId])
+  }, []) // Leere Dependencies - lädt nur beim Mount
 
-  // Auto-refresh Chat (alle 5 Sekunden)
+  // Auto-refresh Chat (alle 30 Sekunden - reduziert von 5 Sekunden)
   useEffect(() => {
-    if (bundleInfo?.bundle === 'ENTERPRISE') {
+    if (bundleInfo?.bundle === 'ENTERPRISE' && user?.teamId) {
       const interval = setInterval(() => {
         loadChatMessages()
-      }, 5000)
+      }, 30000) // Reduziert von 5000ms auf 30000ms
       
       return () => clearInterval(interval)
     }
-  }, [bundleInfo])
+  }, [bundleInfo, user?.teamId])
 
   const handleSave = async () => {
     try {
@@ -319,7 +319,7 @@ export default function EinstellungenPage() {
       period: "/ Monat",
       websitesManaged: 1,
       scansPerMonth: 5,
-      storage: "90 Tage",
+      storage: "24 Stunden",
       features: [
         "Accessibility Check",
         "Dashboard (Grundansicht)"
@@ -342,17 +342,17 @@ export default function EinstellungenPage() {
       period: "/ Monat",
       websitesManaged: 3,
       scansPerMonth: "unbegrenzt",
-      storage: "90 Tage",
+      storage: "6 Monate",
       features: [
         "Alle FREE Features",
         "Unbegrenzte Scans",
-        "WCAG Coach (10 Nutzungen/Monat)",
+        "BFSG Coach (10 Nutzungen/Monat)",
         "BFE-Generator (10 Nutzungen/Monat)",
         "Aufgabenverwaltung (bis 25 Aufgaben)",
         "PDF Export"
       ],
       limitations: [
-        "90 Tage Speicherdauer",
+        "6 Monate Speicherdauer",
         "Kein Excel Export"
       ],
       support: "E-Mail Support",
@@ -367,19 +367,19 @@ export default function EinstellungenPage() {
       period: "/ Monat",
       websitesManaged: 10,
       scansPerMonth: "unbegrenzt",
-      storage: "6 Monate",
+      storage: "12 Monate",
       features: [
         "Alle STARTER Features",
-        "WCAG Coach (50 Nutzungen/Monat)",
+        "BFSG Coach (50 Nutzungen/Monat)",
         "BFE-Generator (50 Nutzungen/Monat)",
         "Aufgabenverwaltung (bis 200 Aufgaben)",
         "Excel + PDF Export",
         "Priorisierter Support"
       ],
       limitations: [
-        "6 Monate Speicherdauer"
+        "12 Monate Speicherdauer"
       ],
-      support: "E-Mail Support mit Priorität",
+      support: "Support Tickets",
       popular: true
     },
     {
@@ -391,11 +391,11 @@ export default function EinstellungenPage() {
       period: "/ Auf Anfrage", 
       websitesManaged: "Unbegrenzt/Individuell",
       scansPerMonth: "unbegrenzt",
-      storage: "1 Jahr",
+      storage: "Unbegrenzt",
       features: [
         "Alle PROFESSIONAL Features",
         "Team-Funktionen (nur hier verfügbar!)",
-        "WCAG Coach (Unbegrenzt)",
+        "BFSG Coach (Unbegrenzt)",
         "BFE-Generator (Unbegrenzt)",
         "Aufgabenverwaltung (Unbegrenzt)",
         "Erweiterte API",
@@ -405,9 +405,9 @@ export default function EinstellungenPage() {
         "SLA Garantie"
       ],
       limitations: [
-        "1 Jahr Speicherdauer"
+        "Unbegrenzte Speicherdauer"
       ],
-      support: "24/7 Premium Support + persönlicher Ansprechpartner",
+      support: "Antwort innerhalb 24 Stunden + persönlicher Ansprechpartner",
       popular: false
     }
   ]
@@ -440,6 +440,7 @@ export default function EinstellungenPage() {
 
   const [showAllPackages, setShowAllPackages] = useState(false)
   const [showAllCredits, setShowAllCredits] = useState(false)
+  const [isYearly, setIsYearly] = useState(false)
 
   if (loading) {
     return (
@@ -889,99 +890,307 @@ export default function EinstellungenPage() {
                 </CardContent>
               </Card>
 
-              {/* Monatliche Pakete */}
+              {/* Preispakete */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Package className="h-5 w-5" />
-                    Monatliche Pakete
+                    Einfache, transparente Preise
                   </CardTitle>
                   <CardDescription>
                     Wählen Sie das Paket, das am besten zu Ihren Bedürfnissen passt
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    {packages.map((pkg) => (
-                      <div 
-                        key={pkg.id}
-                        className={`border rounded-lg p-6 text-center space-y-4 relative flex flex-col min-h-[500px] ${
-                          pkg.popular ? 'border-primary bg-primary/5' : ''
+                  {/* Jährliche Zahlung Toggle */}
+                  <div className="flex justify-center mb-8">
+                    <div className="flex items-center space-x-4 bg-muted/50 p-2 rounded-lg">
+                      <span className={`font-medium ${!isYearly ? 'text-primary' : 'text-muted-foreground'}`}>
+                        Monatlich
+                      </span>
+                      <button
+                        onClick={() => setIsYearly(!isYearly)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                          isYearly ? 'bg-primary' : 'bg-gray-200'
                         }`}
                       >
-                        {pkg.popular && (
-                          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                            <Badge className="bg-primary text-primary-foreground px-3 py-1">
-                              <Star className="h-3 w-3 mr-1" />
-                              Beliebt
-                            </Badge>
-                          </div>
-                        )}
-                        
-                        <div className="space-y-2">
-                          <div className="text-4xl mb-2">{pkg.icon}</div>
-                          <div className="font-semibold text-xl">{pkg.name}</div>
-                          <div className="text-3xl font-bold text-primary">{pkg.price}€</div>
-                          <div className="text-sm text-muted-foreground">{pkg.period}</div>
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                            isYearly ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                      <span className={`font-medium ${isYearly ? 'text-primary' : 'text-muted-foreground'}`}>
+                        Jährlich <span className="text-green-600 text-sm">(-15%)</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Preispakete */}
+                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto mb-16">
+                    {/* FREE */}
+                    <Card className="border h-full flex flex-col">
+                      <CardHeader className="text-center">
+                        <div className="text-4xl mb-2">🆓</div>
+                        <CardTitle className="text-2xl">FREE</CardTitle>
+                        <div className="text-lg text-muted-foreground">"Test & Kennenlernen"</div>
+                        <div className="text-3xl font-bold">0€</div>
+                        <CardDescription>/ Monat</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3 flex-1 flex flex-col">
+                        <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">1 verwaltbare Website</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">5 Scans/Monat</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">24 Stunden Speicherdauer</span>
                         </div>
                         
-                        <div className="space-y-2 text-sm">
-                          <div><strong>{pkg.scansPerMonth}</strong> Scans</div>
-                          <div>📅 <strong>{pkg.storage}</strong> Speicherdauer</div>
+                        <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">Accessibility Check</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <X className="h-4 w-4 text-red-600 flex-shrink-0" />
+                          <span className="text-base">BFSG Coach</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <X className="h-4 w-4 text-red-600 flex-shrink-0" />
+                          <span className="text-base">BFE-Generator</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <X className="h-4 w-4 text-red-600 flex-shrink-0" />
+                          <span className="text-base">Aufgabenverwaltung</span>
                         </div>
                         
-                        <div className="space-y-2 text-sm text-left flex-grow">
-                          {pkg.features.slice(0, 6).map((feature, index) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                              <span>{feature}</span>
-                            </div>
-                          ))}
-                          {pkg.limitations.slice(0, 2).map((limitation, index) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <X className="h-4 w-4 text-red-500 flex-shrink-0" />
-                              <span className="text-muted-foreground">{limitation}</span>
-                            </div>
-                          ))}
+                        <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Daten & Export:</div>
+                        <div className="flex items-center space-x-3">
+                          <X className="h-4 w-4 text-red-600 flex-shrink-0" />
+                          <span className="text-base">PDF Export</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <X className="h-4 w-4 text-red-600 flex-shrink-0" />
+                          <span className="text-base">Excel Export</span>
                         </div>
                         
-                        <div className="text-xs text-muted-foreground mb-2">
-                          {pkg.support}
+                        <div className="text-xs text-muted-foreground mt-2">
+                          📞 Support: FAQ & Community
                         </div>
                         
-                        <div className="mt-auto pt-4">
-                          <Button 
-                            className={`w-full ${pkg.popular ? 'bg-primary hover:bg-primary/90' : ''}`}
-                            variant={pkg.popular ? 'default' : 'outline'}
-                            disabled={pkg.id === 'free'}
-                            onClick={async () => {
-                              if (pkg.id === 'free') return;
-                              try {
-                                const response = await fetch('/api/payments/create', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    type: 'bundle',
-                                    bundle: pkg.name,
-                                    interval: 'monthly'
-                                  })
-                                });
-                                const data = await response.json();
-                                if (data.success) {
-                                  window.location.href = data.paymentUrl;
-                                } else {
-                                  alert('Fehler: ' + data.error);
-                                }
-                              } catch (error) {
-                                alert('Netzwerkfehler beim Upgrade');
-                              }
-                            }}
-                          >
-                            {pkg.id === 'free' ? 'Aktuell aktiv' : pkg.popular ? 'Jetzt upgraden' : 'Auswählen'}
-                          </Button>
+                        <div className="flex-1"></div>
+                        
+                        <Button className="w-full" variant="outline">
+                          Aktuelles Paket
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    {/* STARTER */}
+                    <Card className="border h-full flex flex-col">
+                      <CardHeader className="text-center">
+                        <div className="text-4xl mb-2">🚀</div>
+                        <CardTitle className="text-2xl">STARTER</CardTitle>
+                        <div className="text-lg text-muted-foreground">"Für Einzelpersonen"</div>
+                        <div className="text-3xl font-bold">{isYearly ? '92€' : '9€'}</div>
+                        <CardDescription>{isYearly ? '/ Jahr (7,67€/Monat)' : '/ Monat'}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3 flex-1 flex flex-col">
+                        <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">3 verwaltbare Websites</span>
                         </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">50 Scans/Monat</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">6 Monate Speicherdauer</span>
+                        </div>
+                        
+                        <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">Accessibility Check</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">BFSG Coach (10 Nutzungen/Monat)</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">BFE-Generator (10 Nutzungen/Monat)</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">Aufgabenverwaltung (bis 25 Aufgaben)</span>
+                        </div>
+                        
+                        <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Daten & Export:</div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">PDF Export</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <X className="h-4 w-4 text-red-600 flex-shrink-0" />
+                          <span className="text-base">Excel Export</span>
+                        </div>
+                        
+                        <div className="text-xs text-muted-foreground mt-2">
+                          📞 Support: E-Mail
+                        </div>
+                        
+                        <div className="flex-1"></div>
+                        
+                        <Button className="w-full">
+                          Jetzt starten
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    {/* PROFESSIONAL */}
+                    <Card className="border-2 border-blue-600 relative h-full flex flex-col">
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <Badge className="bg-blue-600 flex items-center gap-1">
+                          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+                          </svg>
+                          Meist gewählt
+                        </Badge>
                       </div>
-                    ))}
+                      <CardHeader className="text-center">
+                        <div className="text-4xl mb-2">⭐</div>
+                        <CardTitle className="text-2xl">PROFESSIONAL</CardTitle>
+                        <div className="text-lg text-muted-foreground">"Für Unternehmen"</div>
+                        <div className="text-3xl font-bold">{isYearly ? '296€' : '29€'}</div>
+                        <CardDescription>{isYearly ? '/ Jahr (24,67€/Monat)' : '/ Monat'}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3 flex-1 flex flex-col">
+                        <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">10 verwaltbare Websites</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">500 Scans/Monat</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">12 Monate Speicherdauer</span>
+                        </div>
+                        
+                        <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">Accessibility Check</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">BFSG Coach (50 Nutzungen/Monat)</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">BFE-Generator (50 Nutzungen/Monat)</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">Aufgabenverwaltung (bis 200 Aufgaben)</span>
+                        </div>
+                        
+                        <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Daten & Export:</div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">PDF Export</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">Excel Export</span>
+                        </div>
+                        
+                        <div className="text-xs text-muted-foreground mt-2">
+                          📞 Support: Support Tickets
+                        </div>
+                        
+                        <div className="flex-1"></div>
+                        
+                        <Button className="w-full">
+                          Jetzt starten
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    {/* ENTERPRISE */}
+                    <Card className="border-2 border-yellow-500 hover:border-yellow-400 transition-colors h-full flex flex-col">
+                      <CardHeader className="text-center">
+                        <div className="text-4xl mb-2">🏢</div>
+                        <CardTitle className="text-2xl">ENTERPRISE</CardTitle>
+                        <div className="text-lg text-muted-foreground">"Für Agenturen & Teams"</div>
+                        <div className="text-3xl font-bold">{isYearly ? 'Ab 806€' : 'Ab 79€'}</div>
+                        <CardDescription>{isYearly ? '/ Jahr (67,17€/Monat)' : '/ Monat'}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3 flex-1 flex flex-col">
+                        <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">Unbegrenzt/Individuell</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">Unbegrenzte Scans</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">Unbegrenzte Speicherdauer</span>
+                        </div>
+                        
+                        <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">Alle PROFESSIONAL Features</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">Team-Funktionen</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">BFSG Coach (Unbegrenzt)</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">BFE-Generator (Unbegrenzt)</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">Aufgabenverwaltung (Unbegrenzt)</span>
+                        </div>
+                        
+                        <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Service & Kollaboration:</div>
+                        <div className="flex items-center space-x-3">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-base">Team-Funktionen</span>
+                        </div>
+                        
+                        <div className="text-xs text-muted-foreground mt-2">
+                          📞 Support: Persönlicher Ansprechpartner
+                        </div>
+                        
+                        <div className="flex-1"></div>
+                        
+                        <Button className="w-full bg-yellow-600 hover:bg-yellow-700">
+                          Jetzt starten
+                        </Button>
+                      </CardContent>
+                    </Card>
                   </div>
                 </CardContent>
               </Card>

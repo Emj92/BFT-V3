@@ -66,11 +66,11 @@ export function FirstScanDisclaimer({ open, onClose, onAccept }: FirstScanDiscla
             </ul>
           </div>
 
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
-            <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-1">
+          <div className="bg-amber-50/50 dark:bg-amber-900/10 p-3 rounded-lg border border-amber-200/50 dark:border-amber-800/30">
+            <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">
               Wichtige Einschränkungen:
             </h4>
-            <ul className="text-xs space-y-1 ml-4 list-disc text-yellow-700 dark:text-yellow-300">
+            <ul className="text-xs space-y-1 ml-4 list-disc text-amber-700 dark:text-amber-300">
               <li>Keine Garantie für vollständige Rechtskonformität</li>
               <li>Manuelle Expertenprüfung kann erforderlich sein</li>
               <li>Bei rechtlichen Fragen Fachanwalt konsultieren</li>

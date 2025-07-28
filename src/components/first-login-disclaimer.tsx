@@ -56,7 +56,7 @@ export function FirstLoginDisclaimer({ open, onClose, onAccept }: FirstLoginDisc
             </AlertDescription>
           </Alert>
 
-          <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+          <div className="bg-amber-50/50 dark:bg-amber-900/10 p-3 rounded-lg border border-amber-200/50 dark:border-amber-800/30">
             <p className="text-xs text-amber-800 dark:text-amber-200 font-medium mb-1">
               Wichtiger Hinweis:
             </p>
@@ -65,11 +65,11 @@ export function FirstLoginDisclaimer({ open, onClose, onAccept }: FirstLoginDisc
             </p>
           </div>
 
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-            <h4 className="text-sm font-semibold mb-2 text-blue-800 dark:text-blue-200">
+          <div className="bg-slate-50/70 dark:bg-slate-900/20 p-3 rounded-lg border border-slate-200/50 dark:border-slate-800/30">
+            <h4 className="text-sm font-semibold mb-2 text-slate-800 dark:text-slate-200">
               Was Sie erwartet:
             </h4>
-            <ul className="text-xs space-y-1 ml-4 list-disc text-blue-700 dark:text-blue-300">
+            <ul className="text-xs space-y-1 ml-4 list-disc text-slate-700 dark:text-slate-300">
               <li>Automatische WCAG-Prüfungen</li>
               <li>Detaillierte Fehlberichte</li>
               <li>Verbesserungsvorschläge</li>

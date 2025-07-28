@@ -1,10 +1,21 @@
 import { createMollieClient } from '@mollie/api-client'
 
-// Mollie Client erstellen - Test-Schlüssel für Entwicklung
+// Mollie Client erstellen - mit dem bereitgestellten Test-Schlüssel
 const mollie = createMollieClient({
-  apiKey: process.env.MOLLIE_API_KEY || 'test_pNM4JDMjN2V6V2sHyQRzvJEapQBGqk',
-  profileId: process.env.MOLLIE_PROFILE_ID || 'pfl_QZSB9J3RJj'
+  apiKey: process.env.MOLLIE_API_KEY || 'test_dHar4XY7LxsDOtmnkVtjNVWXLSlXsM'
 })
+
+// Test the connection
+export async function testMollieConnection() {
+  try {
+    const methods = await mollie.methods.list()
+    console.log('✅ Mollie connection successful, available methods:', methods.map(m => m.id))
+    return { success: true, methods: methods.map(m => m.id) }
+  } catch (error) {
+    console.error('❌ Mollie connection failed:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
+}
 
 export interface PaymentData {
   amount: number
@@ -22,21 +33,21 @@ export interface CreditPackageData {
   userEmail: string
 }
 
-// Bundle-Preise definieren
+// Bundle-Preise definieren - aktualisiert mit 15% Jahresrabatt
 const BUNDLE_PRICES = {
   STARTER: {
     monthly: 9.00,
-    yearly: 108.00, // 12 Monate zum Preis von 9€/Monat = 108€
+    yearly: 91.80, // 9€ * 12 * 0.85 (15% Rabatt)
     title: 'STARTER - Für Einzelpersonen'
   },
   PRO: {
     monthly: 29.00,
-    yearly: 348.00, // 12 Monate zum Preis von 29€/Monat = 348€  
+    yearly: 295.60, // 29€ * 12 * 0.85 (15% Rabatt)
     title: 'PROFESSIONAL - Für Unternehmen'
   },
   ENTERPRISE: {
     monthly: 79.00,
-    yearly: 948.00, // 12 Monate zum Preis von 79€/Monat = 948€
+    yearly: 805.40, // 79€ * 12 * 0.85 (15% Rabatt)
     title: 'ENTERPRISE - Für Agenturen & Teams'
   }
 }
@@ -66,8 +77,8 @@ export async function createBundlePayment(data: PaymentData & { interval: 'month
         value: amount.toFixed(2)
       },
       description: description,
-      redirectUrl: `${process.env.NEXTAUTH_URL}/dashboard?payment=success`,
-      webhookUrl: `${process.env.NEXTAUTH_URL}/api/webhooks/mollie`,
+      redirectUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard?payment=success`,
+      webhookUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/webhooks/mollie`,
       metadata: {
         type: 'bundle',
         bundle: data.bundle,
@@ -106,8 +117,8 @@ export async function createCreditPayment(data: CreditPackageData) {
         value: creditPackage.price.toFixed(2)
       },
       description: creditPackage.title,
-      redirectUrl: `${process.env.NEXTAUTH_URL}/dashboard?payment=success`,
-      webhookUrl: `${process.env.NEXTAUTH_URL}/api/webhooks/mollie`,
+      redirectUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard?payment=success`,
+      webhookUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/webhooks/mollie`,
       metadata: {
         type: 'credits',
         credits: data.credits.toString(),

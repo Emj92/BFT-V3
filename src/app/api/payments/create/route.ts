@@ -15,8 +15,8 @@ export async function POST(request: NextRequest) {
     let userId: string
     let userEmail: string
     try {
-      const decoded = verify(token, process.env.JWT_SECRET || 'fallback-secret') as any
-      userId = decoded.userId
+      const decoded = verify(token, process.env.JWT_SECRET || 'barrierefrei-secret-key') as any
+      userId = decoded.id // Korrigiert von userId zu id
       userEmail = decoded.email
     } catch (error) {
       return NextResponse.json({ error: 'Ungültiger Token' }, { status: 401 })

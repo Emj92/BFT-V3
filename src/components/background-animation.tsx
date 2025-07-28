@@ -61,10 +61,10 @@ export default function BackgroundAnimation() {
           size: Math.random() * 150 + 75, // 75-225px
           opacity: Math.random() * 0.25 + 0.15, // 0.15-0.4 (erhöht für bessere Sichtbarkeit)
           color: colors[Math.floor(Math.random() * colors.length)],
-          speed: Math.random() * 0.3 + 0.1, // 0.1-0.4 (langsamer für größere Formen)
+          speed: Math.random() * 0.15 + 0.05, // 0.05-0.2 (noch langsamer und beruhigender)
           direction: Math.random() * 360,
           rotation: Math.random() * 360,
-          rotationSpeed: (Math.random() - 0.5) * 1.5, // -0.75 to 0.75 (langsamere Rotation)
+          rotationSpeed: (Math.random() - 0.5) * 0.8, // -0.4 to 0.4 (sehr langsame Rotation)
         })
       }
       setShapes(newShapes)
@@ -99,7 +99,7 @@ export default function BackgroundAnimation() {
       )
     }
 
-    const interval = setInterval(animate, 16) // ~60fps
+    const interval = setInterval(animate, 33) // ~30fps (weniger aggressive Animation)
     
     // Handle window resize und Theme-Änderungen
     const handleResize = () => {

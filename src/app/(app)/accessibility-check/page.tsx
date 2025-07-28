@@ -304,6 +304,42 @@ export default function AccessibilityCheckPage() {
     }
   }, [selectedWebsite])
 
+  // Lade gespeicherte Scans für die aktuelle URL
+  useEffect(() => {
+    const loadSavedScan = async () => {
+      if (!url) return
+
+      try {
+        const response = await fetch('/api/scans')
+        if (response.ok) {
+          const scans = await response.json()
+          
+          // Finde den neuesten Scan für die aktuelle URL
+          const matchingScan = scans.find((scan: any) => 
+            scan.url === url || scan.website === new URL(url).hostname
+          )
+          
+          if (matchingScan && matchingScan.scanResults) {
+            // Lade die gespeicherten Scan-Ergebnisse
+            setScanResults(matchingScan.scanResults)
+            setScannedPages(matchingScan.scanResults.scannedPages || [url])
+            setSelectedPageFilter('alle')
+            setError(null)
+            console.log('Gespeicherte Scan-Ergebnisse geladen für:', url)
+          }
+        }
+      } catch (error) {
+        console.error('Fehler beim Laden gespeicherter Scans:', error)
+        // Ignoriere Fehler beim Laden - zeige einfach keine gespeicherten Ergebnisse
+      }
+    }
+
+    // Nur laden wenn URL gesetzt ist und noch keine Scan-Ergebnisse vorhanden sind
+    if (url && !scanResults && !isScanning) {
+      loadSavedScan()
+    }
+  }, [url, scanResults, isScanning])
+
   // Zeige Disclaimer wenn nötig
   useEffect(() => {
     if (showDisclaimer) {
@@ -708,7 +744,7 @@ export default function AccessibilityCheckPage() {
           <CardHeader>
             <CardTitle className="text-xl">Website Barrierefreiheit prüfen</CardTitle>
             <CardDescription>
-              Analysieren Sie Ihre Website auf WCAG-Konformität und Barrierefreiheit
+              Analysieren Sie Ihre Website auf WCAG-Konformität und Barrierefreiheit. Unser Tool prüft automatisch nach den aktuellen BFSG-Richtlinien (Barrierefreiheitsstärkungsgesetz) und WCAG 2.1/2.2 Standards. Das BFSG macht barrierefreie Webseiten für viele Unternehmen zur Pflicht - nutzen Sie unsere umfassende Analyse um rechtssicher zu werden.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -775,21 +811,54 @@ export default function AccessibilityCheckPage() {
               </div>
             </div>
             <div className="grid gap-6 md:grid-cols-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="enableSubpageScanning"
-                  checked={hasProVersion ? enableSubpageScanning : false}
-                  onCheckedChange={handleSubpageScanningChange}
-                />
-                <Label htmlFor="enableSubpageScanning" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
-                  Unterseiten mitscannen
-                  {!hasProVersion && (
-                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">
-                      <Crown className="h-3 w-3 mr-1" />
-                      PRO
-                    </Badge>
-                  )}
-                </Label>
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="enableSubpageScanning"
+                    checked={hasProVersion ? enableSubpageScanning : false}
+                    onCheckedChange={handleSubpageScanningChange}
+                  />
+                  <Label htmlFor="enableSubpageScanning" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2">
+                    Unterseiten mitscannen
+                    {!hasProVersion && (
+                      <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200">
+                        <Crown className="h-3 w-3 mr-1" />
+                        PRO
+                      </Badge>
+                    )}
+                  </Label>
+                </div>
+                
+                {/* Scan-Aktionsbuttons - nur anzeigen wenn Scan-Ergebnisse vorhanden */}
+                {scanResults && (
+                  <div className="flex items-center gap-2 ml-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Erneut scannen - setze URL erneut und starte Scan
+                        handleScan()
+                      }}
+                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                    >
+                      <RefreshCw className="mr-1 h-3 w-3" />
+                      Erneut scannen
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Scan verwerfen
+                        setScanResults(null)
+                        setError(null)
+                      }}
+                      className="text-red-600 border-red-200 hover:bg-red-50"
+                    >
+                      <XCircle className="mr-1 h-3 w-3" />
+                      Verwerfen
+                    </Button>
+                  </div>
+                )}
               </div>
               {hasProVersion && (
                 <div className="space-y-2">
@@ -925,13 +994,13 @@ export default function AccessibilityCheckPage() {
                     Wählen Sie aus, welche Seiten Sie in den Ergebnissen anzeigen möchten
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <Label htmlFor="pageFilter" className="text-sm font-medium">
-                      Angezeigte Seiten ({scannedPages.length} insgesamt gescannt)
+                <CardContent className="py-3">
+                  <div className="flex items-center gap-4">
+                    <Label htmlFor="pageFilter" className="text-sm font-medium whitespace-nowrap">
+                      Seiten ({scannedPages.length})
                     </Label>
                     <Select value={selectedPageFilter} onValueChange={setSelectedPageFilter}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-8">
                         <SelectValue placeholder="Seiten auswählen..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -943,11 +1012,6 @@ export default function AccessibilityCheckPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {selectedPageFilter !== 'alle' && (
-                      <p className="text-xs text-muted-foreground">
-                        Zeige Ergebnisse für: {selectedPageFilter}
-                      </p>
-                    )}
                   </div>
                 </CardContent>
               </Card>

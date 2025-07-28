@@ -59,28 +59,28 @@ export default function BarrierefreiheitsgeneratorPage() {
       <SidebarInset>
         <GlobalNavigation title="BFE-Generator" />
         <main className="flex flex-1 flex-col gap-6 p-6 md:gap-8 md:p-8">
-          {/* Gelber Hinweis für FREE Nutzer */}
-          <Card className="border-yellow-500 bg-yellow-50">
+          {/* Blauer Hinweis für FREE Nutzer */}
+          <Card className="border-blue-400 bg-blue-50">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-yellow-700">
+              <CardTitle className="flex items-center gap-2 text-blue-700">
                 <Crown className="h-5 w-5" />
                 BFE-Generator ab STARTER-Paket
               </CardTitle>
-              <CardDescription className="text-yellow-600">
+              <CardDescription className="text-blue-600">
                 Der BFE-Generator ist ressourcentechnisch nur ab dem STARTER-Paket verfügbar
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center py-4">
-                <FileText className="mx-auto h-16 w-16 text-yellow-500 mb-4" />
-                <p className="text-yellow-700 mb-4">
+                <FileText className="mx-auto h-16 w-16 text-blue-500 mb-4" />
+                <p className="text-blue-700 mb-4">
                   Um automatische Barrierefreiheitserklärungen zu generieren, 
                   benötigen Sie mindestens das STARTER-Paket.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button 
                     onClick={() => window.location.href = "/einstellungen"}
-                    className="h-12 bg-yellow-600 hover:bg-yellow-700"
+                    className="h-12 bg-blue-600 hover:bg-blue-700"
                   >
                     <Crown className="mr-2 h-4 w-4" />
                     Jetzt auf STARTER upgraden
@@ -88,7 +88,7 @@ export default function BarrierefreiheitsgeneratorPage() {
                   <Button 
                     variant="outline" 
                     onClick={() => window.location.href = "/support/faq"}
-                    className="h-12 border-yellow-500 text-yellow-700 hover:bg-yellow-50"
+                    className="h-12 border-blue-400 text-blue-700 hover:bg-blue-50"
                   >
                     FAQ ansehen
                   </Button>

@@ -22,6 +22,7 @@ export function RegisterForm({
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0); // 0-100
   
@@ -55,6 +56,7 @@ export function RegisterForm({
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuccess("");
     
     if (!acceptedTerms) {
       setError("Bitte akzeptieren Sie die AGB und Datenschutzbestimmungen");
@@ -83,8 +85,13 @@ export function RegisterForm({
         throw new Error(data.error || "Registrierung fehlgeschlagen");
       }
       
-      // Erfolgreich registriert, zur Login-Seite weiterleiten
-      window.location.href = "/login";
+      // Erfolgreich registriert - Bestätigungsmeldung anzeigen
+      setSuccess("Registrierung erfolgreich! Eine Bestätigungsmail wurde an Ihre E-Mail-Adresse gesendet. Bitte bestätigen Sie Ihre E-Mail-Adresse, um sich anmelden zu können.");
+      
+      // Nach 3 Sekunden zur Login-Seite weiterleiten
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ein unbekannter Fehler ist aufgetreten");
     } finally {
@@ -110,6 +117,11 @@ export function RegisterForm({
                   {error && (
                     <div className="p-3 text-sm text-white bg-red-500 rounded">
                       {error}
+                    </div>
+                  )}
+                  {success && (
+                    <div className="p-3 text-sm text-green-800 bg-green-100 border border-green-200 rounded">
+                      {success}
                     </div>
                   )}
                   <div className="grid gap-2">

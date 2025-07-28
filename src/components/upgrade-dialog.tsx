@@ -44,8 +44,8 @@ const BUNDLE_PLANS = {
   },
   'ENTERPRISE': {
     name: 'Enterprise',
-    price: '99.99€',
-    priceMonthly: '99.99€/Monat',
+    price: '79€',
+    priceMonthly: '79€/Monat',
     features: [
       '500 Website-Scans pro Monat',
       '500 WCAG-Coach-Sessions pro Monat',

@@ -10,7 +10,7 @@ const BackgroundAnimation = dynamic(() => import('@/components/background-animat
 
 export default function RegisterPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background relative">
+    <div className="min-h-screen flex items-center justify-center relative" style={{ backgroundColor: 'transparent' }}>
       <BackgroundAnimation />
       <RegisterForm />
     </div>

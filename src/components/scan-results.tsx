@@ -395,7 +395,7 @@ export default function ScanResults({
                     </div>
                   </div>
                   
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-yellow-600">Mittlere Priorität</span>
                       <Info className="h-4 w-4 text-yellow-500" />
@@ -607,8 +607,62 @@ export default function ScanResults({
                               <div className="flex-1">
                                 <h5 className="font-medium">{violation.id}: {translateHelp(violation.help)}</h5>
                                 <p className="text-sm text-muted-foreground mt-1">{translateDescription(violation.description)}</p>
-                                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                                  <span>Betroffene Elemente: {violation.nodes.length}</span>
+                                
+                                {/* Erweiterte Details */}
+                                <div className="mt-3 space-y-2">
+                                  <div className="text-sm">
+                                    <span className="font-medium">Seite:</span> {results.url}
+                                  </div>
+                                  <div className="text-sm">
+                                    <span className="font-medium">Fehlercode:</span> <code className="bg-muted px-1 rounded">{violation.id}</code>
+                                  </div>
+                                  <div className="text-sm">
+                                    <span className="font-medium">WCAG Kriterien:</span> {violation.tags?.filter((tag: string) => tag.startsWith('wcag')).join(', ') || 'Nicht spezifiziert'}
+                                  </div>
+                                  <div className="text-sm">
+                                    <span className="font-medium">Betroffene Bereiche:</span> {violation.nodes?.length || 0} Element(e)
+                                  </div>
+                                  
+                                  {/* Detaillierte Elementbeschreibung */}
+                                  {violation.nodes && violation.nodes.length > 0 && (
+                                    <div className="mt-2">
+                                      <details className="text-sm">
+                                        <summary className="cursor-pointer font-medium text-blue-600 hover:text-blue-800">
+                                          Betroffene Elemente anzeigen ({violation.nodes.length})
+                                        </summary>
+                                        <div className="mt-2 space-y-1 bg-gray-50 p-2 rounded">
+                                          {violation.nodes.slice(0, 5).map((node: any, nodeIndex: number) => (
+                                            <div key={nodeIndex} className="text-xs font-mono bg-white p-2 rounded border">
+                                              <div><strong>Selektor:</strong> {node.target?.join(' ') || 'Nicht verfügbar'}</div>
+                                              <div><strong>HTML:</strong> {node.html ? node.html.substring(0, 100) + (node.html.length > 100 ? '...' : '') : 'Nicht verfügbar'}</div>
+                                              {node.failureSummary && (
+                                                <div><strong>Problem:</strong> {node.failureSummary}</div>
+                                              )}
+                                            </div>
+                                          ))}
+                                          {violation.nodes.length > 5 && (
+                                            <div className="text-xs text-muted-foreground">... und {violation.nodes.length - 5} weitere Elemente</div>
+                                          )}
+                                        </div>
+                                      </details>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Lösungsvorschläge */}
+                                  {violation.help && (
+                                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                                      <div className="text-sm font-medium text-blue-800">💡 Lösungsvorschläge:</div>
+                                      <div className="text-xs text-blue-700 mt-1">{translateHelp(violation.help)}</div>
+                                      {violation.helpUrl && (
+                                        <a href={violation.helpUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline block mt-1">
+                                          📖 Weitere Informationen
+                                        </a>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
                                   <span className={`px-2 py-1 rounded ${
                                     violation.impact === 'critical' ? 'bg-red-100 text-red-800' :
                                     violation.impact === 'serious' ? 'bg-orange-100 text-orange-800' :
@@ -617,6 +671,7 @@ export default function ScanResults({
                                   }`}>
                                     {translateImpact(violation.impact)}
                                   </span>
+                                  <span>Gefunden: {new Date(results.timestamp).toLocaleString('de-DE')}</span>
                                 </div>
                               </div>
                               {showAddToTasks && (
