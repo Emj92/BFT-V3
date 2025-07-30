@@ -737,9 +737,9 @@ export default function AccessibilityCheckPage() {
         {/* Scan-Formular */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Website Barrierefreiheit prüfen</CardTitle>
+            <CardTitle className="text-xl">{t('accessibility.title')}</CardTitle>
             <CardDescription>
-              Analysieren Sie Ihre Website auf WCAG-Konformität und Barrierefreiheit. Unser Tool prüft automatisch nach den aktuellen BFSG-Richtlinien (Barrierefreiheitsstärkungsgesetz) und WCAG 2.1/2.2 Standards. Das BFSG macht barrierefreie Webseiten für viele Unternehmen zur Pflicht - nutzen Sie unsere umfassende Analyse um rechtssicher zu werden.
+              {t('accessibility.description')}. Unser Tool prüft automatisch nach den aktuellen BFSG-Richtlinien (Barrierefreiheitsstärkungsgesetz) und WCAG 2.1/2.2 Standards. Das BFSG macht barrierefreie Webseiten für viele Unternehmen zur Pflicht - nutzen Sie unsere umfassende Analyse um rechtssicher zu werden.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

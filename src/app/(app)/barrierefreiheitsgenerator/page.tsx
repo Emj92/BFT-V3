@@ -105,12 +105,12 @@ export default function BarrierefreiheitsgeneratorPage() {
     <SidebarInset>
       <GlobalNavigation title="Barrierefreiheitsgenerator" />
 
-      <main className="flex flex-1 flex-col gap-6 p-6 md:gap-8 md:p-8 bg-gray-100 dark:bg-gray-900">
+      <main className="flex flex-1 flex-col gap-6 p-6 md:gap-8 md:p-8 bg-gray-50 dark:bg-gray-900">
   
         
         {/* Status-Anzeige */}
         {!generationsLoading && isFreeUser && (
-          <Card className="bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700">
+          <Card className="bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
