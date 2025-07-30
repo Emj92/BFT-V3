@@ -544,7 +544,7 @@ export default function AccessibilityCheckPage() {
         setSelectedPageFilter('alle');
       }
       
-      // Speichere Scan in der Datenbank
+      // KRITISCHER SCAN-SPEICHER-PROZESS - NUR API
       try {
         const scanData = {
           websiteUrl: url,
@@ -557,6 +557,8 @@ export default function AccessibilityCheckPage() {
           scanResults: formattedResults
         };
         
+        console.log('KRITISCHER DEBUG: Speichere Scan:', scanData);
+        
         const response = await fetch('/api/scans', {
           method: 'POST',
           headers: {
@@ -565,38 +567,30 @@ export default function AccessibilityCheckPage() {
           body: JSON.stringify(scanData)
         });
         
+        console.log('KRITISCHER DEBUG: Scan-Speicher Response Status:', response.status);
+        
         if (response.ok) {
-          console.log('Scan erfolgreich in Datenbank gespeichert');
+          const responseData = await response.json()
+          console.log('KRITISCHER DEBUG: Scan erfolgreich gespeichert:', responseData);
         } else {
-          console.warn('Scan konnte nicht in Datenbank gespeichert werden:', await response.text());
-          // Fallback: Verwende localStorage wie bisher
-          if (typeof window !== 'undefined' && (window as any).addWebsiteScan) {
-            (window as any).addWebsiteScan({
-              website: new URL(url).hostname,
-              url: url,
-              score: data.score,
-              issues: formattedResults.issues.critical + formattedResults.issues.serious + formattedResults.issues.moderate + formattedResults.issues.minor,
-              criticalIssues: formattedResults.issues.critical,
-              duration: "2.5",
-              pages: enableSubpageScanning ? scannedPages.length : 1
-            });
-          }
+          const errorText = await response.text()
+          console.error('KRITISCHER DEBUG: Scan-Speicher-Fehler:', response.status, errorText);
+          throw new Error(`Scan konnte nicht gespeichert werden: ${response.status}`)
         }
       } catch (error) {
-        console.error('Fehler beim Speichern des Scans in Datenbank:', error);
-        // Fallback: Verwende localStorage wie bisher
-        if (typeof window !== 'undefined' && (window as any).addWebsiteScan) {
-          (window as any).addWebsiteScan({
-            website: new URL(url).hostname,
+        console.error('KRITISCHER DEBUG: Exception beim Speichern des Scans:', error)
+        throw error // Fehler weiterwerfen - KEIN Fallback
+      }
+      
+      // Event auslösen für andere Komponenten (Dashboard, Website-Scans)
+      console.log('KRITISCHER DEBUG: Löse scanCompleted Event aus')
+      window.dispatchEvent(new CustomEvent('scanCompleted', {
+        detail: {
             url: url,
             score: data.score,
-            issues: formattedResults.issues.critical + formattedResults.issues.serious + formattedResults.issues.moderate + formattedResults.issues.minor,
-            criticalIssues: formattedResults.issues.critical,
-            duration: "2.5",
-            pages: enableSubpageScanning ? scannedPages.length : 1
-          });
+          website: new URL(url).hostname
         }
-      }
+      }))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ein unbekannter Fehler ist aufgetreten');
       setScanResults(null);
