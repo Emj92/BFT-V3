@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { GlobalNavigation } from "@/components/global-navigation"
-import { MessageSquare, Send, Paperclip, AlertTriangle, Lock, Crown, Mail, X } from "lucide-react"
+import { MessageSquare, Send, Paperclip, AlertTriangle, Lock, Crown, Mail, X, CheckCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useBundle } from "@/hooks/useBundle"
 
@@ -31,6 +32,9 @@ export default function CreateTicketPage() {
   })
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
+  const [dragActive, setDragActive] = useState(false)
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false)
+  const [createdTicket, setCreatedTicket] = useState<any>(null)
 
   // Prüfe ob Benutzer berechtigt ist
   const isEligible = bundleInfo && bundleInfo.bundle !== 'FREE'
@@ -73,8 +77,15 @@ export default function CreateTicketPage() {
         const result = await response.json()
         console.log("Ticket erfolgreich erstellt:", result.ticket)
         
-        // Weiterleitung zu Ticket-Übersicht
-        router.push("/support/tickets")
+        // Zeige Erfolgsdialog
+        setCreatedTicket(result.ticket)
+        setShowSuccessDialog(true)
+        
+        // Auto-Close nach 2 Sekunden
+        setTimeout(() => {
+          setShowSuccessDialog(false)
+          router.push("/support/tickets")
+        }, 2000)
       } else {
         const error = await response.json()
         console.error("Fehler beim Erstellen des Tickets:", error)
@@ -126,6 +137,54 @@ export default function CreateTicketPage() {
   const removeFile = () => {
     setSelectedFile(null)
     setFileError(null)
+  }
+
+  // Drag & Drop Handler
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      const file = files[0]
+      
+      // Prüfe Dateityp
+      const allowedTypes = ['image/png', 'image/jpg', 'image/jpeg']
+      if (!allowedTypes.includes(file.type)) {
+        setFileError('Nur PNG und JPG Dateien sind erlaubt')
+        setSelectedFile(null)
+        return
+      }
+
+      // Prüfe Dateigröße (2MB = 2 * 1024 * 1024 bytes)
+      const maxSize = 2 * 1024 * 1024
+      if (file.size > maxSize) {
+        setFileError('Datei ist zu groß. Maximum sind 2MB. Bitte komprimieren Sie die Datei.')
+        setSelectedFile(null)
+        return
+      }
+
+      setFileError(null)
+      setSelectedFile(file)
+    }
   }
 
   if (loading) {
@@ -323,12 +382,20 @@ export default function CreateTicketPage() {
                 />
               </div>
 
-              {/* File Upload Bereich */}
+              {/* File Upload Bereich mit Drag & Drop */}
               <div className="space-y-2">
                 <Label className="text-base font-medium">
                   Screenshot anhängen (optional)
                 </Label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <div 
+                  className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                    dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+                  }`}
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                >
                   {selectedFile ? (
                     <div className="space-y-3">
                       <div className="flex items-center justify-center gap-2 text-green-600">
@@ -345,6 +412,7 @@ export default function CreateTicketPage() {
                         onClick={removeFile}
                         className="mx-auto"
                       >
+                        <X className="h-4 w-4 mr-2" />
                         Datei entfernen
                       </Button>
                     </div>
@@ -352,6 +420,12 @@ export default function CreateTicketPage() {
                     <div className="space-y-3">
                       <Paperclip className="h-8 w-8 mx-auto text-gray-400" />
                       <div>
+                        <p className="text-base font-medium mb-2">
+                          {dragActive ? 'Datei hier ablegen...' : 'Datei hochladen'}
+                        </p>
+                        <p className="text-sm text-gray-500 mb-3">
+                          Ziehen Sie eine Datei hierher oder klicken Sie zum Auswählen
+                        </p>
                         <label className="cursor-pointer">
                           <Button type="button" variant="outline" asChild>
                             <span>Datei auswählen</span>
@@ -432,6 +506,49 @@ export default function CreateTicketPage() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Erfolgsdialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-green-600">
+              <CheckCircle className="h-5 w-5" />
+              Ticket erfolgreich erstellt!
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              Ihr Support-Ticket wurde erfolgreich erstellt und an unser Team weitergeleitet.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {createdTicket && (
+              <div className="p-3 bg-green-50 rounded-lg">
+                <p className="text-sm font-medium text-green-800">
+                  Ticket-Nummer: <span className="font-mono">{createdTicket.ticketNumber || createdTicket.id}</span>
+                </p>
+                <p className="text-sm text-green-700 mt-1">
+                  Betreff: {createdTicket.subject}
+                </p>
+              </div>
+            )}
+            <p className="text-sm text-gray-600">
+              Sie werden automatisch zu Ihren Tickets weitergeleitet...
+            </p>
+          </div>
+          <div className="flex justify-end">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setShowSuccessDialog(false)
+                router.push("/support/tickets")
+              }}
+            >
+              <X className="h-4 w-4 mr-1" />
+              Schließen
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarInset>
   )
 }

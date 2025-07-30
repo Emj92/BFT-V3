@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       }, { status: 403 })
     }
 
-    // Prüfe ob Benutzer Team-Owner ist
+    // Nur Team-Owner können Einladungen versenden
     if (!user.isTeamOwner) {
       return NextResponse.json({ 
         error: 'Nur Team-Owner können Einladungen versenden' 
@@ -141,7 +141,21 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // TODO: E-Mail-Benachrichtigung senden (kann später implementiert werden)
+    // Finde den eingeladenen Benutzer (falls bereits registriert) und sende Benachrichtigung
+    const invitedUser = await prisma.user.findFirst({
+      where: { email: email }
+    })
+
+    if (invitedUser) {
+      // Sende SSE-Benachrichtigung an den eingeladenen Benutzer
+      notifyTeamInvitation(invitedUser.id, {
+        id: invitation.id,
+        teamName: invitation.team.name,
+        senderName: invitation.sender.name,
+        message: invitation.message,
+        expiresAt: invitation.expiresAt
+      })
+    }
 
     return NextResponse.json({
       success: true,

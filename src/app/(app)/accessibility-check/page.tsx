@@ -26,7 +26,8 @@ import {
   FileText,
   Search,
   ExternalLink,
-  ChevronDown
+  ChevronDown,
+  XCircle
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -921,64 +922,64 @@ export default function AccessibilityCheckPage() {
 
               {/* Filter-Kacheln rechts */}
               <Card 
-                className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'critical' ? 'ring-2 ring-red-500 bg-red-50' : ''}`}
+                className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'critical' ? 'ring-2 ring-red-500 bg-red-50 dark:bg-red-900/20 dark:text-red-100' : ''}`}
                 onClick={() => handleFilterChange('critical')}
               >
                 <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-base font-medium">Kritische Probleme</CardTitle>
+                  <CardTitle className={`text-base font-medium ${activeFilter === 'critical' ? 'dark:text-red-100' : ''}`}>Kritische Probleme</CardTitle>
                   <AlertTriangle className="h-4 w-4 text-red-500" />
                 </CardHeader>
                 <CardContent className="relative">
-                  <div className="text-3xl font-bold text-red-600">{scanResults.issues.critical}</div>
-                  <p className="text-base text-muted-foreground">
+                  <div className={`text-3xl font-bold text-red-600 ${activeFilter === 'critical' ? 'dark:text-red-200' : ''}`}>{scanResults.issues.critical}</div>
+                  <p className={`text-base text-muted-foreground ${activeFilter === 'critical' ? 'dark:text-red-300' : ''}`}>
                     Sofort beheben
                   </p>
                 </CardContent>
               </Card>
 
               <Card 
-                className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'serious' ? 'ring-2 ring-orange-500 bg-orange-50' : ''}`}
+                className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'serious' ? 'ring-2 ring-orange-500 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-100' : ''}`}
                 onClick={() => handleFilterChange('serious')}
               >
                 <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-base font-medium">Schwerwiegende Probleme</CardTitle>
+                  <CardTitle className={`text-base font-medium ${activeFilter === 'serious' ? 'dark:text-orange-100' : ''}`}>Schwerwiegende Probleme</CardTitle>
                   <AlertTriangle className="h-4 w-4 text-orange-500" />
                 </CardHeader>
                 <CardContent className="relative">
-                  <div className="text-3xl font-bold text-orange-600">{scanResults.issues.serious}</div>
-                  <p className="text-base text-muted-foreground">
+                  <div className={`text-3xl font-bold text-orange-600 ${activeFilter === 'serious' ? 'dark:text-orange-200' : ''}`}>{scanResults.issues.serious}</div>
+                  <p className={`text-base text-muted-foreground ${activeFilter === 'serious' ? 'dark:text-orange-300' : ''}`}>
                     Bald beheben
                   </p>
                 </CardContent>
               </Card>
 
               <Card 
-                className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'positive' ? 'ring-2 ring-green-500 bg-green-50' : ''}`}
+                className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'positive' ? 'ring-2 ring-green-500 bg-green-50 dark:bg-green-900/20 dark:text-green-100' : ''}`}
                 onClick={() => handleFilterChange('positive')}
               >
                 <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-base font-medium">Positiv geprüfte Ergebnisse</CardTitle>
+                  <CardTitle className={`text-base font-medium ${activeFilter === 'positive' ? 'dark:text-green-100' : ''}`}>Positiv geprüfte Ergebnisse</CardTitle>
                   <CheckCircle className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent className="relative">
-                  <div className="text-3xl font-bold text-green-600">{scanResults.checks.passed}</div>
-                  <p className="text-base text-muted-foreground">
+                  <div className={`text-3xl font-bold text-green-600 ${activeFilter === 'positive' ? 'dark:text-green-200' : ''}`}>{scanResults.checks.passed}</div>
+                  <p className={`text-base text-muted-foreground ${activeFilter === 'positive' ? 'dark:text-green-300' : ''}`}>
                     Erfolgreich bestanden
                   </p>
                 </CardContent>
               </Card>
 
               <Card 
-                className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'total' ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}
+                className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'total' ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-100' : ''}`}
                 onClick={() => handleFilterChange('total')}
               >
                 <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-base font-medium">Insgesamt geprüfte Ergebnisse</CardTitle>
+                  <CardTitle className={`text-base font-medium ${activeFilter === 'total' ? 'dark:text-blue-100' : ''}`}>Insgesamt geprüfte Ergebnisse</CardTitle>
                   <Eye className="h-4 w-4 text-blue-500" />
                 </CardHeader>
                 <CardContent className="relative">
-                  <div className="text-3xl font-bold text-blue-600">{scanResults.checks.total}</div>
-                  <p className="text-base text-muted-foreground">
+                  <div className={`text-3xl font-bold text-blue-600 ${activeFilter === 'total' ? 'dark:text-blue-200' : ''}`}>{scanResults.checks.total}</div>
+                  <p className={`text-base text-muted-foreground ${activeFilter === 'total' ? 'dark:text-blue-300' : ''}`}>
                     Elemente analysiert
                   </p>
                 </CardContent>
@@ -1072,7 +1073,7 @@ export default function AccessibilityCheckPage() {
                         variant="outline"
                         onClick={handleAddSelectedToTasks}
                         disabled={selectedErrors.size === 0}
-                        className={selectedErrors.size > 0 ? "border-green-500 text-green-600 hover:bg-green-50" : ""}
+                        className={selectedErrors.size > 0 ? "border-blue-500 text-blue-600 bg-white hover:bg-blue-50 dark:bg-white dark:text-blue-600 dark:hover:bg-blue-50" : ""}
                       >
                         <Plus className="mr-2 h-4 w-4" />
                         Zu Aufgaben hinzufügen

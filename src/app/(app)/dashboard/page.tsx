@@ -124,157 +124,124 @@ export default function DashboardPage() {
     }
   }, [showDisclaimer])
 
-  // Lade Dashboard-Daten basierend auf der ausgewählten Website
+  // Funktion zum manuellen Neuladen der Dashboard-Daten
+  const reloadDashboardData = async () => {
+    await loadDashboardData()
+  }
+
+  // Lade Dashboard-Daten basierend auf der ausgewählten Website - VOLLSTÄNDIG NEU
   useEffect(() => {
+    // Verhindere mehrfache Datenladung nur bei websitesLoading
+    if (websitesLoading) {
+      return;
+    }
+
+    let isCancelled = false; // Verhindere Race Conditions komplett
+
     const loadDashboardData = async () => {
+      if (isCancelled) return;
+      
       setIsLoading(true)
       setError(null)
 
       try {
-        // Wenn eine Website ausgewählt ist, lade Website-spezifische Daten
-        if (selectedWebsite) {
-          const response = await fetch(`/api/websites/${selectedWebsite.id}`)
-          if (!response.ok) {
-            throw new Error('Fehler beim Laden der Website-Daten')
-          }
-          const data = await response.json()
-          
-          // Berechne Statistiken basierend auf Website-Daten
-          const totalScans = data.website.pages ? data.website.pages.reduce((sum: number, page: any) => sum + (page.scans ? page.scans.length : 0), 0) : 0
-          const allScans = data.website.pages ? data.website.pages.flatMap((page: any) => page.scans || []) : []
-          const avgScore = allScans.length > 0 ? allScans.reduce((sum: number, scan: any) => sum + (scan.score || 0), 0) / allScans.length : 0
-          const criticalIssues = allScans.reduce((sum: number, scan: any) => {
-            if (scan.violations && Array.isArray(scan.violations)) {
-              return sum + scan.violations.filter((v: any) => v.impact === 'critical').length
-            }
-            return sum
-          }, 0)
-
-          setStats({
-            totalWebsites: 1, // Nur die aktuelle Website
-            totalScans: totalScans,
-            avgScore: avgScore,
-            criticalIssues: criticalIssues,
-            completionRate: totalScans > 0 ? 1 : 0,
-            wcagACompliance: avgScore > 0.8 ? 1 : avgScore > 0.6 ? 0.8 : 0.6,
-            wcagAACompliance: avgScore,
-            wcagAAACompliance: avgScore > 0.9 ? avgScore : 0.4
+        console.log('Dashboard-Datenladung startet...')
+        
+        // IMMER alle Daten parallel laden - KEINE KONDITIONELLE LOGIK
+        const [websitesResponse, scansResponse] = await Promise.all([
+          fetch('/api/websites', {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache' }
+          }),
+          fetch('/api/scans', {
+            cache: 'no-store', 
+            headers: { 'Cache-Control': 'no-cache' }
           })
+        ]);
 
-          // Setze kürzliche Aktivitäten basierend auf den Scans
-          const activities = allScans.slice(0, 4).map((scan: any, index: number) => ({
-            id: index + 1,
-            type: "scan",
-            description: `Website-Scan für ${selectedWebsite.name} abgeschlossen`,
-            timestamp: new Date(scan.createdAt).toLocaleDateString('de-DE'),
-            status: scan.status || "abgeschlossen",
-            score: scan.score
-          }))
+        if (isCancelled) return;
 
-          setRecentActivities(activities)
-        } else {
-          // Wenn keine Website ausgewählt ist, lade allgemeine Statistiken
-          const response = await fetch('/api/websites')
-          let apiData = null
-          
-          if (response.ok) {
-            apiData = await response.json()
-          } else if (response.status >= 500) {
-            throw new Error('Serverfehler beim Laden der Daten')
-          }
-          
-          // Lade aktuelle Website-Daten und Scans aus der Datenbank
-          const apiWebsites = apiData?.websites || []
-          
-          // Lade auch Scan-Daten aus der neuen Scan-API
-          let scanData = { scans: [] }
-          try {
-            const scanResponse = await fetch('/api/scans')
-            if (scanResponse.ok) {
-              scanData = await scanResponse.json()
-            }
-          } catch (error) {
-            console.warn('Scans konnten nicht geladen werden:', error)
-          }
-          
-          const totalWebsites = apiWebsites.length
-          const totalScans = scanData.scans?.length || 0
-          const allScans = scanData.scans || []
-          
-          if (totalScans > 0) {
-            // Berechne Statistiken basierend auf den Scans
-            const allScores = allScans.map((scan: any) => scan.score || 0)
-            const avgScore = allScores.length > 0 ? allScores.reduce((sum: number, score: number) => sum + score, 0) / allScores.length : 0
-            const criticalIssues = allScans.reduce((sum: number, scan: any) => 
-              sum + (scan.criticalIssues || 0), 0)
+        // Parse responses
+        const websitesData = websitesResponse.ok ? await websitesResponse.json() : { websites: [] };
+        const scansData = scansResponse.ok ? await scansResponse.json() : { scans: [] };
 
-            setStats({
-              totalWebsites,
-              totalScans,
-              avgScore,
-              criticalIssues,
-              completionRate: totalScans > 0 ? 1 : 0,
-              wcagACompliance: avgScore > 0.8 ? 1 : avgScore > 0.6 ? 0.8 : 0.6,
-              wcagAACompliance: avgScore / 100, // Normalisiere Score
-              wcagAAACompliance: avgScore > 90 ? avgScore / 100 : 0.4
-            })
+        const allWebsites = websitesData.websites || [];
+        const allScans = scansData.scans || [];
 
-            // Erstelle Aktivitäten basierend auf Scans
-            const activities = allScans.slice(0, 4).map((scan: any, index: number) => ({
-              id: index + 1,
-              type: "scan",
-              description: `Website-Scan für ${scan.website} abgeschlossen`,
-              timestamp: scan.date || new Date(scan.createdAt).toLocaleDateString('de-DE'),
-              status: scan.status || "abgeschlossen",
-              score: scan.score
-            }))
+        console.log('Geladene Daten:', { websites: allWebsites.length, scans: allScans.length });
 
-            setRecentActivities(activities)
-          } else {
-            // Keine Scans vorhanden
-            setStats({
-              totalWebsites,
-              totalScans: 0,
-              avgScore: 0,
-              criticalIssues: 0,
-              completionRate: 0,
-              wcagACompliance: 0,
-              wcagAACompliance: 0,
-              wcagAAACompliance: 0
-            })
-            setRecentActivities([])
-          }
+        if (isCancelled) return;
+
+        // Berechne Statistiken
+        const totalWebsites = allWebsites.length;
+        const totalScans = allScans.length;
+        const avgScore = totalScans > 0 
+          ? allScans.reduce((sum: number, scan: any) => sum + (scan.score || 0), 0) / totalScans 
+          : 0;
+        const criticalIssues = allScans.reduce((sum: number, scan: any) => 
+          sum + (scan.criticalIssues || 0), 0);
+
+        // ATOMIC UPDATE - alles auf einmal setzen
+        const newStats = {
+          totalWebsites,
+          totalScans,
+          avgScore,
+          criticalIssues,
+          completionRate: totalScans > 0 ? 1 : 0,
+          wcagACompliance: avgScore > 80 ? 1 : avgScore > 60 ? 0.8 : 0.6,
+          wcagAACompliance: avgScore / 100,
+          wcagAAACompliance: avgScore > 90 ? avgScore / 100 : 0.4
+        };
+
+        const newActivities = allScans.slice(0, 4).map((scan: any, index: number) => ({
+          id: index + 1,
+          type: "scan",
+          description: `Website-Scan für ${scan.websiteName || scan.website || 'Unbekannt'} abgeschlossen`,
+          timestamp: scan.createdAt ? new Date(scan.createdAt).toLocaleDateString('de-DE') : 'Unbekannt',
+          status: scan.status || "abgeschlossen",
+          score: scan.score || 0
+        }));
+
+        // EINMALIGES ATOMIC UPDATE
+        if (!isCancelled) {
+          setStats(newStats);
+          setRecentActivities(newActivities);
+          console.log('Dashboard-Daten erfolgreich gesetzt:', newStats);
         }
+
       } catch (error) {
-        console.error('Fehler beim Laden der Dashboard-Daten:', error)
-        // Nur bei echten Serverfehlern einen Fehler anzeigen
-        if (error instanceof Error && error.message.includes('Serverfehler')) {
-          setError('Serverfehler - Bitte versuchen Sie es später erneut')
+        if (!isCancelled) {
+          console.error('Kritischer Fehler beim Laden der Dashboard-Daten:', error);
+          setError('Fehler beim Laden der Dashboard-Daten');
         }
-        // Setze leere Daten für normale Fälle
-        setStats({
-          totalWebsites: 0,
-          totalScans: 0,
-          avgScore: 0,
-          criticalIssues: 0,
-          completionRate: 0,
-          wcagACompliance: 0,
-          wcagAACompliance: 0,
-          wcagAAACompliance: 0
-        })
-        setRecentActivities([])
       } finally {
-        setIsLoading(false)
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     }
 
-    // Lade Daten nur wenn Websites nicht laden
-    if (!websitesLoading) {
-      loadDashboardData()
+    loadDashboardData()
+    
+    // Event-Listener für Scan-Abschluss hinzufügen
+    const handleScanComplete = () => {
+      console.log('Scan abgeschlossen - Dashboard wird neu geladen')
+      setTimeout(() => {
+        if (!isCancelled) {
+          loadDashboardData()
+        }
+      }, 2000) // Längere Verzögerung für DB-Updates
     }
-  }, [selectedWebsite, websitesLoading, websites])
+    
+    window.addEventListener('scanCompleted', handleScanComplete)
+    
+    return () => {
+      isCancelled = true; // Verhindere Updates nach Unmount
+      window.removeEventListener('scanCompleted', handleScanComplete)
+    }
+  }, [selectedWebsite, websitesLoading])
 
-  if (isLoading || websitesLoading) {
+  if (isLoading) {
     return (
       <SidebarInset>
         <GlobalNavigation title="Dashboard" />

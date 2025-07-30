@@ -40,7 +40,7 @@ export default function BerichtePage() {
     }
   }, [])
 
-  // Füge Handler für Bericht-Erstellung hinzu
+  // Handler für Bericht-Erstellung aus echten Scan-Daten
   const handleCreateReport = async (type: string) => {
     if (selectedWebsite === "alle" || !selectedWebsite) {
       alert("Bitte wählen Sie zuerst eine Website aus!")
@@ -53,30 +53,54 @@ export default function BerichtePage() {
       return
     }
 
-    // Simuliere Bericht-Erstellung
-    const reportData = {
-      id: Date.now().toString(),
-      title: `${getReportTypeName(type)} - ${website.name}`,
-      type: type,
-      websiteName: website.name,
-      websiteUrl: website.url,
-      description: `Automatisch generierter ${getReportTypeName(type)} für ${website.name}`,
-      date: new Date().toLocaleDateString('de-DE'),
-      score: Math.floor(Math.random() * 40) + 60, // Zufälliger Score zwischen 60-100
-      format: "PDF",
-      size: "2.1 MB",
-      pages: Math.floor(Math.random() * 10) + 5, // 5-15 Seiten
-      issues: Math.floor(Math.random() * 20) + 5, // 5-25 Issues
-      status: "Fertig"
+    try {
+      // Lade echte Scan-Daten aus der Datenbank
+      const response = await fetch('/api/scans')
+      if (response.ok) {
+        const scans = await response.json()
+        
+        // Finde den neuesten Scan für die gewählte Website
+        const websiteScan = scans.find((scan: any) => 
+          scan.websiteUrl === website.url || scan.websiteName === website.name
+        )
+        
+        if (!websiteScan) {
+          alert("Für diese Website sind noch keine Scan-Daten verfügbar. Führen Sie zuerst einen Accessibility Check durch.")
+          return
+        }
+
+        // Erstelle Bericht basierend auf echten Scan-Daten
+        const reportData = {
+          id: Date.now().toString(),
+          title: `${getReportTypeName(type)} - ${website.name}`,
+          type: type,
+          websiteName: website.name,
+          websiteUrl: website.url,
+          description: `${getReportTypeName(type)} basierend auf Accessibility Check vom ${new Date(websiteScan.createdAt).toLocaleDateString('de-DE')}`,
+          date: new Date().toLocaleDateString('de-DE'),
+          score: websiteScan.score || 0,
+          format: "PDF",
+          size: "2.1 MB",
+          pages: websiteScan.pagesScanned || 1,
+          issues: websiteScan.totalIssues || 0,
+          status: "Fertig",
+          scanData: websiteScan.scanResults // Speichere auch die Scan-Details
+        }
+
+        // Speichere Bericht in localStorage
+        const existingReports = JSON.parse(localStorage.getItem('reports') || '[]')
+        existingReports.push(reportData)
+        localStorage.setItem('reports', JSON.stringify(existingReports))
+
+        alert(`${getReportTypeName(type)} wurde erfolgreich aus Ihren Scan-Daten erstellt!`)
+        window.location.reload()
+      } else {
+        throw new Error('Scan-Daten konnten nicht geladen werden')
+      }
+    } catch (error) {
+      console.error('Fehler beim Erstellen des Berichts:', error)
+      alert("Fehler beim Erstellen des Berichts. Stellen Sie sicher, dass Sie zuerst einen Accessibility Check für diese Website durchgeführt haben.")
     }
-
-    // Speichere Bericht in localStorage
-    const existingReports = JSON.parse(localStorage.getItem('reports') || '[]')
-    existingReports.push(reportData)
-    localStorage.setItem('reports', JSON.stringify(existingReports))
-
-    alert(`${getReportTypeName(type)} wurde erfolgreich erstellt!`)
-    window.location.reload() // Seite neu laden um neuen Bericht anzuzeigen
   }
 
   const getReportTypeIcon = (type: string) => {

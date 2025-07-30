@@ -18,7 +18,8 @@ import {
   Zap,
   AlertCircle,
   Crown,
-  CreditCard
+  CreditCard,
+  AlertTriangle
 } from "lucide-react"
 import { getErrorByCode } from "@/lib/wcag-errors"
 import { useUser } from "@/hooks/useUser"
@@ -202,7 +203,7 @@ export default function WCAGCoachPage() {
                 KI-Assistent für WCAG-Compliance
               </CardTitle>
               <CardDescription>
-                Ihr persönlicher Coach für Barrierefreiheit - powered by Claude AI
+                Ihr persönlicher Coach für Barrierefreiheit
               </CardDescription>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col">
@@ -296,39 +297,51 @@ export default function WCAGCoachPage() {
         </main>
       </div>
       
-      {/* Upgrade Dialog */}
+      {/* Credits Dialog */}
       <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Crown className="h-5 w-5 text-blue-500" />
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
               Nicht genügend Credits
             </DialogTitle>
-            <DialogDescription>
-              Sie benötigen 1 Credit um den WCAG Coach zu nutzen. Kaufen Sie Credits oder upgraden Sie auf ein Paket für mehr Features.
+            <DialogDescription className="text-base">
+              Sie benötigen 1 Credits für diese Aktion, haben aber nur {user?.credits || 0} verfügbar.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 border rounded-lg">
-                <h4 className="font-semibold">Credits kaufen</h4>
-                <p className="text-sm text-muted-foreground">Flexible Bezahlung pro Nutzung</p>
-                <p className="text-xs text-muted-foreground mt-2">Ab 1,50€ pro Credit</p>
-              </div>
-              <div className="p-4 border rounded-lg bg-blue-50">
-                <h4 className="font-semibold">Paket upgraden</h4>
-                <p className="text-sm text-muted-foreground">Monatliche Pakete mit vielen Features</p>
-                <p className="text-xs text-muted-foreground mt-2">Ab 9€/Monat</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={() => setShowUpgradeDialog(false)} variant="outline">
-                Später
-              </Button>
-              <Button asChild>
-                <a href="/einstellungen">Credits & Pakete</a>
-              </Button>
-            </div>
+          <div className="flex flex-col gap-3 mt-4">
+            <Button 
+              onClick={() => setShowUpgradeDialog(false)}
+              variant="outline"
+              className="w-full"
+            >
+              Okay
+            </Button>
+            <Button 
+              onClick={() => {
+                // Link zum nächsthöheren Paket (Mollie)
+                const upgradeUrl = user?.bundle === 'FREE' 
+                  ? `/api/payments/create?plan=STARTER&redirect=${encodeURIComponent(window.location.href)}`
+                  : user?.bundle === 'STARTER'
+                  ? `/api/payments/create?plan=PRO&redirect=${encodeURIComponent(window.location.href)}`
+                  : `/api/payments/create?plan=ENTERPRISE&redirect=${encodeURIComponent(window.location.href)}`
+                window.open(upgradeUrl, '_blank')
+                setShowUpgradeDialog(false)
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              Package Upgrade
+            </Button>
+            <Button 
+              onClick={() => {
+                // Link zum mittleren Creditpaket (Mollie)
+                window.open('/api/payments/create?plan=PRO&redirect=' + encodeURIComponent(window.location.href), '_blank')
+                setShowUpgradeDialog(false)
+              }}
+              className="w-full bg-green-600 hover:bg-green-700"
+            >
+              Creditpaket kaufen
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

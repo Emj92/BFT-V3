@@ -220,12 +220,24 @@ export default function AppSidebar() {
     if (!newWebsiteName.trim() || !newWebsiteUrl.trim()) return
     
     try {
+      // Prüfe auf Duplikate basierend auf URL
+      const formattedUrl = newWebsiteUrl.trim().startsWith('http') 
+        ? newWebsiteUrl.trim() 
+        : `https://${newWebsiteUrl.trim()}`
+      
+      const existingWebsite = websites.find(w => w.url === formattedUrl)
+      if (existingWebsite) {
+        alert('Diese Website ist bereits in Ihrer Liste vorhanden.')
+        return
+      }
+      
       await addWebsite(newWebsiteName.trim(), newWebsiteUrl.trim())
       setNewWebsiteName("")
       setNewWebsiteUrl("")
       setAddWebsiteDialogOpen(false)
     } catch (error) {
       console.error('Fehler beim Hinzufügen der Website:', error)
+      alert('Fehler beim Hinzufügen der Website. Bitte versuchen Sie es erneut.')
     }
   }
 
@@ -376,7 +388,7 @@ export default function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="flex py-4 px-3">
         <img 
-          src="/logo2.png" 
+          src="/logo3.png" 
           alt="barriere-frei24.de Logo" 
           className="h-10 w-auto" style={{ alignSelf: 'flex-start' }}
         />
@@ -510,6 +522,38 @@ export default function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Team & Zusammenarbeit - Enterprise nur */}
+        {(bundleInfo && bundleInfo.bundle === 'ENTERPRISE') && (
+          <SidebarGroup className="mt-6">
+            <SidebarGroupLabel className="text-xs font-normal text-muted-foreground uppercase tracking-wider mb-2">
+              {language === 'de' ? 'Team & Zusammenarbeit' : 'Team & Collaboration'}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-0">
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild className="h-8 px-3 text-sm font-normal hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <a href="/team" className="flex items-center gap-3">
+                      <Users className="h-4 w-4" />
+                      <span>{language === 'de' ? 'Team verwalten' : 'Manage Team'}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild className="h-8 px-3 text-sm font-normal hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <a href="/team/chat" className="flex items-center gap-3">
+                      <MessageSquare className="h-4 w-4" />
+                      <span>{language === 'de' ? 'Team Chat' : 'Team Chat'}</span>
+                      <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                        Live
+                      </Badge>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Hilfe und Support */}
         <SidebarGroup className="mt-6">

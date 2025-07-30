@@ -53,28 +53,32 @@ export function useWebsites() {
     try {
       setIsLoading(true)
       
-      // Versuche zuerst die API zu verwenden
+      // NUR API - KEIN localStorage mehr
       const response = await fetch('/api/websites', {
         method: 'GET',
-        credentials: 'include', // Wichtig für Cookies
+        credentials: 'include',
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
       })
 
       if (response.ok) {
         const data = await response.json()
-        setWebsites(data.websites || [])
-      } else if (response.status === 401) {
-        // Nicht eingeloggt - verwende localStorage als Fallback
-        console.log('Nicht eingeloggt, verwende localStorage Fallback')
-        loadFromLocalStorage()
+        const websitesList = data.websites || []
+        
+        console.log('Websites von API geladen:', websitesList.length)
+        setWebsites(websitesList)
+        
+        // Entferne localStorage komplett
+        localStorage.removeItem(WEBSITES_STORAGE_KEY)
       } else {
         console.error('API-Fehler beim Laden der Websites:', response.status)
-        // Bei anderen Fehlern auch localStorage als Fallback
-        loadFromLocalStorage()
+        setWebsites([]) // Leere Liste bei Fehlern
       }
     } catch (error) {
       console.error('Fehler beim Laden der Websites von API:', error)
-      // Bei Netzwerkfehlern localStorage als Fallback verwenden
-      loadFromLocalStorage()
+      setWebsites([]) // Leere Liste bei Fehlern
     } finally {
       setIsLoading(false)
     }
@@ -105,23 +109,41 @@ export function useWebsites() {
 
   const addWebsite = async (name: string, url: string): Promise<Website> => {
     try {
-      // Versuche zuerst die API zu verwenden
+      console.log('Website wird hinzugefügt:', { name, url })
+      
+      // STRENGE Duplikat-Prüfung VOR API-Call
+      const formattedUrl = url.startsWith('http') ? url : `https://${url}`
+      const existingByUrl = websites.find(w => w.url === formattedUrl)
+      const existingByName = websites.find(w => w.name.toLowerCase() === name.trim().toLowerCase())
+      
+      if (existingByUrl || existingByName) {
+        console.log('Duplikat gefunden - nicht hinzufügen')
+        return existingByUrl || existingByName!
+      }
+      
+      // NUR API - KEIN Fallback
       const response = await fetch('/api/websites', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ name, url })
+        cache: 'no-store',
+        body: JSON.stringify({ name: name.trim(), url: formattedUrl })
       })
 
       if (response.ok) {
         const data = await response.json()
         const newWebsite = data.website
         
-        // Liste aktualisieren
+        console.log('Website erfolgreich über API hinzugefügt:', newWebsite)
+        
+        // Aktualisiere lokale Liste
         const updatedWebsites = [...websites, newWebsite]
         setWebsites(updatedWebsites)
+        
+        // Entferne localStorage komplett
+        localStorage.removeItem(WEBSITES_STORAGE_KEY)
         
         // Wenn es die erste Website ist, automatisch auswählen
         if (websites.length === 0) {
@@ -130,31 +152,13 @@ export function useWebsites() {
         
         return newWebsite
       } else {
-        throw new Error(`API-Fehler: ${response.status}`)
+        const errorData = await response.json()
+        console.error('API-Fehler beim Hinzufügen:', response.status, errorData)
+        throw new Error(`API-Fehler: ${response.status} - ${errorData.error || 'Unbekannter Fehler'}`)
       }
     } catch (error) {
-      console.error('Fehler beim Hinzufügen über API, verwende localStorage:', error)
-      
-      // Fallback zu localStorage
-      const formattedUrl = url.startsWith('http') ? url : `https://${url}`
-      
-      const newWebsite: Website = {
-        id: Date.now().toString(),
-        name: name.trim(),
-        url: formattedUrl,
-        addedAt: new Date().toISOString()
-      }
-
-      const updatedWebsites = [...websites, newWebsite]
-      setWebsites(updatedWebsites)
-      saveToLocalStorage(updatedWebsites)
-      
-      // Wenn es die erste Website ist, automatisch auswählen
-      if (websites.length === 0) {
-        selectWebsite(newWebsite)
-      }
-      
-      return newWebsite
+      console.error('Kritischer Fehler beim Hinzufügen der Website:', error)
+      throw error // Fehler weiterwerfen - KEIN Fallback
     }
   }
 

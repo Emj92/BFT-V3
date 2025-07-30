@@ -67,7 +67,8 @@ export async function POST(request: NextRequest) {
       backgroundColor,
       textColor,
       targetPackages,
-      isActive
+      isActive,
+      dismissible
     } = await request.json()
 
     if (!message || !message.trim()) {
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
         textColor: textColor || '#ffffff',
         targetPackages: targetPackages || ['ALL'],
         isActive: isActive ?? true,
+        dismissible: dismissible ?? true,
         createdBy: user.id
       }
     })

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
-import { getServerSession } from 'next-auth'
+import { cookies } from 'next/headers'
+import jwt from 'jsonwebtoken'
 import { prisma } from '@/lib/prisma'
 
 // Globaler SSE-Verbindungs-Manager
@@ -70,15 +71,22 @@ interface ResponseController {
 
 export async function GET(request: NextRequest) {
   try {
-    // Authentifizierung prüfen
-    const session = await getServerSession()
-    if (!session?.user?.email) {
-      return new Response('Unauthorized', { status: 401 })
-    }
+    // JWT-Token aus Cookie auslesen (konsistent mit anderen API-Routen)
+    const token = cookies().get('auth-token')?.value
     
+    if (!token) {
+      return new Response('Unauthorized - No token', { status: 401 })
+    }
+
+    // Token verifizieren
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || 'barrierefrei-secret-key'
+    ) as { id: string }
+
     // Benutzer aus der Datenbank laden
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
+      where: { id: decoded.id }
     })
     
     if (!user) {

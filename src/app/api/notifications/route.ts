@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-
 export const dynamic = 'force-dynamic'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
 import { notifyNewNotification } from '@/lib/sse-broadcaster'
@@ -109,7 +108,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Request Body parsen
-    const { title, message, type = 'info' } = await request.json()
+    const { title, message, type = 'info', targetPackages = ['ALL'] } = await request.json()
 
     if (!title || !message) {
       return NextResponse.json({ error: 'Titel und Nachricht sind erforderlich' }, { status: 400 })
@@ -137,14 +136,19 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // SSE-Event an alle Benutzer senden (da globale Benachrichtigung)
+    // SSE-Event an passende Benutzer senden (basierend auf targetPackages)
     if (notification.isGlobal) {
-      // Alle Benutzer über neue globale Benachrichtigung informieren
-      const allUsers = await prisma.user.findMany({
+      // Finde Benutzer basierend auf targetPackages
+      const whereClause = targetPackages.includes('ALL') 
+        ? {} 
+        : { bundle: { in: targetPackages } }
+      
+      const targetUsers = await prisma.user.findMany({
+        where: whereClause,
         select: { id: true }
       })
       
-      allUsers.forEach(user => {
+      targetUsers.forEach(user => {
         notifyNewNotification(user.id, {
           id: notification.id,
           title: notification.title,

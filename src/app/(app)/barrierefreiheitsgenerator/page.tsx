@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { FileText, Crown, AlertCircle } from "lucide-react"
+import { FileText, Crown, AlertCircle, AlertTriangle } from "lucide-react"
 import { GlobalNavigation } from "@/components/global-navigation"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { useState } from "react"
@@ -58,9 +58,9 @@ export default function BarrierefreiheitsgeneratorPage() {
     return (
       <SidebarInset>
         <GlobalNavigation title="BFE-Generator" />
-        <main className="flex flex-1 flex-col gap-6 p-6 md:gap-8 md:p-8">
+        <main className="flex flex-1 flex-col gap-6 p-6 md:gap-8 md:p-8 bg-gray-100 dark:bg-gray-900">
           {/* Blauer Hinweis für FREE Nutzer */}
-          <Card className="border-blue-400 bg-blue-50">
+          <Card className="border-blue-400 bg-blue-50 dark:bg-blue-900/20">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-blue-700">
                 <Crown className="h-5 w-5" />
@@ -105,12 +105,12 @@ export default function BarrierefreiheitsgeneratorPage() {
     <SidebarInset>
       <GlobalNavigation title="Barrierefreiheitsgenerator" />
 
-      <main className="flex flex-1 flex-col gap-6 p-6 md:gap-8 md:p-8">
+      <main className="flex flex-1 flex-col gap-6 p-6 md:gap-8 md:p-8 bg-gray-100 dark:bg-gray-900">
   
         
         {/* Status-Anzeige */}
         {!generationsLoading && isFreeUser && (
-          <Card className="bg-blue-50 border-blue-200">
+          <Card className="bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -134,7 +134,7 @@ export default function BarrierefreiheitsgeneratorPage() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <Card className="bg-card shadow-sm">
+          <Card className="bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle className="text-heading-sm">Barrierefreiheitserklärung erstellen</CardTitle>
               <CardDescription>
@@ -184,7 +184,7 @@ export default function BarrierefreiheitsgeneratorPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-card shadow-sm">
+          <Card className="bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle className="text-heading-sm">Gesetzliche Anforderungen</CardTitle>
               <CardDescription>
@@ -214,41 +214,51 @@ export default function BarrierefreiheitsgeneratorPage() {
         </div>
       </main>
       
-      {/* Upgrade Dialog */}
+      {/* Credits Dialog */}
       <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Crown className="h-5 w-5 text-yellow-500" />
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
               Generierungs-Limit erreicht
             </DialogTitle>
-            <DialogDescription>
-              Sie haben Ihr kostenloses Limit für BFE-Generierungen erreicht. Upgraden Sie auf ein höheres Paket für unbegrenzte Generierungen.
+            <DialogDescription className="text-base">
+              Sie haben Ihr Limit für BFE-Generierungen erreicht. Upgraden Sie für unbegrenzte Generierungen.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 border rounded-lg">
-                <h4 className="font-semibold">FREE/STARTER</h4>
-                <p className="text-2xl font-bold text-green-600">1</p>
-                <p className="text-sm text-muted-foreground">Generierung/Account</p>
-                <p className="text-xs text-muted-foreground mt-1">Einmalig kostenlos</p>
-              </div>
-              <div className="p-4 border rounded-lg bg-blue-50">
-                <h4 className="font-semibold">PRO/ENTERPRISE</h4>
-                <p className="text-2xl font-bold text-blue-600">∞</p>
-                <p className="text-sm text-muted-foreground">Unbegrenzt</p>
-                <p className="text-xs text-muted-foreground mt-1">Ohne Limits</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={() => setShowUpgradeDialog(false)} variant="outline">
-                Später
-              </Button>
-              <Button asChild>
-                <a href="/einstellungen">Paket upgraden</a>
-              </Button>
-            </div>
+          <div className="flex flex-col gap-3 mt-4">
+            <Button 
+              onClick={() => setShowUpgradeDialog(false)}
+              variant="outline"
+              className="w-full"
+            >
+              Okay
+            </Button>
+            <Button 
+              onClick={() => {
+                // Link zum nächsthöheren Paket (Mollie)
+                const upgradeUrl = bundleInfo?.bundle === 'FREE' 
+                  ? `/api/payments/create?plan=STARTER&redirect=${encodeURIComponent(window.location.href)}`
+                  : bundleInfo?.bundle === 'STARTER'
+                  ? `/api/payments/create?plan=PRO&redirect=${encodeURIComponent(window.location.href)}`
+                  : `/api/payments/create?plan=ENTERPRISE&redirect=${encodeURIComponent(window.location.href)}`
+                window.open(upgradeUrl, '_blank')
+                setShowUpgradeDialog(false)
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              Package Upgrade
+            </Button>
+            <Button 
+              onClick={() => {
+                // Link zum mittleren Creditpaket (Mollie)
+                window.open('/api/payments/create?plan=PRO&redirect=' + encodeURIComponent(window.location.href), '_blank')
+                setShowUpgradeDialog(false)
+              }}
+              className="w-full bg-green-600 hover:bg-green-700"
+            >
+              Creditpaket kaufen
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

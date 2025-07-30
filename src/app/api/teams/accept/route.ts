@@ -92,6 +92,16 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'accept') {
+      // Prüfe ob Benutzer FREE Bundle hat
+      if (user.bundle === 'FREE') {
+        return NextResponse.json({ 
+          error: 'Team-Funktionen sind für FREE-Nutzer nicht verfügbar',
+          requiresUpgrade: true,
+          currentBundle: 'FREE',
+          minimumBundle: 'STARTER'
+        }, { status: 403 })
+      }
+
       // Prüfe ob Benutzer bereits in einem Team ist
       if (user.teamId) {
         return NextResponse.json({ 

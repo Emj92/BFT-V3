@@ -163,21 +163,17 @@ export function UnifiedTicketDialog({
 
   return (
     <>
-      <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 p-4">
-        {/* Single White Container with Shadow */}
-        <Card className="flex-1 flex flex-col shadow-lg">
+      <div className="h-full flex flex-col bg-gray-100 dark:bg-gray-800 p-4">
+        {/* Single Container with Inverted Colors and Shadow */}
+        <Card className="flex-1 flex flex-col shadow-lg border-gray-800 dark:border-gray-200">
           <CardContent className="flex-1 flex flex-col p-0">
             {/* Header - Inside Container */}
-            <div className="border-b p-4 bg-white dark:bg-gray-800 rounded-t-lg">
+            <div className="border-b p-4 bg-gray-900 dark:bg-gray-100 rounded-t-lg">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <Button variant="ghost" size="sm" onClick={onBack}>
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Zurück
-                  </Button>
                   <div>
-                    <h1 className="text-xl font-bold">#{ticket.id} - {ticket.subject}</h1>
-                    <p className="text-sm text-muted-foreground">
+                    <h1 className="text-xl font-bold text-white dark:text-gray-900">#{ticket.id} - {ticket.subject}</h1>
+                    <p className="text-sm text-gray-300 dark:text-gray-600">
                       {ticket.userName} ({ticket.userEmail}) • {formatDate(ticket.createdAt)}
                     </p>
                   </div>
@@ -216,7 +212,7 @@ export function UnifiedTicketDialog({
             </div>
 
             {/* Chat Area - Takes most space */}
-            <div className="flex-1 min-h-0 bg-white dark:bg-gray-800">
+            <div className="flex-1 min-h-0 bg-gray-900 dark:bg-gray-100">
               <ScrollArea className="h-full p-6">
                 <div className="space-y-6">
                   {/* Initial Description */}
@@ -238,25 +234,25 @@ export function UnifiedTicketDialog({
                   {/* Messages */}
                   {messages.map((message) => (
                     <div key={message.id} className={`flex ${message.role === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[50%] ${
+                      <div className={`max-w-[40%] ${
                         message.role === 'admin' 
                           ? 'bg-blue-100 dark:bg-blue-900/30 border' 
                           : 'bg-gray-100 dark:bg-gray-700 border'
-                      } rounded-lg p-4`}>
-                        <div className="flex items-center gap-2 mb-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="text-sm">
+                      } rounded-lg p-3`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback className="text-xs">
                               {message.author.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-sm font-medium">{message.author}</span>
+                          <span className="text-xs font-medium">{message.author}</span>
                           <span className="text-xs text-muted-foreground">{formatDate(message.timestamp)}</span>
                         </div>
                         <p className="text-sm leading-relaxed">{message.content}</p>
                         {message.attachments && message.attachments.map((attachment) => (
-                          <div key={attachment.name} className="flex items-center gap-2 mt-3 p-2 bg-background/50 rounded border">
-                            <File className="h-4 w-4" />
-                            <span className="text-sm">{attachment.name}</span>
+                          <div key={attachment.name} className="flex items-center gap-2 mt-2 p-2 bg-background/50 rounded border">
+                            <File className="h-3 w-3" />
+                            <span className="text-xs">{attachment.name}</span>
                           </div>
                         ))}
                       </div>
@@ -285,24 +281,36 @@ export function UnifiedTicketDialog({
                 )}
                 
                 {/* Message Input with Buttons */}
-                <div className="flex gap-4 items-start">
-                  {/* Textarea */}
-                  <Textarea
-                    placeholder="Ihre Nachricht..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    rows={4}
-                    className="resize-none flex-1"
-                  />
+                <div className="space-y-3">
+                  {/* Textarea with Send Button */}
+                  <div className="flex gap-2 items-end">
+                    <Textarea
+                      placeholder="Ihre Nachricht..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      rows={3}
+                      className="resize-none flex-1"
+                    />
+                    
+                    {/* Send Button */}
+                    <Button 
+                      size="default"
+                      className="h-auto px-4 py-2"
+                      onClick={handleSendMessage} 
+                      disabled={!newMessage.trim() && !selectedFile}
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      Senden
+                    </Button>
+                  </div>
                   
-                  {/* Action Buttons - Stacked vertically */}
-                  <div className="flex flex-col gap-2">
-                    {/* File Upload Button */}
+                  {/* File Upload Button - Below */}
+                  <div className="flex justify-start">
                     <label className="cursor-pointer">
-                      <Button variant="outline" size="default" className="w-full h-10" asChild>
+                      <Button variant="outline" size="sm" asChild>
                         <span>
                           <Paperclip className="h-4 w-4 mr-2" />
-                          Datei
+                          Datei anhängen
                         </span>
                       </Button>
                       <input 
@@ -312,17 +320,6 @@ export function UnifiedTicketDialog({
                         accept=".jpg,.jpeg,.png,.pdf,.txt"
                       />
                     </label>
-                    
-                    {/* Send Button */}
-                    <Button 
-                      size="default"
-                      className="w-full h-10"
-                      onClick={handleSendMessage} 
-                      disabled={!newMessage.trim() && !selectedFile}
-                    >
-                      <Send className="h-4 w-4 mr-2" />
-                      Senden
-                    </Button>
                   </div>
                 </div>
               </div>

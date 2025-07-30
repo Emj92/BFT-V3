@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { TrendingUp, Users, CreditCard, Eye } from "lucide-react"
+import { TrendingUp, Users, CreditCard, Eye, Target } from "lucide-react"
 import { CartesianGrid, LabelList, Line, LineChart, XAxis } from "recharts"
 import {
   Card,
@@ -26,6 +26,10 @@ interface AdminStats {
   totalCredits: number;
   avgRegistrationsPerPeriod: number;
   avgCreditsPerPeriod: number;
+  usedCredits: number;
+  scanCredits: number;
+  coachCredits: number;
+  bfeCredits: number;
 }
 
 interface ChartData {
@@ -48,16 +52,69 @@ const chartConfig = {
 export function AdminCharts() {
   const [registrationPeriod, setRegistrationPeriod] = useState<string>("month")
   const [creditPeriod, setCreditPeriod] = useState<string>("month")
+  const [selectedBundle, setSelectedBundle] = useState<string>("alle")
+  const [usagePeriod, setUsagePeriod] = useState<string>("month")
   const [stats, setStats] = useState<AdminStats>({
     totalUsers: 0,
     newUsersThisMonth: 0,
     totalCredits: 0,
     avgRegistrationsPerPeriod: 0,
-    avgCreditsPerPeriod: 0
+    avgCreditsPerPeriod: 0,
+    usedCredits: 0,
+    scanCredits: 0,
+    coachCredits: 0,
+    bfeCredits: 0
   })
   const [registrationData, setRegistrationData] = useState<ChartData[]>([])
   const [creditData, setCreditData] = useState<ChartData[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Funktion zum Laden der Credit-Verbrauchsstatistiken - ECHTE DATEN
+  const loadCreditUsageStats = async (users: any[]) => {
+    try {
+      // Lade echte Credit-Verbrauchsdaten von API
+      const response = await fetch('/api/admin/credit-usage', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        
+        setStats(prev => ({
+          ...prev,
+          usedCredits: data.totalUsedCredits || 0,
+          scanCredits: data.scanCredits || 0,
+          coachCredits: data.coachCredits || 0,
+          bfeCredits: data.bfeCredits || 0
+        }))
+        
+        console.log('Echte Credit-Daten geladen:', data)
+      } else {
+        console.error('Credit-Usage API Fehler:', response.status)
+        // KEINE Fallback-Daten - setze auf 0
+        setStats(prev => ({
+          ...prev,
+          usedCredits: 0,
+          scanCredits: 0,
+          coachCredits: 0,
+          bfeCredits: 0
+        }))
+      }
+    } catch (error) {
+      console.error('Fehler beim Laden der Credit-Verbrauchsdaten:', error)
+      // KEINE Fallback-Daten - setze auf 0
+      setStats(prev => ({
+        ...prev,
+        usedCredits: 0,
+        scanCredits: 0,
+        coachCredits: 0,
+        bfeCredits: 0
+      }))
+    }
+  }
 
   useEffect(() => {
     const loadStats = async () => {
@@ -102,6 +159,9 @@ export function AdminCharts() {
             newUsersThisMonth,
             avgRegistrationsPerPeriod: Math.round(newUsersThisMonth / registrationChartData.length)
           }))
+          
+          // Lade Credit-Verbrauchsdaten - ECHTE DATEN
+          await loadCreditUsageStats(users)
           setRegistrationData(registrationChartData)
         }
 
@@ -155,8 +215,8 @@ export function AdminCharts() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid gap-6 md:grid-cols-3">
-          {[1, 2, 3].map((i) => (
+        <div className="grid gap-6 md:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
             <Card key={i}>
               <CardContent className="p-6">
                 <div className="animate-pulse">
@@ -174,7 +234,7 @@ export function AdminCharts() {
   return (
     <div className="space-y-6">
       {/* Statistik-Karten */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Neue Registrierungen</CardTitle>
@@ -211,6 +271,57 @@ export function AdminCharts() {
             <p className="text-xs text-muted-foreground">
               Daten werden geladen...
             </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div className="flex flex-col space-y-2">
+              <CardTitle className="text-sm font-medium">Ausgegebene Credits</CardTitle>
+              <div className="flex gap-2">
+                <Select value={selectedBundle} onValueChange={setSelectedBundle}>
+                  <SelectTrigger className="w-24 h-6 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="alle">Alle</SelectItem>
+                    <SelectItem value="FREE">Free</SelectItem>
+                    <SelectItem value="STARTER">Starter</SelectItem>
+                    <SelectItem value="PRO">Pro</SelectItem>
+                    <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={usagePeriod} onValueChange={setUsagePeriod}>
+                  <SelectTrigger className="w-20 h-6 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">Tag</SelectItem>
+                    <SelectItem value="week">Woche</SelectItem>
+                    <SelectItem value="month">Monat</SelectItem>
+                    <SelectItem value="year">Jahr</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.usedCredits.toLocaleString()}</div>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <div className="flex justify-between">
+                <span>Scans:</span>
+                <span className="font-medium">{Math.round((stats.scanCredits / stats.usedCredits) * 100)}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Coach:</span>
+                <span className="font-medium">{Math.round((stats.coachCredits / stats.usedCredits) * 100)}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span>BFE Gen:</span>
+                <span className="font-medium">{Math.round((stats.bfeCredits / stats.usedCredits) * 100)}%</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

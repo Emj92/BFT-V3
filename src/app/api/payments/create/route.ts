@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createBundlePayment, createCreditPayment } from '@/lib/mollie'
 import { verify } from 'jsonwebtoken'
+import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,8 +17,19 @@ export async function POST(request: NextRequest) {
     let userEmail: string
     try {
       const decoded = verify(token, process.env.JWT_SECRET || 'barrierefrei-secret-key') as any
-      userId = decoded.id // Korrigiert von userId zu id
-      userEmail = decoded.email
+      userId = decoded.id
+
+      // User aus DB laden um E-Mail zu bekommen (JWT hat keine E-Mail)
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true }
+      })
+      
+      if (!user) {
+        return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 })
+      }
+      
+      userEmail = user.email
     } catch (error) {
       return NextResponse.json({ error: 'Ungültiger Token' }, { status: 401 })
     }
@@ -96,7 +108,7 @@ export async function POST(request: NextRequest) {
             value: teamMemberPrice.toFixed(2)
           },
           description: 'Weiteres Teammitglied - Monatsabo',
-          redirectUrl: `${process.env.NEXTAUTH_URL}/dashboard?payment=success`,
+          redirectUrl: `${process.env.NEXTAUTH_URL}/einstellungen?payment=success&type=team_member`,
           webhookUrl: `${process.env.NEXTAUTH_URL}/api/webhooks/mollie`,
           metadata: {
             type: 'team_member',

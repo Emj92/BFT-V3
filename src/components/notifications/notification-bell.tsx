@@ -286,7 +286,7 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
           <Button 
             variant="ghost" 
             size="sm" 
-            className={`relative ${className} ${isAnimating ? 'animate-bounce' : ''} transition-transform duration-300 ${isAnimating ? 'scale-125' : 'scale-100'}`}
+            className={`relative ${className} ${isAnimating ? 'animate-bounce' : ''} transition-transform duration-300 ${isAnimating ? 'scale-125' : 'scale-100'} focus:ring-0 focus-visible:ring-0 focus:outline-none active:scale-95`}
             disabled={loading}
             style={{
               animation: isAnimating ? 'notification-grow 0.6s ease-out' : undefined

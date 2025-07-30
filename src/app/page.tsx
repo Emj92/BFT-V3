@@ -293,7 +293,7 @@ export default function HomePage() {
             {/* Logo */}
             <div className="flex items-center space-x-2">
               <img 
-                src="/logo2.png" 
+                src="/logo3.png" 
                 alt="barriere-frei24.de Logo" 
                 className="h-10 w-auto" 
               />
@@ -1865,7 +1865,7 @@ export default function HomePage() {
             <div className="flex flex-col h-full">
               <div className="flex items-center space-x-2 mb-4">
                 <img 
-                  src="/logo2.png" 
+                  src="/logo3.png" 
                   alt="barriere-frei24.de Logo" 
                   className="h-10 w-auto" 
                 />

@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Bell, Users, Check, X, Clock } from "lucide-react"
+import { Bell, Users, Check, X, Clock, Crown } from "lucide-react"
 import { useUser } from "@/hooks/useUser"
 import { useSSE } from "@/hooks/useSSE"
+import { UpgradeDialog } from "@/components/upgrade-dialog"
 
 interface TeamInvitation {
   id: string
@@ -30,6 +31,7 @@ export function TeamInvitationBell() {
   const [invitations, setInvitations] = useState<TeamInvitation[]>([])
   const [showDialog, setShowDialog] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
   const { user } = useUser()
   
   // SSE-Hook für Echtzeit-Team-Einladungen
@@ -96,7 +98,13 @@ export function TeamInvitationBell() {
         }
       } else {
         const errorData = await response.json()
-        alert(errorData.error || 'Fehler beim Bearbeiten der Einladung')
+        
+        if (errorData.requiresUpgrade) {
+          // Zeige Upgrade-Dialog für FREE-Nutzer
+          setShowUpgradeDialog(true)
+        } else {
+          alert(errorData.error || 'Fehler beim Bearbeiten der Einladung')
+        }
       }
     } catch (error) {
       console.error('Fehler beim Bearbeiten der Einladung:', error)
@@ -195,23 +203,46 @@ export function TeamInvitationBell() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button
-                      onClick={() => handleInvitation(invitation.id, 'accept')}
-                      disabled={loading}
-                      className="flex-1"
-                    >
-                      <Check className="h-4 w-4 mr-2" />
-                      Annehmen
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => handleInvitation(invitation.id, 'decline')}
-                      disabled={loading}
-                      className="flex-1"
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Ablehnen
-                    </Button>
+                    {user?.bundle === 'FREE' ? (
+                      <>
+                        <Button
+                          onClick={() => setShowUpgradeDialog(true)}
+                          className="flex-1 bg-yellow-600 hover:bg-yellow-700"
+                        >
+                          <Crown className="h-4 w-4 mr-2" />
+                          Auf STARTER upgraden
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleInvitation(invitation.id, 'decline')}
+                          disabled={loading}
+                          className="flex-1"
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Ablehnen
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          onClick={() => handleInvitation(invitation.id, 'accept')}
+                          disabled={loading}
+                          className="flex-1"
+                        >
+                          <Check className="h-4 w-4 mr-2" />
+                          Annehmen
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleInvitation(invitation.id, 'decline')}
+                          disabled={loading}
+                          className="flex-1"
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Ablehnen
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -223,6 +254,18 @@ export function TeamInvitationBell() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <UpgradeDialog
+        open={showUpgradeDialog}
+        onOpenChange={setShowUpgradeDialog}
+        currentBundle={user?.bundle || 'FREE'}
+        service="Team-Funktionen"
+        limitType="feature"
+        onUpgradeComplete={() => {
+          setShowUpgradeDialog(false)
+          window.location.reload()
+        }}
+      />
     </>
   )
 } 

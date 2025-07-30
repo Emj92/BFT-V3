@@ -9,7 +9,7 @@ export function Logo({ className = "" }: LogoProps) {
   return (
     <div className={`flex items-center ${className}`}>
       <Image
-        src="/logo2.png"
+        src="/logo3.png"
         alt="barriere-frei24.de Logo"
         width={304}
         height={85}

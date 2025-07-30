@@ -20,6 +20,7 @@ interface GlobalNotification {
   textColor: string
   targetPackages: string[]
   isActive: boolean
+  dismissible: boolean
   createdAt: Date
 }
 
@@ -29,14 +30,20 @@ export function AdminGlobalNotifications() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   
   // Form state
+  const [notificationType, setNotificationType] = useState<'notification' | 'banner'>('notification')
   const [formData, setFormData] = useState({
+    // Gemeinsame Felder
+    title: '',
     message: '',
+    targetPackages: [] as string[],
+    isActive: true,
+    
+    // Banner-spezifische Felder
     link: '',
     linkText: '',
     backgroundColor: '#3b82f6', // Blue
     textColor: '#ffffff', // White
-    targetPackages: [] as string[],
-    isActive: true
+    dismissible: true
   })
 
   const packageOptions = [
@@ -80,27 +87,51 @@ export function AdminGlobalNotifications() {
       return
     }
 
+    if (notificationType === 'notification' && !formData.title.trim()) {
+      alert('Bitte einen Titel eingeben')
+      return
+    }
+
     setIsLoading(true)
     try {
-      const response = await fetch('/api/admin/global-notifications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
+      let response;
+      
+      if (notificationType === 'banner') {
+        // Banner API
+        response = await fetch('/api/admin/global-notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: formData.message,
+            link: formData.link,
+            linkText: formData.linkText,
+            backgroundColor: formData.backgroundColor,
+            textColor: formData.textColor,
+            targetPackages: formData.targetPackages,
+            isActive: formData.isActive,
+            dismissible: formData.dismissible
+          })
+        })
+      } else {
+        // Glocken-Benachrichtigung API
+        response = await fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: formData.title,
+            message: formData.message,
+            type: 'INFO',
+            isGlobal: true,
+            targetPackages: formData.targetPackages
+          })
+        })
+      }
 
       if (response.ok) {
         await loadNotifications()
         setShowCreateForm(false)
-        setFormData({
-          message: '',
-          link: '',
-          linkText: '',
-          backgroundColor: '#3b82f6',
-          textColor: '#ffffff',
-          targetPackages: [],
-          isActive: true
-        })
-        alert('Benachrichtigung erfolgreich erstellt!')
+        resetForm()
+        alert(`${notificationType === 'banner' ? 'Banner' : 'Benachrichtigung'} erfolgreich erstellt!`)
       } else {
         const error = await response.json()
         alert(`Fehler: ${error.error}`)
@@ -111,6 +142,21 @@ export function AdminGlobalNotifications() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      message: '',
+      targetPackages: [],
+      isActive: true,
+      link: '',
+      linkText: '',
+      backgroundColor: '#3b82f6',
+      textColor: '#ffffff',
+      dismissible: true
+    })
+    setNotificationType('notification')
   }
 
   // Toggle notification status
@@ -157,9 +203,9 @@ export function AdminGlobalNotifications() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Globale Benachrichtigungsleisten</h3>
+          <h3 className="text-lg font-semibold">Benachrichtigungen verwalten</h3>
           <p className="text-sm text-muted-foreground">
-            Erstelle Benachrichtigungsleisten für alle oder spezifische Nutzergruppen
+            Erstelle Glocken-Benachrichtigungen oder Banner für alle oder spezifische Nutzergruppen
           </p>
         </div>
         <Button onClick={() => setShowCreateForm(!showCreateForm)}>
@@ -172,42 +218,96 @@ export function AdminGlobalNotifications() {
       {showCreateForm && (
         <Card>
           <CardHeader>
-            <CardTitle>Neue globale Benachrichtigung</CardTitle>
+            <CardTitle>Neue Benachrichtigung erstellen</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            {/* Benachrichtigungstyp Auswahl */}
             <div>
-              <Label htmlFor="message">Nachricht *</Label>
+              <Label className="text-base font-medium mb-3 block">Art der Benachrichtigung</Label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="type-notification"
+                    name="notificationType"
+                    checked={notificationType === 'notification'}
+                    onChange={() => setNotificationType('notification')}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                  />
+                  <Label htmlFor="type-notification" className="font-normal">
+                    🔔 Standard Benachrichtigung - Erscheint in der Glocke (empfohlen)
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="type-banner"
+                    name="notificationType"
+                    checked={notificationType === 'banner'}
+                    onChange={() => setNotificationType('banner')}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                  />
+                  <Label htmlFor="type-banner" className="font-normal">
+                    📢 Banner - Erscheint oben auf der Website (für wichtige Ankündigungen)
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            {/* Titel - nur für Benachrichtigungen */}
+            {notificationType === 'notification' && (
+              <div>
+                <Label htmlFor="title">Titel *</Label>
+                <Input
+                  id="title"
+                  placeholder="Benachrichtigungstitel..."
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  className="mt-1"
+                />
+              </div>
+            )}
+
+            {/* Nachricht */}
+            <div>
+              <Label htmlFor="message">
+                {notificationType === 'banner' ? 'Banner-Text *' : 'Nachrichten-Text *'}
+              </Label>
               <Textarea
                 id="message"
-                placeholder="Ihre Benachrichtigung hier..."
+                placeholder={notificationType === 'banner' ? 'Ihr Banner-Text hier...' : 'Ihre Nachricht hier...'}
                 value={formData.message}
                 onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
                 className="mt-1"
+                rows={notificationType === 'banner' ? 2 : 3}
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="link">Link (optional)</Label>
-                <Input
-                  id="link"
-                  placeholder="https://example.com"
-                  value={formData.link}
-                  onChange={(e) => setFormData(prev => ({ ...prev, link: e.target.value }))}
-                  className="mt-1"
-                />
+            {/* Banner-spezifische Felder */}
+            {notificationType === 'banner' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="link">Link (optional)</Label>
+                  <Input
+                    id="link"
+                    placeholder="https://example.com"
+                    value={formData.link}
+                    onChange={(e) => setFormData(prev => ({ ...prev, link: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="linkText">Link-Text (optional)</Label>
+                  <Input
+                    id="linkText"
+                    placeholder="Mehr erfahren"
+                    value={formData.linkText}
+                    onChange={(e) => setFormData(prev => ({ ...prev, linkText: e.target.value }))}
+                    className="mt-1"
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="linkText">Link-Text (optional)</Label>
-                <Input
-                  id="linkText"
-                  placeholder="Mehr erfahren"
-                  value={formData.linkText}
-                  onChange={(e) => setFormData(prev => ({ ...prev, linkText: e.target.value }))}
-                  className="mt-1"
-                />
-              </div>
-            </div>
+            )}
 
             <div>
               <Label>Zielgruppe</Label>
@@ -231,8 +331,11 @@ export function AdminGlobalNotifications() {
               </Select>
             </div>
 
-            <div>
-              <Label>Farb-Presets</Label>
+            {/* Banner-spezifische Styling-Optionen */}
+            {notificationType === 'banner' && (
+              <>
+                <div>
+                  <Label>Farb-Presets</Label>
               <div className="flex gap-2 mt-2">
                 {colorPresets.map(preset => (
                   <button
@@ -314,6 +417,37 @@ export function AdminGlobalNotifications() {
               </div>
             </div>
 
+            {/* Wegklickbarkeit */}
+            <div>
+              <Label className="text-base font-medium mb-3 block">Benutzer-Interaktion</Label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="dismissible-yes"
+                    name="dismissible"
+                    checked={formData.dismissible}
+                    onChange={() => setFormData(prev => ({ ...prev, dismissible: true }))}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                  />
+                  <Label htmlFor="dismissible-yes">Wegklickbar - Nutzer können Banner schließen</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="dismissible-no"
+                    name="dismissible"
+                    checked={!formData.dismissible}
+                    onChange={() => setFormData(prev => ({ ...prev, dismissible: false }))}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                  />
+                  <Label htmlFor="dismissible-no">Permanent - Banner kann nicht geschlossen werden</Label>
+                </div>
+              </div>
+            </div>
+              </>
+            )}
+
             <div className="flex items-center space-x-2">
               <Switch
                 checked={formData.isActive}
@@ -327,7 +461,10 @@ export function AdminGlobalNotifications() {
                 <Save className="w-4 h-4 mr-2" />
                 Erstellen
               </Button>
-              <Button variant="outline" onClick={() => setShowCreateForm(false)}>
+              <Button variant="outline" onClick={() => {
+                setShowCreateForm(false)
+                resetForm()
+              }}>
                 Abbrechen
               </Button>
             </div>

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-export const dynamic = 'force-dynamic'
 import { prisma } from '@/lib/prisma'
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
@@ -92,13 +92,59 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { subject, description, priority = 'MEDIUM', category = 'OTHER' } = body
+    const { subject, description, priority = 'medium', category = 'other' } = body
 
     // Validierung der erforderlichen Felder
     if (!subject || !description) {
       return NextResponse.json({ 
         error: 'Subject und description sind erforderlich' 
       }, { status: 400 })
+    }
+
+    // Mapping für Priority-Enum
+    const priorityMapping: { [key: string]: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT' } = {
+      'low': 'LOW',
+      'medium': 'MEDIUM', 
+      'high': 'HIGH',
+      'urgent': 'URGENT'
+    }
+
+    // Mapping für Category-Enum
+    const categoryMapping: { [key: string]: 'TECHNICAL' | 'CONSULTATION' | 'BILLING' | 'OTHER' } = {
+      'technical': 'TECHNICAL',
+      'consultation': 'CONSULTATION',
+      'billing': 'BILLING', 
+      'other': 'OTHER'
+    }
+
+    const mappedPriority = priorityMapping[priority.toLowerCase()] || 'MEDIUM'
+    const mappedCategory = categoryMapping[category.toLowerCase()] || 'OTHER'
+
+    // Funktion zum Generieren der Ticketnummer
+    const generateTicketNumber = (priority: string, category: string, ticketId: string) => {
+      // Prioritäts-Kürzel
+      const priorityMap: { [key: string]: string } = {
+        'LOW': 'L',
+        'MEDIUM': 'M', 
+        'HIGH': 'H',
+        'URGENT': 'U'
+      }
+
+      // Kategorie-Kürzel
+      const categoryMap: { [key: string]: string } = {
+        'TECHNICAL': 'T',
+        'CONSULTATION': 'C',
+        'BILLING': 'B',
+        'OTHER': 'O'
+      }
+
+      const priorityCode = priorityMap[priority] || 'M'
+      const categoryCode = categoryMap[category] || 'O'
+      
+      // Nutze die letzten 4 Stellen der ID als aufsteigende Nummer
+      const ticketNumber = ticketId.slice(-8).toUpperCase()
+      
+      return `${priorityCode}${categoryCode}-${ticketNumber}`
     }
 
     // Prüfe 1-Ticket-pro-Tag-Limit (außer für ENTERPRISE)
@@ -133,10 +179,42 @@ export async function POST(request: NextRequest) {
       data: {
         subject: subject.trim(),
         description: description.trim(),
-        priority: priority,
-        category: category,
+        priority: mappedPriority,
+        category: mappedCategory,
         userId: user.id
       },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            firstName: true,
+            lastName: true
+          }
+        },
+        messages: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                role: true
+              }
+            }
+          }
+        }
+      }
+    })
+
+    // Generiere und aktualisiere Ticketnummer
+    const ticketNumber = generateTicketNumber(mappedPriority, mappedCategory, newTicket.id)
+    
+    // Aktualisiere das Ticket mit der generierten Nummer
+    const updatedTicket = await prisma.supportTicket.update({
+      where: { id: newTicket.id },
+      data: { ticketNumber },
       include: {
         user: {
           select: {
@@ -173,23 +251,24 @@ export async function POST(request: NextRequest) {
 
     // Formatiere das Ticket für das Frontend
     const formattedTicket = {
-      id: newTicket.id,
-      subject: newTicket.subject,
-      description: newTicket.description,
-      priority: newTicket.priority.toLowerCase(),
-      status: newTicket.status.toLowerCase(),
-      category: newTicket.category.toLowerCase(),
-      createdAt: newTicket.createdAt.toISOString(),
-      updatedAt: newTicket.updatedAt.toISOString(),
-      userEmail: newTicket.user.email,
-      userName: newTicket.user.name || `${newTicket.user.firstName || ''} ${newTicket.user.lastName || ''}`.trim() || newTicket.user.email,
+      id: updatedTicket.id,
+      ticketNumber: updatedTicket.ticketNumber,
+      subject: updatedTicket.subject,
+      description: updatedTicket.description,
+      priority: updatedTicket.priority.toLowerCase(),
+      status: updatedTicket.status.toLowerCase(),
+      category: updatedTicket.category.toLowerCase(),
+      createdAt: updatedTicket.createdAt.toISOString(),
+      updatedAt: updatedTicket.updatedAt.toISOString(),
+      userEmail: updatedTicket.user.email,
+      userName: updatedTicket.user.name || `${updatedTicket.user.firstName || ''} ${updatedTicket.user.lastName || ''}`.trim() || updatedTicket.user.email,
       messages: [
         {
-          id: `initial_${newTicket.id}`,
-          author: newTicket.user.name || newTicket.user.email,
+          id: `initial_${updatedTicket.id}`,
+          author: updatedTicket.user.name || updatedTicket.user.email,
           role: 'user',
           content: description.trim(),
-          timestamp: newTicket.createdAt.toISOString()
+          timestamp: updatedTicket.createdAt.toISOString()
         }
       ]
     }

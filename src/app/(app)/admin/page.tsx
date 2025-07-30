@@ -70,12 +70,6 @@ interface AdminStats {
   ticketsThisWeek: number;
 }
 
-interface NotificationType {
-  value: string;
-  label: string;
-  icon: any;
-}
-
 interface Notification {
   id: string;
   title: string;
@@ -102,11 +96,6 @@ export default function AdminPage() {
   const [users, setUsers] = useState<any[]>([])
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null)
   const [showTicketView, setShowTicketView] = useState(false)
-  const [notificationTitle, setNotificationTitle] = useState('')
-  const [notificationMessage, setNotificationMessage] = useState('')
-  const [notificationType, setNotificationType] = useState<'INFO' | 'WARNING' | 'SUCCESS'>('INFO')
-  const [loadingNotifications, setLoadingNotifications] = useState(false)
-  const [sentNotifications, setSentNotifications] = useState<any[]>([])
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [showAddUserDialog, setShowAddUserDialog] = useState(false)
   const [newUser, setNewUser] = useState({
@@ -178,21 +167,7 @@ export default function AdminPage() {
     )
   })
 
-  // Gesendete Benachrichtigungen laden
-  const fetchSentNotifications = async () => {
-    setLoadingNotifications(true)
-    try {
-      const response = await fetch('/api/admin/notifications')
-      if (response.ok) {
-        const data = await response.json()
-        setSentNotifications(data.notifications || [])
-      }
-    } catch (error) {
-      console.error('Error fetching sent notifications:', error)
-    } finally {
-      setLoadingNotifications(false)
-    }
-  }
+
 
   const loadData = async () => {
     try {
@@ -253,7 +228,6 @@ export default function AdminPage() {
     if (user && (user.role === 'ADMIN' || user.role === 'admin')) {
       fetchUsers()
       fetchTickets()
-      fetchSentNotifications()
     }
   }, [user])
 
@@ -410,40 +384,7 @@ export default function AdminPage() {
     })
   }
 
-  // Benachrichtigung an alle Benutzer senden
-  const sendNotificationToAllUsers = async () => {
-    try {
-      const response = await fetch('/api/notifications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          title: notificationTitle, 
-          message: notificationMessage, 
-          type: notificationType 
-        })
-      })
-      
-      if (response.ok) {
-        toast.success('Benachrichtigung erfolgreich gesendet!')
-        setNotificationTitle('')
-        setNotificationMessage('')
-        setNotificationType('INFO')
-        // Benachrichtigungen neu laden
-        fetchSentNotifications()
-      } else {
-        toast.error('Fehler beim Senden der Benachrichtigung')
-      }
-    } catch (error) {
-      console.error('Error sending notification:', error)
-      toast.error('Fehler beim Senden der Benachrichtigung')
-    }
-  }
 
-  const notificationTypes: NotificationType[] = [
-    { value: 'INFO', label: 'Info', icon: Info },
-    { value: 'WARNING', label: 'Warnung', icon: AlertTriangle },
-    { value: 'SUCCESS', label: 'Erfolg', icon: CheckCircle },
-  ]
 
   // Neuen Benutzer hinzufügen
   const handleAddUser = async () => {
@@ -835,81 +776,7 @@ export default function AdminPage() {
 
               {/* BENACHRICHTIGUNGEN TAB */}
               <TabsContent value="notifications" className="space-y-4">
-                {/* Admin-Benachrichtigungstool */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Send className="h-5 w-5" />
-                      Benachrichtigung an alle Benutzer senden
-                    </CardTitle>
-                    <CardDescription>
-                      Sende eine Benachrichtigung an alle registrierten Benutzer
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="notificationTitle">Titel</Label>
-                        <Input
-                          id="notificationTitle"
-                          placeholder="Titel der Benachrichtigung"
-                          value={notificationTitle}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNotificationTitle(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="notificationMessage">Nachricht</Label>
-                        <Input
-                          id="notificationMessage"
-                          placeholder="Nachrichtentext"
-                          value={notificationMessage}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNotificationMessage(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="notificationType">Typ</Label>
-                        <Select value={notificationType} onValueChange={(value) => setNotificationType(value as 'INFO' | 'WARNING' | 'SUCCESS')}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {notificationTypes.map((type) => (
-                              <SelectItem key={type.value} value={type.value}>
-                                <div className="flex items-center gap-2">
-                                  <type.icon className="h-4 w-4" />
-                                  {type.label}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end">
-                      <Button 
-                        onClick={sendNotificationToAllUsers} 
-                        className="flex items-center gap-2"
-                        disabled={!notificationTitle || !notificationMessage}
-                      >
-                        <Send className="h-4 w-4" />
-                        An alle Benutzer senden
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Benachrichtigungen</CardTitle>
-                    <CardDescription>
-                      Übersicht über alle Benachrichtigungen
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <AdminGlobalNotifications />
-                  </CardContent>
-                </Card>
+                <AdminGlobalNotifications />
               </TabsContent>
             </Tabs>
           </div>

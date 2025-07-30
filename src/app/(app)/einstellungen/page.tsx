@@ -1,275 +1,89 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import dynamic from 'next/dynamic'
+import { SidebarInset } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Separator } from "@/components/ui/separator"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { GlobalNavigation } from "@/components/global-navigation"
-import { SidebarInset } from "@/components/ui/sidebar"
-import { LanguageToggle } from "@/components/language-toggle"
 import { useUser } from "@/hooks/useUser"
 import { useBundle } from "@/hooks/useBundle"
-import { useSSE } from "@/hooks/useSSE"
-import { UpgradeDialog } from "@/components/upgrade-dialog"
 import { 
-  Settings, 
   User, 
-  Users,
-  Bell, 
-  Mail,
-  Smartphone,
-  Save,
-  CreditCard,
+  Mail, 
+  Shield, 
+  CreditCard, 
+  Crown, 
   Package,
-  Star,
-  Check,
-  X,
-  Send,
-  AlertTriangle,
-  Info,
+  Settings,
+  Bell,
+  Eye,
+  MapPin,
+  Phone,
+  Globe,
+  Clock,
+  Calendar,
   CheckCircle,
-  Crown
+  X
 } from "lucide-react"
 
-interface User {
-  id: string;
-  name?: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  role?: string;
-  isAdmin?: boolean;
+interface Settings {
+  firstName: string
+  lastName: string
+  email: string
+  company: string
+  street: string
+  city: string
+  country: string
+  phone: string
+  notifications: {
+    email: boolean
+    push: boolean
+    marketing: boolean
+    weeklyReports: boolean
+    criticalAlerts: boolean
+  }
+  preferences: {
+    language: string
+    timezone: string
+    dateFormat: string
+  }
 }
 
-// Dynamischer Import der Animation
-
-
 export default function EinstellungenPage() {
-  const { user, loading } = useUser()
-  const { bundleInfo, loading: bundleLoading } = useBundle()
-  
-  // SSE-Hook für Echtzeit-Team-Chat
-  const { addEventListener, removeEventListener, isConnected } = useSSE()
-  
-  const [creditAmount, setCreditAmount] = useState(1)
-  const [billingHistory, setBillingHistory] = useState([])
-  const [billingLoading, setBillingLoading] = useState(true)
-  const [showTeamUpgrade, setShowTeamUpgrade] = useState(false)
-  const [teamData, setTeamData] = useState(null)
-  const [teamInviteEmail, setTeamInviteEmail] = useState("")
-  const [teamInviteMessage, setTeamInviteMessage] = useState("")
-  const [chatMessages, setChatMessages] = useState<any[]>([])
-  const [newChatMessage, setNewChatMessage] = useState("")
-  const [chatLoading, setChatLoading] = useState(false)
-  const [settings, setSettings] = useState({
-    // Profil - wird durch echte Benutzerdaten ersetzt
+  const { user } = useUser()
+  const { bundleInfo } = useBundle()
+  const [isYearly, setIsYearly] = useState(false)
+  const [settings, setSettings] = useState<Settings>({
     firstName: "",
     lastName: "",
-    street: "",
-    company: "",
-    city: "",
-    country: "",
     email: "",
+    company: "",
+    street: "",
+    city: "",
+    country: "Deutschland",
     phone: "",
-    homepage: "",
-    
-    // Benachrichtigungen
-    emailNotifications: true,
-    pushNotifications: false,
-    weeklyReports: true,
-    criticalAlerts: true,
-    
-    // Sprache und Region
-    language: "de",
-    timezone: "Europe/Berlin",
-    dateFormat: "DD.MM.YYYY",
+    notifications: {
+      email: true,
+      push: true,  
+      marketing: false,
+      weeklyReports: true,
+      criticalAlerts: true
+    },
+    preferences: {
+      language: "de",
+      timezone: "Europe/Berlin",
+      dateFormat: "DD.MM.YYYY"
+    }
   })
-
-  const getCreditPrice = (amount: number) => {
-    if (amount >= 100) return 0.50 // 75% Ersparnis
-    if (amount >= 50) return 0.80  // 60% Ersparnis  
-    if (amount >= 25) return 1.20  // 40% Ersparnis
-    if (amount >= 10) return 1.50  // 25% Ersparnis
-    if (amount >= 5) return 1.80   // 10% Ersparnis
-    return 2.00 // Normalpreis
-  }
-
-  const getDiscountPercent = (amount: number) => {
-    const currentPrice = getCreditPrice(amount)
-    const normalPrice = 2.00
-    return Math.round(((normalPrice - currentPrice) / normalPrice) * 100)
-  }
-
-  // Team-Funktionen
-  const loadTeamData = async () => {
-    if (bundleInfo?.bundle !== 'ENTERPRISE' && !user?.teamId) return
-    
-    try {
-      const response = await fetch('/api/teams/invite')
-      if (response.ok) {
-        const data = await response.json()
-        setTeamData(data)
-      }
-    } catch (error) {
-      console.error('Fehler beim Laden der Team-Daten:', error)
-    }
-  }
-
-  const sendTeamInvitation = async () => {
-    if (!teamInviteEmail.trim()) return
-    
-    try {
-      const response = await fetch('/api/teams/invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: teamInviteEmail,
-          message: teamInviteMessage
-        })
-      })
-
-      if (response.ok) {
-        alert('Einladung erfolgreich versendet!')
-        setTeamInviteEmail("")
-        setTeamInviteMessage("")
-        loadTeamData() // Reload team data
-      } else {
-        const error = await response.json()
-        alert('Fehler: ' + error.error)
-      }
-    } catch (error) {
-      alert('Fehler beim Senden der Einladung')
-    }
-  }
-
-  const removeTeamMember = async (memberId: string) => {
-    if (!confirm('Möchten Sie dieses Teammitglied wirklich entfernen?')) return
-    
-    try {
-      const response = await fetch('/api/teams/member', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'remove', memberId })
-      })
-
-      if (response.ok) {
-        alert('Teammitglied erfolgreich entfernt')
-        loadTeamData()
-      } else {
-        const error = await response.json()
-        alert('Fehler: ' + error.error)
-      }
-    } catch (error) {
-      alert('Fehler beim Entfernen des Teammitglieds')
-    }
-  }
-
-  // Chat-Funktionen
-  const loadChatMessages = async () => {
-    if (bundleInfo?.bundle !== 'ENTERPRISE' || !user?.teamId) return
-    
-    try {
-      const response = await fetch('/api/teams/chat')
-      if (response.ok) {
-        const data = await response.json()
-        setChatMessages(data.messages || [])
-      }
-    } catch (error) {
-      console.error('Fehler beim Laden der Chat-Nachrichten:', error)
-    }
-  }
-
-  const sendChatMessage = async () => {
-    if (!newChatMessage.trim() || chatLoading) return
-    
-    setChatLoading(true)
-    try {
-      const response = await fetch('/api/teams/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: newChatMessage })
-      })
-
-      if (response.ok) {
-        setNewChatMessage("")
-        loadChatMessages() // Reload messages
-      } else {
-        const error = await response.json()
-        alert('Fehler: ' + error.error)
-      }
-    } catch (error) {
-      alert('Fehler beim Senden der Nachricht')
-    } finally {
-      setChatLoading(false)
-    }
-  }
-
-  // Team-Daten und Chat laden wenn Enterprise (nur einmal beim Mount)
-  useEffect(() => {
-    if (bundleInfo?.bundle === 'ENTERPRISE' && user?.teamId) {
-      loadTeamData()
-      loadChatMessages()
-    }
-  }, []) // Leere Dependencies - lädt nur beim Mount
-
-  // SSE-Event-Listener für Echtzeit-Chat-Nachrichten
-  useEffect(() => {
-    if (bundleInfo?.bundle === 'ENTERPRISE' && user?.teamId) {
-      const handleTeamChatMessage = (data: any) => {
-        console.log('Neue Team-Chat-Nachricht erhalten:', data)
-        loadChatMessages() // Chat-Nachrichten neu laden
-      }
-
-      const removeChatMessageListener = addEventListener('team_chat_message', handleTeamChatMessage)
-
-      return () => {
-        removeChatMessageListener()
-      }
-    }
-  }, [bundleInfo, user?.teamId, addEventListener, removeEventListener])
-
-  const handleSave = async () => {
-    try {
-      // Echte API-Anfrage zum Speichern der Einstellungen
-      const response = await fetch('/api/user/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(settings),
-      })
-      
-      if (response.ok) {
-        console.log("Einstellungen erfolgreich gespeichert")
-        // Hier könnte eine Erfolgs-Benachrichtigung angezeigt werden
-      } else {
-        console.error("Fehler beim Speichern der Einstellungen")
-      }
-    } catch (error) {
-      console.error("Fehler beim Speichern der Einstellungen:", error)
-    }
-  }
-
-  // Prüfe ob Benutzer Admin ist - berücksichtige sowohl ADMIN als auch admin
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'admin' || user?.isAdmin === true
-
-  // Debug für Admin-Status
-  useEffect(() => {
-    if (user) {
-      console.log("User object:", user)
-      console.log("User role:", user.role)
-      console.log("User isAdmin:", user.isAdmin)
-      console.log("Calculated isAdmin:", isAdmin)
-    }
-  }, [user, isAdmin])
+  const [billingHistory, setBillingHistory] = useState<any[]>([])
+  const [billingLoading, setBillingLoading] = useState(false)
 
   // Lade Benutzerdaten in die Einstellungen
   useEffect(() => {
@@ -279,7 +93,11 @@ export default function EinstellungenPage() {
         firstName: user.firstName || "",
         lastName: user.lastName || "",
         email: user.email || "",
-        // Weitere Felder können hier ergänzt werden, wenn sie im User-Model verfügbar sind
+        company: user.name || "",
+        street: (user as any).street || "",
+        city: (user as any).city || "",
+        country: (user as any).country || "Deutschland",
+        phone: (user as any).phone || ""
       }))
     }
   }, [user])
@@ -317,7 +135,75 @@ export default function EinstellungenPage() {
     }))
   }
 
-  // Neue Paket-Struktur für Barrierefreiheits-Services
+  const handleNotificationChange = (key: string, value: boolean) => {
+    setSettings(prev => ({
+      ...prev,
+      notifications: {
+        ...prev.notifications,
+        [key]: value
+      }
+    }))
+  }
+
+  const handlePreferenceChange = (key: string, value: string) => {
+    setSettings(prev => ({
+      ...prev,
+      preferences: {
+        ...prev.preferences,
+        [key]: value
+      }
+    }))
+  }
+
+  const handleSaveSettings = async () => {
+    try {
+      const response = await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      })
+
+      if (response.ok) {
+        console.log("Einstellungen erfolgreich gespeichert")
+        alert("Einstellungen wurden gespeichert!")
+      } else {
+        console.error("Fehler beim Speichern der Einstellungen")
+        alert("Fehler beim Speichern der Einstellungen.")
+      }
+    } catch (error) {
+      console.error("Fehler beim Speichern der Einstellungen:", error)
+      alert("Netzwerkfehler beim Speichern der Einstellungen.")
+    }
+  }
+
+  // Bundle-Upgrade Handler
+  const handleBundleUpgrade = async (bundleType: string) => {
+    try {
+      const response = await fetch('/api/payments/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          type: 'bundle_upgrade',
+          bundle: bundleType,
+          returnUrl: window.location.origin + '/einstellungen'
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.paymentUrl) {
+          window.location.href = data.paymentUrl
+        }
+      } else {
+        const error = await response.json()
+        alert('Fehler: ' + error.error)
+      }
+    } catch (error) {
+      alert('Fehler beim Erstellen der Zahlung')
+    }
+  }
+
+  // Original Website Package-Definitionen - 1:1 von Homepage
   const packages = [
     {
       id: "free",
@@ -325,21 +211,22 @@ export default function EinstellungenPage() {
       subtitle: "Test & Kennenlernen",
       icon: "🆓",
       price: 0,
-      period: "/ Monat",
-      websitesManaged: 1,
-      scansPerMonth: 5,
-      storage: "24 Stunden",
+      yearlyPrice: 0,
+      period: "kostenlos",
       features: [
+        "1 verwaltbare Website",
+        "5 Scans/Monat",
+        "30 Tage Speicherdauer",
         "Accessibility Check",
         "Dashboard (Grundansicht)"
       ],
       limitations: [
-        "Kein WCAG Coach",
+        "Kein BFSG Coach",
         "Kein BFE-Generator", 
         "Keine Aufgabenverwaltung",
-        "Keine PDF/Excel Exporte"
+        "Keine PDF/Excel Exporte",
+        "Kein Support"
       ],
-      support: "FAQ und Community",
       popular: false
     },
     {
@@ -348,326 +235,310 @@ export default function EinstellungenPage() {
       subtitle: "Für Einzelpersonen",
       icon: "🚀",
       price: 9,
+      yearlyPrice: 92, // 15% Rabatt
       period: "/ Monat",
-      websitesManaged: 3,
-      scansPerMonth: "unbegrenzt",
-      storage: "6 Monate",
       features: [
-        "Alle FREE Features",
-        "Unbegrenzte Scans",
-        "BFSG Coach (10 Nutzungen/Monat)",
-        "BFE-Generator (10 Nutzungen/Monat)",
-        "Aufgabenverwaltung (bis 25 Aufgaben)",
-        "PDF Export"
-      ],
-      limitations: [
+        "3 verwaltbare Websites",
+        "50 Scans/Monat", 
         "6 Monate Speicherdauer",
-        "Kein Excel Export"
+        "Accessibility Check",
+        "BFSG Coach (10 Nutzungen/Monat)",
+        "BFE-Generator (1 Nutzung/Monat)",
+        "Aufgabenverwaltung",
+        "PDF/Excel Export",
+        "E-Mail Support"
       ],
-      support: "E-Mail Support",
-      popular: false
+      popular: true
     },
     {
       id: "professional",
       name: "PROFESSIONAL",
       subtitle: "Für Unternehmen",
-      icon: "⭐", 
+      icon: "⭐",
       price: 29,
+      yearlyPrice: 296, // 15% Rabatt  
       period: "/ Monat",
-      websitesManaged: 10,
-      scansPerMonth: "unbegrenzt",
-      storage: "12 Monate",
       features: [
+        "10 verwaltbare Websites",
+        "150 Scans/Monat",
+        "12 Monate Speicherdauer", 
         "Alle STARTER Features",
         "BFSG Coach (50 Nutzungen/Monat)",
-        "BFE-Generator (50 Nutzungen/Monat)",
-        "Aufgabenverwaltung (bis 200 Aufgaben)",
-        "Excel + PDF Export",
-        "Priorisierter Support"
+        "BFE-Generator (5 Nutzungen/Monat)",
+        "Erweiterte Analysen",
+        "Prioritäts-Support",
+        "Automatische Berichte"
       ],
-      limitations: [
-        "12 Monate Speicherdauer"
-      ],
-      support: "Support Tickets",
-      popular: true
+      popular: false
     },
     {
       id: "enterprise",
       name: "ENTERPRISE",
-      subtitle: "Für Agenturen & Teams",
+      subtitle: "Für Teams & Agenturen",
       icon: "🏢",
       price: 79,
-      period: "/ Auf Anfrage", 
-      websitesManaged: "Unbegrenzt/Individuell",
-      scansPerMonth: "unbegrenzt",
-      storage: "Unbegrenzt",
+      yearlyPrice: 805, // 15% Rabatt
+      period: "/ Monat",
       features: [
-        "Alle PROFESSIONAL Features",
-        "Team-Funktionen (nur hier verfügbar!)",
-        "BFSG Coach (Unbegrenzt)",
-        "BFE-Generator (Unbegrenzt)",
-        "Aufgabenverwaltung (Unbegrenzt)",
-        "Erweiterte API",
+        "25 verwaltbare Websites",
+        "500 Scans/Monat",
+        "24 Monate Speicherdauer",
+        "Alle PROFESSIONAL Features", 
+        "BFSG Coach (unbegrenzt)",
+        "BFE-Generator (unbegrenzt)",
+        "Team-Funktionen",
+        "Multi-User-Support",
         "White-Label Option",
-        "Custom Integrationen",
-        "Onboarding Call",
-        "SLA Garantie"
+        "API-Zugang",
+        "Dedizierter Account-Manager"
       ],
-      limitations: [
-        "Unbegrenzte Speicherdauer"
-      ],
-      support: "Antwort innerhalb 24 Stunden + persönlicher Ansprechpartner",
       popular: false
     }
   ]
 
-  // Credit-Pakete für Pay-per-Use
-  const creditPackages = [
-    { credits: 10, price: 15, discount: 0, pricePerCredit: 1.50 },
-    { credits: 25, price: 30, discount: 20, pricePerCredit: 1.20 },
-    { credits: 50, price: 50, discount: 33, pricePerCredit: 1.00 },
-    { credits: 100, price: 85, discount: 43, pricePerCredit: 0.85 },
-    { credits: 250, price: 175, discount: 53, pricePerCredit: 0.70 }
+  const countries = [
+    "Deutschland", "Österreich", "Schweiz", "Niederlande", "Belgien", 
+    "Frankreich", "Italien", "Polen", "Tschechien", "Dänemark",
+    "Schweden", "Norwegen", "Finnland", "Spanien", "Portugal", "Andere"
   ]
 
-  // Team-Mitglied-Pakete (nur für Enterprise-Nutzer)
-  const teamMemberPackages = [
-    { 
-      id: 'team_member_1', 
-      name: 'Weiteres Teammitglied', 
-      price: 5, 
-      description: 'Für Enterprise-Nutzer',
-      period: '/ Monat',
-      features: [
-        'Zugriff auf alle Team-Features',
-        'Geteilte Credits & Projekte',
-        'Gemeinsame Berichte',
-        'Team-Dashboard'
-      ]
-    }
+  const languages = [
+    { value: "de", label: "Deutsch" },
+    { value: "en", label: "English" }
   ]
 
-  const [showAllPackages, setShowAllPackages] = useState(false)
-  const [showAllCredits, setShowAllCredits] = useState(false)
-  const [isYearly, setIsYearly] = useState(false)
+  const timezones = [
+    { value: "Europe/Berlin", label: "Berlin (MEZ/MESZ)" },
+    { value: "Europe/Vienna", label: "Wien (MEZ/MESZ)" },
+    { value: "Europe/Zurich", label: "Zürich (MEZ/MESZ)" },
+    { value: "Europe/London", label: "London (GMT/BST)" },
+    { value: "Europe/Paris", label: "Paris (MEZ/MESZ)" },
+    { value: "America/New_York", label: "New York (EST/EDT)" }
+  ]
 
-  if (loading) {
-    return (
-      <SidebarInset>
-        <GlobalNavigation title="Einstellungen" subtitle="Verwalten Sie Ihre Konto- und App-Einstellungen" />
-        <div className="flex-1 p-6">
-          <div className="text-center">Lade Einstellungen...</div>
-        </div>
-      </SidebarInset>
-    )
-  }
-
-  if (!user) {
-    return (
-      <SidebarInset>
-        <GlobalNavigation title="Einstellungen" subtitle="Verwalten Sie Ihre Konto- und App-Einstellungen" />
-        <div className="flex-1 p-6">
-          <div className="text-center">Benutzer nicht gefunden</div>
-        </div>
-      </SidebarInset>
-    )
-  }
+  const dateFormats = [
+    { value: "DD.MM.YYYY", label: "31.12.2024 (Deutsch)" },
+    { value: "MM/DD/YYYY", label: "12/31/2024 (US)" },
+    { value: "YYYY-MM-DD", label: "2024-12-31 (ISO)" }
+  ]
 
   return (
     <SidebarInset>
-
-      <GlobalNavigation
+      <GlobalNavigation 
         title="Einstellungen"
         subtitle="Konfigurieren Sie Ihre Barrierefreiheits-Tool Einstellungen"
       />
       <div className="flex flex-1 flex-col gap-6 p-6 md:gap-8 md:p-8">
         <Tabs defaultValue="profil" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="profil">Profil</TabsTrigger>
             <TabsTrigger value="benachrichtigungen">Benachrichtigungen</TabsTrigger>
             <TabsTrigger value="rechnung">Rechnung & Bundles</TabsTrigger>
-            <TabsTrigger value="team" onClick={() => {
-              if (bundleInfo?.bundle !== 'ENTERPRISE' && !user?.teamId) {
-                setShowTeamUpgrade(true)
-              }
-            }}>
-              <Users className="h-4 w-4 mr-2" />
-              Team/Mitglieder
-            </TabsTrigger>
           </TabsList>
 
           {/* Profil */}
           <TabsContent value="profil">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Profil bearbeiten
-                </CardTitle>
-                <CardDescription>
-                  Verwalten Sie Ihre persönlichen Informationen
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">Vorname</Label>
-                    <Input
-                      id="firstName"
-                      value={settings.firstName}
-                      onChange={(e) => handleSettingChange("firstName", e.target.value)}
-                    />
+            <div className="space-y-6">
+              {/* Persönliche Informationen */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Persönliche Informationen
+                  </CardTitle>
+                  <CardDescription>
+                    Grundlegende Informationen zu Ihrer Person
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">Vorname *</Label>
+                      <Input
+                        id="firstName"
+                        value={settings.firstName}
+                        onChange={(e) => handleSettingChange("firstName", e.target.value)}
+                        placeholder="Ihr Vorname"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Nachname *</Label>
+                      <Input
+                        id="lastName"
+                        value={settings.lastName}
+                        onChange={(e) => handleSettingChange("lastName", e.target.value)}
+                        placeholder="Ihr Nachname"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">E-Mail-Adresse *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={settings.email}
+                        onChange={(e) => handleSettingChange("email", e.target.value)}
+                        placeholder="ihre@email.de"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="company">Unternehmen/Organisation</Label>
+                      <Input
+                        id="company"
+                        value={settings.company}
+                        onChange={(e) => handleSettingChange("company", e.target.value)}
+                        placeholder="Ihr Unternehmen"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Nachname</Label>
-                    <Input
-                      id="lastName"
-                      value={settings.lastName}
-                      onChange={(e) => handleSettingChange("lastName", e.target.value)}
-                    />
-                  </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="street">Straße</Label>
-                    <Input
-                      id="street"
-                      value={settings.street}
-                      onChange={(e) => handleSettingChange("street", e.target.value)}
-                    />
+              {/* Adresse */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Adresse
+                  </CardTitle>
+                  <CardDescription>
+                    Ihre Rechnungsadresse (optional)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="street">Straße und Hausnummer</Label>
+                      <Input
+                        id="street"
+                        value={settings.street}
+                        onChange={(e) => handleSettingChange("street", e.target.value)}
+                        placeholder="Musterstraße 123"
+                      />
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="city">Stadt</Label>
+                        <Input
+                          id="city"
+                          value={settings.city}
+                          onChange={(e) => handleSettingChange("city", e.target.value)}
+                          placeholder="Musterstadt"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="country">Land</Label>
+                        <Select value={settings.country} onValueChange={(value) => handleSettingChange("country", value)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Land auswählen" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {countries.map((country) => (
+                              <SelectItem key={country} value={country}>
+                                {country}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="company">Unternehmen (optional)</Label>
-                    <Input
-                      id="company"
-                      placeholder="z.B. Meindl Webdesign"
-                      value={settings.company}
-                      onChange={(e) => handleSettingChange("company", e.target.value)}
-                    />
-                  </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className="grid gap-4 md:grid-cols-2">
+              {/* Kontakt */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Phone className="h-5 w-5" />
+                    Kontaktdaten
+                  </CardTitle>
+                  <CardDescription>
+                    Zusätzliche Kontaktmöglichkeiten
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="city">Ort</Label>
-                    <Input
-                      id="city"
-                      value={settings.city}
-                      onChange={(e) => handleSettingChange("city", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="country">Land</Label>
-                    <Input
-                      id="country"
-                      value={settings.country}
-                      onChange={(e) => handleSettingChange("country", e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">E-Mail</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={settings.email}
-                      onChange={(e) => handleSettingChange("email", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefon</Label>
+                    <Label htmlFor="phone">Telefonnummer</Label>
                     <Input
                       id="phone"
                       type="tel"
                       value={settings.phone}
                       onChange={(e) => handleSettingChange("phone", e.target.value)}
+                      placeholder="+49 123 456789"
                     />
                   </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className="space-y-2">
-                  <Label htmlFor="homepage">Homepage</Label>
-                  <Input
-                    id="homepage"
-                    type="url"
-                    placeholder="https://ihre-website.de"
-                    value={settings.homepage}
-                    onChange={(e) => handleSettingChange("homepage", e.target.value)}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Geben Sie die URL Ihrer Website ein (optional)
-                  </p>
-                </div>
-
-                {/* Sprache Schnellwechsel */}
-                <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium">Sprache wechseln</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Schneller Sprachwechsel für die Benutzeroberfläche
-                    </p>
-                  </div>
-                  <LanguageToggle />
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium">Sprache und Region</h4>
+              {/* Präferenzen */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="h-5 w-5" />
+                    Präferenzen
+                  </CardTitle>
+                  <CardDescription>
+                    Sprache, Zeitzone und Formatierung
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-3">
                     <div className="space-y-2">
                       <Label htmlFor="language">Sprache</Label>
-                      <Select value={settings.language} onValueChange={(value) => handleSettingChange("language", value)}>
+                      <Select value={settings.preferences.language} onValueChange={(value) => handlePreferenceChange("language", value)}>
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Sprache auswählen" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="de">Deutsch</SelectItem>
-                          <SelectItem value="en">English</SelectItem>
-                          <SelectItem value="fr">Français</SelectItem>
+                          {languages.map((lang) => (
+                            <SelectItem key={lang.value} value={lang.value}>
+                              {lang.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="timezone">Zeitzone</Label>
-                      <Select value={settings.timezone} onValueChange={(value) => handleSettingChange("timezone", value)}>
+                      <Select value={settings.preferences.timezone} onValueChange={(value) => handlePreferenceChange("timezone", value)}>
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Zeitzone auswählen" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Europe/Berlin">Europe/Berlin</SelectItem>
-                          <SelectItem value="Europe/London">Europe/London</SelectItem>
-                          <SelectItem value="America/New_York">America/New_York</SelectItem>
+                          {timezones.map((tz) => (
+                            <SelectItem key={tz.value} value={tz.value}>
+                              {tz.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="dateFormat">Datumsformat</Label>
-                      <Select value={settings.dateFormat} onValueChange={(value) => handleSettingChange("dateFormat", value)}>
+                      <Select value={settings.preferences.dateFormat} onValueChange={(value) => handlePreferenceChange("dateFormat", value)}>
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Format auswählen" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="DD.MM.YYYY">DD.MM.YYYY</SelectItem>
-                          <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
-                          <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                          {dateFormats.map((format) => (
+                            <SelectItem key={format.value} value={format.value}>
+                              {format.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <Button onClick={handleSave} className="flex items-center gap-2">
-                    <Save className="h-4 w-4" />
-                    Speichern
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+              
+              <div className="flex justify-end">
+                <Button onClick={handleSaveSettings} size="lg">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Alle Einstellungen speichern
+                </Button>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Benachrichtigungen */}
@@ -679,74 +550,81 @@ export default function EinstellungenPage() {
                   Benachrichtigungseinstellungen
                 </CardTitle>
                 <CardDescription>
-                  Konfigurieren Sie, wie und wann Sie benachrichtigt werden möchten
+                  Verwalten Sie Ihre Benachrichtigungspräferenzen
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        <Label>E-Mail Benachrichtigungen</Label>
-                      </div>
+                      <Label className="text-base">E-Mail-Benachrichtigungen</Label>
                       <p className="text-sm text-muted-foreground">
-                        Erhalten Sie E-Mails über wichtige Updates
+                        Erhalten Sie wichtige Updates per E-Mail
                       </p>
                     </div>
                     <Switch
-                      checked={settings.emailNotifications}
-                      onCheckedChange={(checked: boolean) => handleSettingChange("emailNotifications", checked)}
+                      checked={settings.notifications.email}
+                      onCheckedChange={(checked) => handleNotificationChange("email", checked)}
                     />
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <Smartphone className="h-4 w-4" />
-                        <Label>Push Benachrichtigungen</Label>
-                      </div>
+                      <Label className="text-base">Push-Benachrichtigungen</Label>
                       <p className="text-sm text-muted-foreground">
-                        Sofortige Benachrichtigungen im Browser
+                        Erhalten Sie sofortige Updates im Browser
                       </p>
                     </div>
                     <Switch
-                      checked={settings.pushNotifications}
-                      onCheckedChange={(checked: boolean) => handleSettingChange("pushNotifications", checked)}
+                      checked={settings.notifications.push}
+                      onCheckedChange={(checked) => handleNotificationChange("push", checked)}
                     />
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label>Wöchentliche Berichte</Label>
+                      <Label className="text-base">Wöchentliche Berichte</Label>
                       <p className="text-sm text-muted-foreground">
-                        Zusammenfassung der Woche per E-Mail
+                        Zusammenfassung Ihrer wöchentlichen Aktivitäten
                       </p>
                     </div>
                     <Switch
-                      checked={settings.weeklyReports}
-                      onCheckedChange={(checked: boolean) => handleSettingChange("weeklyReports", checked)}
+                      checked={settings.notifications.weeklyReports}
+                      onCheckedChange={(checked) => handleNotificationChange("weeklyReports", checked)}
                     />
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label>Kritische Warnungen</Label>
+                      <Label className="text-base">Kritische Alerts</Label>
                       <p className="text-sm text-muted-foreground">
-                        Sofortige Benachrichtigung bei kritischen Problemen
+                        Sofortige Benachrichtigung bei wichtigen Problemen
                       </p>
                     </div>
                     <Switch
-                      checked={settings.criticalAlerts}
-                      onCheckedChange={(checked: boolean) => handleSettingChange("criticalAlerts", checked)}
+                      checked={settings.notifications.criticalAlerts}
+                      onCheckedChange={(checked) => handleNotificationChange("criticalAlerts", checked)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Marketing-E-Mails</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Erhalten Sie Newsletter und Produktupdates
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.notifications.marketing}
+                      onCheckedChange={(checked) => handleNotificationChange("marketing", checked)}
                     />
                   </div>
                 </div>
 
                 <div className="flex justify-end">
-                  <Button onClick={handleSave} className="flex items-center gap-2">
-                    <Save className="h-4 w-4" />
-                    Speichern
+                  <Button onClick={handleSaveSettings}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Einstellungen speichern
                   </Button>
                 </div>
               </CardContent>
@@ -756,158 +634,46 @@ export default function EinstellungenPage() {
           {/* Rechnung & Bundles */}
           <TabsContent value="rechnung">
             <div className="space-y-6">
-              {/* Aktuelle Credits */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="h-5 w-5" />
-                    Credits verwalten
-                  </CardTitle>
-                  <CardDescription>
-                    Ihre aktuellen Credits und Kaufmöglichkeiten
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {/* Aktuelles Paket */}
-                    <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4" />
-                          <span className="font-medium">Aktuelles Paket</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge 
-                            variant={
-                              (bundleInfo?.bundle === 'ENTERPRISE' || user?.bundle === 'ENTERPRISE') ? 'default' :
-                              (bundleInfo?.bundle === 'PRO' || user?.bundle === 'PRO') ? 'default' : 
-                              'secondary'
-                            }
-                            className={
-                              (bundleInfo?.bundle === 'ENTERPRISE' || user?.bundle === 'ENTERPRISE') ? 
-                              'bg-purple-600 hover:bg-purple-700 text-white' : 
-                              (bundleInfo?.bundle === 'PRO' || user?.bundle === 'PRO') ? 
-                              'bg-blue-600 hover:bg-blue-700 text-white' : 
-                              ''
-                            }
-                          >
-                            {bundleInfo?.bundle || user?.bundle || 'FREE'}
-                          </Badge>
-                          {(bundleInfo?.isProActive || user?.bundle === 'PRO') && (
-                            <Badge variant="outline" className="text-green-600 border-green-600">
-                              <Check className="h-3 w-3 mr-1" />
-                              Aktiv
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      {bundleInfo?.bundlePurchasedAt && (
-                        <div className="text-sm text-muted-foreground">
-                          Gekauft am: {new Date(bundleInfo.bundlePurchasedAt).toLocaleDateString('de-DE')}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">Verfügbare Credits</span>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {bundleInfo?.credits || user?.credits || 0} Credits verfügbar
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">
-                            Credits kaufen 
-                            <span className="text-sm text-muted-foreground ml-2">
-                              ({getCreditPrice(creditAmount).toFixed(2)} € pro Credit)
-                            </span>
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => setCreditAmount(Math.max(1, creditAmount - 1))}
-                              disabled={creditAmount <= 1}
-                            >
-                              -
-                            </Button>
-                            <Input 
-                              type="number" 
-                              value={creditAmount} 
-                              onChange={(e) => {
-                                const value = parseInt(e.target.value) || 1
-                                setCreditAmount(Math.max(1, Math.min(1000, value)))
-                              }}
-                              className="w-20 text-center"
-                              min="1"
-                              max="1000"
-                            />
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => setCreditAmount(Math.min(1000, creditAmount + 1))}
-                              disabled={creditAmount >= 1000}
-                            >
-                              +
-                            </Button>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-bold">{(getCreditPrice(creditAmount) * creditAmount).toFixed(2)} €</div>
-                            {getDiscountPercent(creditAmount) > 0 && (
-                              <div className="text-xs text-green-600 font-medium">
-                                {getDiscountPercent(creditAmount)}% Rabatt
-                              </div>
-                            )}
-                            <Button 
-                              className="mt-2"
-                              onClick={async () => {
-                                try {
-                                  const response = await fetch('/api/payments/create', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                      type: 'credits',
-                                      credits: creditAmount
-                                    })
-                                  });
-                                  const data = await response.json();
-                                  if (data.success) {
-                                    window.location.href = data.paymentUrl;
-                                  } else {
-                                    alert('Fehler: ' + data.error);
-                                  }
-                                } catch (error) {
-                                  alert('Netzwerkfehler beim Kaufen der Credits');
-                                }
-                              }}
-                            >
-                              {creditAmount} Credit{creditAmount > 1 ? 's' : ''} kaufen
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Preispakete */}
+              {/* Aktuelles Bundle */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Package className="h-5 w-5" />
-                    Einfache, transparente Preise
+                    Aktuelles Paket
                   </CardTitle>
                   <CardDescription>
-                    Wählen Sie das Paket, das am besten zu Ihren Bedürfnissen passt
+                    Ihr aktueller Tarif und verfügbare Upgrades
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                        {bundleInfo?.bundle?.charAt(0) || 'F'}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg">{bundleInfo?.bundle || 'FREE'} Paket</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Credits: {bundleInfo?.credits || 0}
+                        </p>
+                      </div>
+                    </div>
+                    {bundleInfo?.bundle !== 'ENTERPRISE' && (
+                      <Button onClick={() => handleBundleUpgrade('ENTERPRISE')}>
+                        <Crown className="h-4 w-4 mr-2" />
+                        Upgraden
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Verfügbare Pakete - 1:1 von Homepage */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Verfügbare Pakete</CardTitle>
+                  <CardDescription>
+                    Wählen Sie das passende Paket für Ihre Bedürfnisse
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -936,7 +702,7 @@ export default function EinstellungenPage() {
                   </div>
 
                   {/* Preispakete */}
-                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto mb-16">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto mb-8">
                     {/* FREE */}
                     <Card className="border h-full flex flex-col">
                       <CardHeader className="text-center">
@@ -958,7 +724,7 @@ export default function EinstellungenPage() {
                         </div>
                         <div className="flex items-center space-x-3">
                           <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">24 Stunden Speicherdauer</span>
+                          <span className="text-base">90 Tage Speicherdauer</span>
                         </div>
                         
                         <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
@@ -995,8 +761,12 @@ export default function EinstellungenPage() {
                         
                         <div className="flex-1"></div>
                         
-                        <Button className="w-full" variant="outline">
-                          Aktuelles Paket
+                        <Button 
+                          className="w-full"
+                          variant="outline"
+                          onClick={() => window.location.href = "/register"}
+                        >
+                          Jetzt starten
                         </Button>
                       </CardContent>
                     </Card>
@@ -1059,7 +829,10 @@ export default function EinstellungenPage() {
                         
                         <div className="flex-1"></div>
                         
-                        <Button className="w-full">
+                        <Button 
+                          className="w-full"
+                          onClick={() => handleBundleUpgrade('STARTER')}
+                        >
                           Jetzt starten
                         </Button>
                       </CardContent>
@@ -1131,7 +904,10 @@ export default function EinstellungenPage() {
                         
                         <div className="flex-1"></div>
                         
-                        <Button className="w-full">
+                        <Button 
+                          className="w-full"
+                          onClick={() => handleBundleUpgrade('PROFESSIONAL')}
+                        >
                           Jetzt starten
                         </Button>
                       </CardContent>
@@ -1183,19 +959,16 @@ export default function EinstellungenPage() {
                           <span className="text-base">Aufgabenverwaltung (Unbegrenzt)</span>
                         </div>
                         
-                        <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Service & Kollaboration:</div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">Team-Funktionen</span>
-                        </div>
-                        
                         <div className="text-xs text-muted-foreground mt-2">
-                          📞 Support: Persönlicher Ansprechpartner
+                          📞 Support: Persönlicher Account Manager
                         </div>
                         
                         <div className="flex-1"></div>
                         
-                        <Button className="w-full bg-yellow-600 hover:bg-yellow-700">
+                        <Button 
+                          className="w-full"
+                          onClick={() => handleBundleUpgrade('ENTERPRISE')}
+                        >
                           Jetzt starten
                         </Button>
                       </CardContent>
@@ -1203,208 +976,78 @@ export default function EinstellungenPage() {
                   </div>
                 </CardContent>
               </Card>
-              
-              {/* Pay-per-Use Credits */}
+
+              {/* Team-Hinweis für Enterprise */}
+              {bundleInfo?.bundle === 'ENTERPRISE' && (
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-blue-700">
+                      <Crown className="h-5 w-5" />
+                      Enterprise-Features verfügbar
+                    </CardTitle>
+                    <CardDescription className="text-blue-600">
+                      Sie haben Zugang zu allen Team-Funktionen
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <p className="text-blue-700">
+                        Verwalten Sie Ihr Team und nutzen Sie den Team-Chat
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                        onClick={() => window.location.href = "/team"}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Team verwalten
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Rechnungshistorie */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <CreditCard className="h-5 w-5" />
-                    💳 Pay-per-Use Credits
+                    Rechnungshistorie
                   </CardTitle>
                   <CardDescription>
-                    Alternative zu Abonnements - Ideal für gelegentliche Nutzung
+                    Übersicht über Ihre vergangenen Zahlungen
                   </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {/* Rabatt-Hinweis */}
-                  <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg">
-                    <h4 className="font-semibold text-green-800 mb-2">💰 Mengenrabatte verfügbar!</h4>
-                    <div className="text-sm text-green-700 space-y-1">
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
-                        <div><strong>10 Credits:</strong> 1,50€/Credit</div>
-                        <div><strong>25 Credits:</strong> 1,20€/Credit <span className="text-green-600 font-semibold">(20% Rabatt)</span></div>
-                        <div><strong>50 Credits:</strong> 1,00€/Credit <span className="text-green-600 font-semibold">(33% Rabatt)</span></div>
-                        <div><strong>100 Credits:</strong> 0,85€/Credit <span className="text-green-600 font-semibold">(43% Rabatt)</span></div>
-                        <div><strong>250 Credits:</strong> 0,70€/Credit <span className="text-green-600 font-semibold">(53% Rabatt)</span></div>
-                      </div>
-                      <p className="text-xs mt-2 text-green-600">
-                        💡 <strong>Tipp:</strong> Je mehr Credits Sie kaufen, desto günstiger wird der Einzelpreis!
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-3">
-                    {(showAllCredits ? creditPackages : creditPackages.slice(0, 3)).map((pkg, index) => (
-                      <div 
-                        key={index}
-                        className="border rounded-lg p-4 text-center hover:border-primary transition-colors flex flex-col min-h-[200px]"
-                      >
-                        <div className="flex-grow space-y-3">
-                          <div className="text-2xl font-bold">{pkg.credits}</div>
-                          <div className="text-sm text-muted-foreground">Credits</div>
-                          <div className="text-lg font-semibold">{pkg.price}€</div>
-                          {pkg.discount > 0 && (
-                            <div className="text-xs text-green-600 font-medium">
-                              {pkg.discount}% Rabatt
-                            </div>
-                          )}
-                          <div className="text-xs text-muted-foreground">
-                            {pkg.pricePerCredit.toFixed(2)}€ pro Credit
-                          </div>
-                        </div>
-                        <div className="mt-4">
-                          <Button 
-                            className="w-full" 
-                            size="sm"
-                            onClick={async () => {
-                              try {
-                                const response = await fetch('/api/payments/create', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    type: 'credits',
-                                    credits: pkg.credits
-                                  })
-                                });
-                                const data = await response.json();
-                                if (data.success) {
-                                  window.location.href = data.paymentUrl;
-                                } else {
-                                  alert('Fehler: ' + data.error);
-                                }
-                              } catch (error) {
-                                alert('Netzwerkfehler beim Credit-Kauf');
-                              }
-                            }}
-                          >
-                            Kaufen
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {/* Team-Mitglied Kachel (nur für Enterprise) */}
-                    {user.bundle === 'ENTERPRISE' && teamMemberPackages.map((pkg) => (
-                      <div 
-                        key={pkg.id}
-                        className="border-2 border-purple-200 rounded-lg p-4 text-center hover:border-purple-400 transition-colors flex flex-col min-h-[200px] bg-purple-50"
-                      >
-                        <div className="flex-grow space-y-3">
-                          <div className="text-2xl font-bold text-purple-600">👥</div>
-                          <div className="text-sm font-semibold">{pkg.name}</div>
-                          <div className="text-lg font-semibold text-purple-600">{pkg.price}€</div>
-                          <div className="text-xs text-purple-600 font-medium">
-                            {pkg.period}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {pkg.description}
-                          </div>
-                        </div>
-                        <div className="mt-4">
-                          <Button 
-                            className="w-full bg-purple-600 hover:bg-purple-700" 
-                            size="sm"
-                            onClick={async () => {
-                              try {
-                                const response = await fetch('/api/payments/create', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    type: 'team_member',
-                                    teamMemberId: pkg.id
-                                  })
-                                });
-                                const data = await response.json();
-                                if (data.success) {
-                                  window.location.href = data.paymentUrl;
-                                } else {
-                                  alert('Fehler: ' + data.error);
-                                }
-                              } catch (error) {
-                                alert('Netzwerkfehler beim Team-Mitglied-Kauf');
-                              }
-                            }}
-                          >
-                            Kaufen
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {creditPackages.length > 3 && (
-                    <div className="mt-4 text-center">
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowAllCredits(!showAllCredits)}
-                      >
-                        {showAllCredits ? 'Weniger anzeigen' : 'Alle Credit-Pakete anzeigen'}
-                      </Button>
-                    </div>
-                  )}
-                  
-                  <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                    <h4 className="font-medium mb-2">Credit-Verbrauch:</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-muted-foreground">
-                      <div>🔍 Website-Scan: 1 Credit</div>
-                      <div>🤖 WCAG Coach: 2 Credits</div>
-                      <div>📝 BFE-Generator: 5 Credits</div>
-                      <div>📊 Detaillierter Bericht: 1 Credit</div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      ✅ Credits verfallen nie • ✅ Kombinierbar mit allen Paketen • ✅ Perfekt für Freelancer
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Buchungstabelle */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Buchungshistorie</CardTitle>
-                  <CardDescription>Ihre bisherigen Käufe und Buchungen</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Datum</TableHead>
-                        <TableHead>Typ</TableHead>
+                        <TableHead>Beschreibung</TableHead>
                         <TableHead>Betrag</TableHead>
-                        <TableHead>Credits</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {billingLoading ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8">
-                            <div className="flex items-center justify-center gap-2">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                              Lade Rechnungshistorie...
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ) : billingHistory.length > 0 ? (
-                        billingHistory.map((item: any, index: number) => (
+                      {billingHistory.length > 0 ? (
+                        billingHistory.map((item, index) => (
                           <TableRow key={index}>
-                            <TableCell>{new Date(item.date).toLocaleDateString('de-DE')}</TableCell>
-                            <TableCell>{item.type}</TableCell>
+                            <TableCell>{item.date}</TableCell>
+                            <TableCell>{item.description}</TableCell>
                             <TableCell>{item.amount}</TableCell>
-                            <TableCell>{item.credits || '-'}</TableCell>
                             <TableCell>
-                              <Badge className={item.status === 'paid' ? 'bg-green-500' : 'bg-yellow-500'}>
-                                {item.status === 'paid' ? 'Bezahlt' : item.status === 'pending' ? 'Ausstehend' : 'Fehlgeschlagen'}
+                              <Badge variant={item.status === 'paid' ? 'default' : 'secondary'}>
+                                {item.status}
                               </Badge>
                             </TableCell>
                           </TableRow>
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                            <div className="flex flex-col items-center gap-2">
-                              <CreditCard className="h-8 w-8 text-muted-foreground" />
-                              <span>Noch keine Buchungen vorhanden</span>
+                          <TableCell colSpan={4} className="text-center py-8">
+                            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                              <CreditCard className="h-8 w-8 opacity-50" />
+                              <span>Keine Rechnungen vorhanden</span>
                               <span className="text-sm">Ihre zukünftigen Käufe werden hier angezeigt</span>
                             </div>
                           </TableCell>
@@ -1416,262 +1059,8 @@ export default function EinstellungenPage() {
               </Card>
             </div>
           </TabsContent>
-
-          {/* Team/Mitglieder Tab */}
-          <TabsContent value="team">
-            {bundleInfo?.bundle === 'ENTERPRISE' || user?.teamId ? (
-              <div className="space-y-6">
-                {/* Team-Übersicht */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      {user?.isTeamOwner ? 'Team-Verwaltung' : 'Team-Mitgliedschaft'}
-                    </CardTitle>
-                    <CardDescription>
-                      {user?.isTeamOwner 
-                        ? 'Verwalten Sie Ihr Enterprise-Team und laden Sie Mitglieder ein'
-                        : 'Sie sind Mitglied eines Enterprise-Teams'
-                      }
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Unternehmensinfo */}
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <div className="grid gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">Unternehmen:</span>
-                          <span>{settings.company || user?.name || 'Nicht angegeben'}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">Team-ID:</span>
-                          <span className="font-mono text-sm bg-background px-2 py-1 rounded border">
-                            {teamData?.team?.id?.slice(0, 8) || 'TEAM_' + user?.id?.slice(0, 8)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">Mitglieder:</span>
-                          <span>{teamData?.members?.length || 1} / {teamData?.team?.maxMembers || 3}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Mitglieder-Liste */}
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Team-Mitglieder</h4>
-                      <div className="space-y-2">
-                        {teamData?.members?.map((member: any) => (
-                          <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
-                                <User className="h-4 w-4" />
-                              </div>
-                              <div>
-                                <div className="font-medium">{member.name || member.email}</div>
-                                <div className="text-sm text-muted-foreground">{member.email}</div>
-                              </div>
-                              {member.isTeamOwner && (
-                                <Badge variant="secondary">Admin</Badge>
-                              )}
-                            </div>
-                            {user?.isTeamOwner && !member.isTeamOwner && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => removeTeamMember(member.id)}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        )) || (
-                          <div className="text-center py-8 text-muted-foreground">
-                            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            <p>Noch keine weiteren Teammitglieder</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Einladung senden - nur für Team-Owner */}
-                    {user?.isTeamOwner && (
-                      <div className="space-y-4">
-                        <h4 className="font-medium">Neues Mitglied einladen</h4>
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label htmlFor="inviteEmail">E-Mail-Adresse</Label>
-                            <Input
-                              id="inviteEmail"
-                              type="email"
-                              placeholder="name@beispiel.de"
-                              value={teamInviteEmail}
-                              onChange={(e) => setTeamInviteEmail(e.target.value)}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="inviteMessage">Nachricht (optional)</Label>
-                            <Input
-                              id="inviteMessage"
-                              placeholder="Willkommen im Team!"
-                              value={teamInviteMessage}
-                              onChange={(e) => setTeamInviteMessage(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                        <Button onClick={sendTeamInvitation} disabled={!teamInviteEmail.trim()}>
-                          <Send className="h-4 w-4 mr-2" />
-                          Einladung senden
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Ausstehende Einladungen - nur für Team-Owner */}
-                    {user?.isTeamOwner && teamData?.invitations?.length > 0 && (
-                      <div className="space-y-4">
-                        <h4 className="font-medium">Ausstehende Einladungen</h4>
-                        <div className="space-y-2">
-                          {teamData.invitations.filter((inv: any) => inv.status === 'PENDING').map((invitation: any) => (
-                            <div key={invitation.id} className="flex items-center justify-between p-3 border rounded-lg bg-yellow-50">
-                              <div>
-                                <div className="font-medium">{invitation.email}</div>
-                                <div className="text-sm text-muted-foreground">
-                                  Eingeladen am {new Date(invitation.createdAt).toLocaleDateString('de-DE')}
-                                </div>
-                              </div>
-                              <Badge variant="outline" className="bg-yellow-100">Ausstehend</Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Team-Chat */}
-                    <div className="space-y-4">
-                      <h4 className="font-medium flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        Team-Chat
-                        <Badge variant="outline" className="bg-green-100 text-green-800">Live</Badge>
-                      </h4>
-                      
-                      {/* Chat-Fenster */}
-                      <div className="border rounded-lg bg-background">
-                        {/* Chat-Nachrichten */}
-                        <div className="h-64 overflow-y-auto p-4 space-y-3 bg-muted/20">
-                          {chatMessages.length === 0 ? (
-                            <div className="text-center text-muted-foreground py-8">
-                              <Mail className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                              <p>Noch keine Nachrichten</p>
-                              <p className="text-sm">Schreiben Sie die erste Nachricht!</p>
-                            </div>
-                          ) : (
-                            chatMessages.map((msg: any) => (
-                              <div key={msg.id} className="flex gap-3">
-                                <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                                  <User className="h-4 w-4" />
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-medium text-sm">
-                                      {msg.sender.name || msg.sender.email}
-                                    </span>
-                                    {msg.sender.isTeamOwner && (
-                                      <Badge variant="secondary" className="text-xs">Admin</Badge>
-                                    )}
-                                    <span className="text-xs text-muted-foreground">
-                                      {new Date(msg.createdAt).toLocaleString('de-DE', {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        day: '2-digit',
-                                        month: '2-digit'
-                                      })}
-                                    </span>
-                                  </div>
-                                  <p className="text-sm bg-background p-2 rounded border">
-                                    {msg.message}
-                                  </p>
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                        
-                        {/* Chat-Eingabe */}
-                        <div className="border-t p-3 bg-background">
-                          <div className="flex gap-2">
-                            <Input
-                              placeholder="Nachricht eingeben..."
-                              value={newChatMessage}
-                              onChange={(e) => setNewChatMessage(e.target.value)}
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                  e.preventDefault()
-                                  sendChatMessage()
-                                }
-                              }}
-                              disabled={chatLoading}
-                            />
-                            <Button 
-                              onClick={sendChatMessage} 
-                              disabled={!newChatMessage.trim() || chatLoading}
-                              size="sm"
-                            >
-                              {chatLoading ? (
-                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-foreground" />
-                              ) : (
-                                <Send className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Enter zum Senden • Nachrichten werden alle 5 Sekunden automatisch aktualisiert
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ) : (
-              <Card className="border-yellow-500 bg-yellow-50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-yellow-700">
-                    <Crown className="h-5 w-5" />
-                    Team-Funktionen nur für Enterprise
-                  </CardTitle>
-                  <CardDescription className="text-yellow-600">
-                    Team-Verwaltung und Mitglieder-Einladungen sind nur im Enterprise-Paket verfügbar
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-4">
-                    <p className="text-yellow-700 mb-4">
-                      Mit dem Enterprise-Paket können Sie bis zu 3 Teammitglieder einladen und gemeinsam an Projekten arbeiten.
-                    </p>
-                    <Button onClick={() => setShowTeamUpgrade(true)}>
-                      <Crown className="h-4 w-4 mr-2" />
-                      Auf Enterprise upgraden
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
         </Tabs>
-
-        {/* Team Upgrade Dialog */}
-        <UpgradeDialog
-          open={showTeamUpgrade}
-          onOpenChange={setShowTeamUpgrade}
-          currentBundle={bundleInfo?.bundle || 'FREE'}
-          service="Team-Funktionen"
-          limitType="feature"
-          onUpgradeComplete={() => {
-            setShowTeamUpgrade(false)
-            window.location.reload()
-          }}
-        />
       </div>
     </SidebarInset>
   )
-}
+} 

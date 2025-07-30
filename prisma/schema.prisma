@@ -383,6 +383,7 @@ model GlobalNotification {
   textColor       String    @default("#ffffff")
   targetPackages  String[]  // ["ALL", "FREE", "STARTER", "PRO", "ENTERPRISE"]
   isActive        Boolean   @default(true)
+  dismissible     Boolean   @default(true) // Kann wegklickt werden
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   createdBy       String

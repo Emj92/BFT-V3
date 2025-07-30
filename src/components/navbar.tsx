@@ -134,7 +134,7 @@ export default function Navbar() {
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <Image 
-            src="/logo2.png" 
+            src="/logo3.png" 
             alt="barriere-frei24 Logo" 
             width={156} 
             height={52}

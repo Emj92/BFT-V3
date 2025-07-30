@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { LanguageProvider } from '@/contexts/LanguageContext';
-import { EarlyBirdBanner } from '@/components/early-bird-banner';
+import { GlobalBanner } from '@/components/global-banner';
 
 // Force dynamic rendering für das gesamte Layout
 export const dynamic = 'force-dynamic';
@@ -27,7 +27,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <LanguageProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-            <EarlyBirdBanner />
+            <GlobalBanner />
             {children}
           </ThemeProvider>
         </LanguageProvider>

@@ -56,49 +56,64 @@ export default function WebsiteScansPage() {
   // Lade Scans beim Komponenten-Mount
   useEffect(() => {
     loadScans()
+    
+    // Event-Listener für neue Scans hinzufügen
+    const handleScanComplete = () => {
+      console.log('Neuer Scan abgeschlossen - Scans werden neu geladen')
+      setTimeout(() => loadScans(), 1000) // Kurze Verzögerung für API/LocalStorage Updates
+    }
+    
+    window.addEventListener('scanCompleted', handleScanComplete)
+    
+    return () => {
+      window.removeEventListener('scanCompleted', handleScanComplete)
+    }
   }, [])
 
   const loadScans = async () => {
     try {
       setIsLoading(true)
+      console.log('KRITISCHER DEBUG: Lade Scans...')
       
-      // Lade Scans aus der Datenbank
-      const response = await fetch('/api/scans')
+      // NUR API - KEIN localStorage Fallback
+      const response = await fetch('/api/scans', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
+      
+      console.log('KRITISCHER DEBUG: API Response Status:', response.status)
+      
       if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
+        const rawData = await response.text()
+        console.log('KRITISCHER DEBUG: Raw API Response:', rawData)
+        
+        const data = JSON.parse(rawData)
+        console.log('KRITISCHER DEBUG: Parsed API Data:', data)
+        
+        if (data.scans && Array.isArray(data.scans)) {
+          console.log('KRITISCHER DEBUG: Scans gefunden:', data.scans.length)
+          console.log('KRITISCHER DEBUG: Erste Scan-Details:', data.scans[0])
           setScans(data.scans)
         } else {
+          console.log('KRITISCHER DEBUG: Keine Scans in API-Response')
           setScans([])
         }
       } else {
-        // Fallback: Lade aus localStorage wenn API nicht verfügbar
-        const savedScans = localStorage.getItem('website-scans')
-        if (savedScans) {
-          const parsedScans = JSON.parse(savedScans)
-          setScans(parsedScans)
-        } else {
-          setScans([])
-        }
-      }
-      
-      console.log('Scans erfolgreich geladen')
-    } catch (error) {
-      console.error('Fehler beim Laden der Scans:', error)
-      // Fallback: Lade aus localStorage bei Netzwerkfehlern
-      try {
-        const savedScans = localStorage.getItem('website-scans')
-        if (savedScans) {
-          const parsedScans = JSON.parse(savedScans)
-          setScans(parsedScans)
-        } else {
-          setScans([])
-        }
-      } catch (fallbackError) {
+        console.error('KRITISCHER DEBUG: API-Fehler:', response.status)
+        const errorText = await response.text()
+        console.error('KRITISCHER DEBUG: API-Error-Details:', errorText)
         setScans([])
       }
+      
+    } catch (error) {
+      console.error('KRITISCHER DEBUG: Exception beim Laden der Scans:', error)
+      setScans([])
     } finally {
       setIsLoading(false)
+      console.log('KRITISCHER DEBUG: Scan-Loading abgeschlossen')
     }
   }
 
@@ -614,9 +629,16 @@ export default function WebsiteScansPage() {
                 <div className="text-center py-8">
                   <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">Keine Scans gefunden</h3>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground mb-4">
                     Versuchen Sie es mit anderen Suchbegriffen oder starten Sie einen neuen Scan.
                   </p>
+                  <Button 
+                    onClick={() => window.location.href = '/accessibility-check'}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Ersten Scan durchführen
+                  </Button>
                 </div>
               </CardContent>
             </Card>
