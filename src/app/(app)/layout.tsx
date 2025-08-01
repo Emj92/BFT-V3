@@ -2,6 +2,7 @@
 
 import { SidebarProvider } from "@/components/ui/sidebar"
 import AppSidebar from "@/components/app-sidebar"
+import { AuthGuard } from "@/components/auth-guard"
 import { usePathname } from "next/navigation"
 
 export default function AppLayout({
@@ -15,15 +16,21 @@ export default function AppLayout({
   const isAuthPage = pathname === '/login' || pathname === '/register'
   
   if (isAuthPage) {
-    return <>{children}</>
+    return (
+      <AuthGuard>
+        {children}
+      </AuthGuard>
+    )
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
-    </SidebarProvider>
+    <AuthGuard>
+      <SidebarProvider>
+        <AppSidebar />
+        <main className="flex-1 overflow-auto">
+          {children}
+        </main>
+      </SidebarProvider>
+    </AuthGuard>
   )
 }

@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { getErrorByCode } from "@/lib/wcag-errors"
 import { useUser } from "@/hooks/useUser"
+import { useBundle } from "@/hooks/useBundle"
 import dynamic from 'next/dynamic'
 import { GlobalNavigation } from "@/components/global-navigation"
 
@@ -50,6 +51,7 @@ export default function WCAGCoachPage() {
   
   // User und Credits laden
   const { user, loading: userLoading } = useUser()
+  const { bundleInfo, loading: bundleLoading } = useBundle()
 
   // Client-Side-Rendering für Hydration-Probleme
   useEffect(() => {
@@ -158,8 +160,8 @@ export default function WCAGCoachPage() {
     })
   }
 
-  // Lade-Indikator für User
-  if (userLoading) {
+  // Lade-Indikator für User und Bundle
+  if (userLoading || bundleLoading) {
     return (
       <SidebarInset>
         <GlobalNavigation title="WCAG Coach" />
@@ -175,6 +177,56 @@ export default function WCAGCoachPage() {
             </div>
           </main>
         </div>
+      </SidebarInset>
+    )
+  }
+
+  const isFreeUser = bundleInfo?.bundle === 'FREE'
+
+  // Für FREE Nutzer: Sperre anzeigen
+  if (isFreeUser) {
+    return (
+      <SidebarInset>
+        <GlobalNavigation title="WCAG Coach" />
+        <main className="flex flex-1 flex-col gap-6 p-6 md:gap-8 md:p-8 bg-gray-100 dark:bg-gray-900">
+          {/* Blauer Hinweis für FREE Nutzer */}
+          <Card className="border-blue-400 bg-blue-50 dark:bg-blue-900/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-700">
+                <Crown className="h-5 w-5" />
+                WCAG Coach ab STARTER-Paket
+              </CardTitle>
+              <CardDescription className="text-blue-600">
+                Der KI-basierte WCAG Coach ist nur ab dem STARTER-Paket verfügbar
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-4">
+                <MessageSquare className="mx-auto h-16 w-16 text-blue-500 mb-4" />
+                <p className="text-blue-700 mb-4">
+                  Um persönliche Beratung durch den WCAG Coach zu erhalten, 
+                  benötigen Sie mindestens das STARTER-Paket.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button 
+                    onClick={() => window.location.href = "/einstellungen"}
+                    className="h-12 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Crown className="mr-2 h-4 w-4" />
+                    Jetzt auf STARTER upgraden
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.location.href = "/support/faq"}
+                    className="h-12 border-blue-400 text-blue-700 hover:bg-blue-50"
+                  >
+                    FAQ ansehen
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
       </SidebarInset>
     )
   }

@@ -397,7 +397,7 @@ ${formData.additionalInfo ? `## Zusätzliche Informationen\n\n${formData.additio
                     value={formData.organizationName}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateFormData('organizationName', e.target.value)}
                     placeholder="z.B. Ihr Unternehmen"
-                    className="text-hint h-touch"
+                    className="text-hint h-touch bg-white dark:bg-white border-gray-300 dark:border-gray-300"
                   />
                 </div>
                 <div className="space-y-a11y-xs">
@@ -407,7 +407,7 @@ ${formData.additionalInfo ? `## Zusätzliche Informationen\n\n${formData.additio
                     value={formData.websiteUrl}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateFormData('websiteUrl', e.target.value)}
                     placeholder="https://ihre-website.com"
-                    className="text-hint h-touch"
+                    className="text-hint h-touch bg-white dark:bg-white border-gray-300 dark:border-gray-300"
                   />
                 </div>
                 <div className="space-y-a11y-xs">
@@ -418,7 +418,7 @@ ${formData.additionalInfo ? `## Zusätzliche Informationen\n\n${formData.additio
                     value={formData.contactEmail}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateFormData('contactEmail', e.target.value)}
                     placeholder="kontakt@ihre-domain.de"
-                    className="text-hint h-touch"
+                    className="text-hint h-touch bg-white dark:bg-white border-gray-300 dark:border-gray-300"
                   />
                 </div>
                 <div className="space-y-a11y-xs">
@@ -428,7 +428,7 @@ ${formData.additionalInfo ? `## Zusätzliche Informationen\n\n${formData.additio
                     value={formData.contactPhone}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateFormData('contactPhone', e.target.value)}
                     placeholder="+49 XXX XXXXXXX"
-                    className="text-hint h-touch"
+                    className="text-hint h-touch bg-white dark:bg-white border-gray-300 dark:border-gray-300"
                   />
                 </div>
               </div>
@@ -445,7 +445,7 @@ ${formData.additionalInfo ? `## Zusätzliche Informationen\n\n${formData.additio
                 <div className="space-y-a11y-xs">
                   <Label className="text-hint font-medium">WCAG Version</Label>
                   <Select value={formData.wcagVersion} onValueChange={(value) => updateFormData('wcagVersion', value)}>
-                    <SelectTrigger className="text-hint h-touch">
+                    <SelectTrigger className="text-hint h-touch bg-white dark:bg-white border-gray-300 dark:border-gray-300">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -457,7 +457,7 @@ ${formData.additionalInfo ? `## Zusätzliche Informationen\n\n${formData.additio
                 <div className="space-y-a11y-xs">
                   <Label className="text-hint font-medium">Konformitätslevel</Label>
                   <Select value={formData.wcagLevel} onValueChange={(value) => updateFormData('wcagLevel', value)}>
-                    <SelectTrigger className="text-hint h-touch">
+                    <SelectTrigger className="text-hint h-touch bg-white dark:bg-white border-gray-300 dark:border-gray-300">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

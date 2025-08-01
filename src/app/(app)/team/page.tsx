@@ -23,17 +23,21 @@ export default function TeamPage() {
 
   // Prüfe Enterprise-Berechtigung
   const hasEnterpriseAccess = bundleInfo?.bundle === 'ENTERPRISE' || user?.bundle === 'ENTERPRISE'
+  const isLoading = !bundleInfo || !user // Prüfe ob Daten noch geladen werden
 
   useEffect(() => {
+    // Warte bis Bundle- und User-Daten vollständig geladen sind
+    if (isLoading) return
+    
     if (!hasEnterpriseAccess) {
       setShowUpgradeDialog(true)
       return
     }
     loadTeamData()
-  }, [hasEnterpriseAccess])
+  }, [hasEnterpriseAccess, isLoading])
 
   const loadTeamData = async () => {
-    if (!hasEnterpriseAccess) return
+    if (!hasEnterpriseAccess || isLoading) return
     
     try {
       const response = await fetch('/api/teams/invite')
@@ -93,6 +97,20 @@ export default function TeamPage() {
     } catch (error) {
       alert('Fehler beim Entfernen des Teammitglieds')
     }
+  }
+
+  // Zeige Loading während Bundle/User-Daten geladen werden
+  if (isLoading) {
+    return (
+      <SidebarInset>
+        <GlobalNavigation title="Team verwalten" />
+        <main className="flex flex-1 flex-col gap-6 p-6 md:gap-8 md:p-8">
+          <div className="flex items-center justify-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        </main>
+      </SidebarInset>
+    )
   }
 
   if (!hasEnterpriseAccess) {

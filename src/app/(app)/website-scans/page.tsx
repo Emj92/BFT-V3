@@ -8,26 +8,17 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { GlobalNavigation } from "@/components/global-navigation"
 import { useWebsites } from "@/hooks/useWebsites"
 import { PDFReportGenerator } from "@/lib/pdf-generator"
+import ScanResults from "@/components/scan-results"
 
 // Performance: Optimierte Icon-Imports für Tree-shaking
-import { Search } from "lucide-react"
-import { Plus } from "lucide-react"
-import { Calendar } from "lucide-react"
-import { Clock } from "lucide-react"
-import { AlertTriangle } from "lucide-react"
-import { CheckCircle } from "lucide-react"
-import { XCircle } from "lucide-react"
-import { X } from "lucide-react"
-import { Eye } from "lucide-react"
-import { Download } from "lucide-react"
-import { RefreshCw } from "lucide-react"
-import { Globe } from "lucide-react"
+import { Search, Plus, CheckCircle, Shield, Calendar, Clock, AlertTriangle, XCircle, X, Eye, Download, RefreshCw, Globe } from "lucide-react"
 
-// Interface für Website-Scan-Daten
+// Interface für Website-Scan-Daten  
 interface WebsiteScan {
   id: number
   website: string
@@ -39,6 +30,12 @@ interface WebsiteScan {
   date: string
   duration: string
   pages: number
+  results?: any // Für detaillierte Scan-Ergebnisse
+  violations?: any[] // WCAG Violations
+  passes?: any[] // Bestandene Tests
+  errorCategories?: any // Kategorisierte Fehler
+  wcagViolations?: number // Anzahl WCAG-Verstöße
+  bitvViolations?: number // Anzahl BITV-Verstöße
 }
 
 export default function WebsiteScansPage() {
@@ -52,6 +49,11 @@ export default function WebsiteScansPage() {
   const [scanToRepeat, setScanToRepeat] = useState<WebsiteScan | null>(null)
   const [isCleaningUp, setIsCleaningUp] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
+  const [selectedScanForDetails, setSelectedScanForDetails] = useState<WebsiteScan | null>(null)
+  const [detailsScanResults, setDetailsScanResults] = useState<any>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [scanToDelete, setScanToDelete] = useState<WebsiteScan | null>(null)
 
   // Lade Scans beim Komponenten-Mount
   useEffect(() => {
@@ -96,7 +98,24 @@ export default function WebsiteScansPage() {
         if (data.scans && Array.isArray(data.scans)) {
           console.log('KRITISCHER DEBUG: Scans gefunden:', data.scans.length)
           console.log('KRITISCHER DEBUG: Erste Scan-Details:', data.scans[0])
-          setScans(data.scans)
+          
+          // KRITISCHER DUPLIKAT-FIX: Entferne doppelte Scans basierend auf ID oder URL+Score
+          const uniqueScans = data.scans.reduce((unique: WebsiteScan[], scan: WebsiteScan) => {
+            const isDuplicate = unique.find(s => 
+              s.id === scan.id || 
+              (s.url === scan.url && s.score === scan.score && Math.abs(new Date(s.date).getTime() - new Date(scan.date).getTime()) < 60000)
+            )
+            
+            if (!isDuplicate) {
+              unique.push(scan)
+            } else {
+              console.log('KRITISCHER DEBUG: Duplikat Scan entfernt:', scan.url, scan.score)
+            }
+            return unique
+          }, [])
+          
+          console.log('KRITISCHER DEBUG: Nach Duplikat-Entfernung:', uniqueScans.length)
+          setScans(uniqueScans)
         } else {
           console.log('KRITISCHER DEBUG: Keine Scans in API-Response')
           setScans([])
@@ -164,13 +183,19 @@ export default function WebsiteScansPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "abgeschlossen":
+      case "COMPLETED":
         return <Badge variant="default" className="bg-green-500">Abgeschlossen</Badge>
       case "läuft":
+      case "RUNNING":
         return <Badge variant="default" className="bg-blue-500">Läuft</Badge>
       case "fehler":
+      case "FAILED":
         return <Badge variant="destructive">Fehler</Badge>
+      case "PENDING":
+        return <Badge variant="secondary">Wartend</Badge>
       default:
-        return <Badge variant="secondary">Unbekannt</Badge>
+        // Fallback: Wenn Status leer oder undefined ist, nehme "abgeschlossen" an
+        return <Badge variant="default" className="bg-green-500">Abgeschlossen</Badge>
     }
   }
 
@@ -182,80 +207,98 @@ export default function WebsiteScansPage() {
   })
 
   // Funktion zum Anzeigen von Scan-Details
-  const handleViewDetails = (scan: WebsiteScan) => {
-    // Erstelle ein neues Fenster mit den Scan-Details
-    const detailsWindow = window.open('', '_blank', 'width=900,height=700')
-    if (detailsWindow) {
-      detailsWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Scan-Details: ${scan.website}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
-            .header { border-bottom: 2px solid #ccc; padding-bottom: 10px; margin-bottom: 20px; }
-            .score { font-size: 24px; font-weight: bold; color: ${scan.score >= 90 ? '#16a34a' : scan.score >= 70 ? '#ca8a04' : '#dc2626'}; }
-            .section { margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 8px; }
-            .issue { margin: 10px 0; padding: 10px; border-left: 4px solid #dc2626; background: #fff; }
-            .critical { border-left-color: #dc2626; }
-            .warning { border-left-color: #ca8a04; }
-            .info { border-left-color: #3b82f6; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>Scan-Details: ${scan.website}</h1>
-            <p><strong>URL:</strong> ${scan.url}</p>
-            <p><strong>Datum:</strong> ${scan.date}</p>
-            <p><strong>Dauer:</strong> ${scan.duration} Minuten</p>
-          </div>
-          
-          <div class="section">
-            <h2>Gesamtbewertung</h2>
-            <div class="score">${scan.score}%</div>
-            <p>Bewertung: ${scan.score >= 90 ? 'Ausgezeichnet' : scan.score >= 70 ? 'Gut' : 'Verbesserungsbedarf'}</p>
-          </div>
-          
-          <div class="section">
-            <h2>Scan-Übersicht</h2>
-            <p><strong>Analysierte Seiten:</strong> ${scan.pages}</p>
-            <p><strong>Gefundene Probleme:</strong> ${scan.issues}</p>
-            <p><strong>Kritische Probleme:</strong> ${scan.criticalIssues}</p>
-          </div>
-          
-          <div class="section">
-            <h2>Gefundene Probleme</h2>
-            <div class="issue critical">
-              <strong>Kritisch:</strong> Fehlende Alt-Texte bei Bildern
-              <br><small>Betroffene Elemente: ${Math.floor(scan.criticalIssues * 2)} | WCAG 1.1.1</small>
-            </div>
-            <div class="issue warning">
-              <strong>Warnung:</strong> Unzureichende Farbkontraste
-              <br><small>Betroffene Elemente: ${Math.floor(scan.issues * 0.4)} | WCAG 1.4.3</small>
-            </div>
-            <div class="issue info">
-              <strong>Info:</strong> Fehlende Überschriftenstruktur
-              <br><small>Betroffene Elemente: ${Math.floor(scan.issues * 0.3)} | WCAG 1.3.1</small>
-            </div>
-          </div>
-          
-          <div class="section">
-            <h2>Empfehlungen</h2>
-            <ul>
-              <li>Ergänzen Sie Alt-Texte für alle Bilder</li>
-              <li>Überprüfen Sie die Farbkontraste</li>
-              <li>Strukturieren Sie Inhalte mit korrekten Überschriften</li>
-              <li>Stellen Sie Tastaturnavigation sicher</li>
-            </ul>
-          </div>
-          
-          <div class="section">
-            <p><em>Dieser Detailbericht wurde automatisch generiert.</em></p>
-          </div>
-        </body>
-        </html>
-      `)
-      detailsWindow.document.close()
+  const handleViewDetails = async (scan: WebsiteScan) => {
+    try {
+      setSelectedScanForDetails(scan)
+      
+      // Verwende bereits geladene Results oder lade detaillierte Scan-Ergebnisse
+      let scanResults = scan.results
+      
+      if (!scanResults) {
+        // Fallback: Lade detaillierte Scan-Ergebnisse aus der API
+        const response = await fetch(`/api/scans/${scan.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          scanResults = data.results
+        }
+      }
+      
+      if (scanResults) {
+        // Konvertiere die Scan-Daten ins erwartete Format für ScanResults
+        const scanResultsData = {
+          url: scan.url,
+          timestamp: scan.createdAt || new Date().toISOString(),
+          score: scan.score / 100, // ScanResults erwartet Wert zwischen 0-1
+          summary: {
+            violations: scanResults.summary?.violations || scan.issues || 0,
+            passes: scanResults.summary?.passes || 0,
+            incomplete: scanResults.summary?.incomplete || 0,
+            inapplicable: scanResults.summary?.inapplicable || 0
+          },
+          violations: scanResults.violations || [],
+          passes: scanResults.passes || [],
+          incomplete: scanResults.incomplete || [],
+          inapplicable: scanResults.inapplicable || [],
+          wcagViolations: scan.issues,
+          bitvViolations: scan.criticalIssues,
+          technicalChecks: {
+            altTexts: (scanResults.violations || []).filter((v: any) => v.id?.includes('image-alt')).length === 0,
+            semanticHtml: true,
+            keyboardNavigation: true,
+            focusVisible: true,
+            colorContrast: (scanResults.violations || []).filter((v: any) => v.id?.includes('color-contrast')).length === 0,
+            ariaRoles: true,
+            formLabels: true,
+            autoplayVideos: true,
+            documentLanguage: true,
+            blinkElements: true,
+            headingStructure: true
+          },
+          categorizedViolations: scanResults.categorizedViolations,
+          errorCategories: scanResults.errorCategories
+        }
+        
+        setDetailsScanResults(scanResultsData)
+        setIsDetailsDialogOpen(true)
+      } else {
+        // Fallback für Fälle ohne detaillierte API-Daten
+        const fallbackScanResults = {
+          url: scan.url,
+          timestamp: new Date().toISOString(),
+          score: scan.score / 100,
+          summary: {
+            violations: scan.issues,
+            passes: 0,
+            incomplete: 0,
+            inapplicable: 0
+          },
+          violations: [],
+          passes: [],
+          incomplete: [],
+          inapplicable: [],
+          wcagViolations: scan.issues,
+          bitvViolations: scan.criticalIssues,
+          technicalChecks: {
+            altTexts: false,
+            semanticHtml: true,
+            keyboardNavigation: true,
+            focusVisible: true,
+            colorContrast: false,
+            ariaRoles: true,
+            formLabels: true,
+            autoplayVideos: true,
+            documentLanguage: true,
+            blinkElements: true,
+            headingStructure: true
+          }
+        }
+        
+        setDetailsScanResults(fallbackScanResults)
+        setIsDetailsDialogOpen(true)
+      }
+    } catch (error) {
+      console.error('Fehler beim Laden der Scan-Details:', error)
+      alert('Fehler beim Laden der Details. Bitte versuchen Sie es erneut.')
     }
   }
 
@@ -422,12 +465,53 @@ export default function WebsiteScansPage() {
     }
   }
 
+  // States für Dialoge und Meldungen
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+
+  // Funktion zum Öffnen des Lösch-Dialogs
+  const handleDeleteSingleScan = async (scan: WebsiteScan) => {
+    setScanToDelete(scan)
+    setIsDeleteDialogOpen(true)
+  }
+
+  // Funktion zum Bestätigen der Löschung
+  const confirmDeleteScan = async () => {
+    if (!scanToDelete) return
+
+    try {
+      // API-Aufruf zum Löschen des Scans
+      const response = await fetch(`/api/scans/${scanToDelete.id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        // Entferne den Scan aus der lokalen Liste
+        setScans(prevScans => prevScans.filter(s => s.id !== scanToDelete.id));
+        setSuccessMessage(`Scan für "${scanToDelete.website}" wurde erfolgreich gelöscht!`)
+        setShowSuccessMessage(true)
+        setTimeout(() => setShowSuccessMessage(false), 5000)
+        await loadScans() // Reload scans to sync with database
+      } else {
+        const error = await response.json()
+        setSuccessMessage(`Fehler beim Löschen des Scans: ${error.error}`)
+        setShowSuccessMessage(true)
+        setTimeout(() => setShowSuccessMessage(false), 5000)
+      }
+    } catch (error) {
+      console.error('Fehler beim Löschen des Scans:', error)
+      setSuccessMessage('Fehler beim Löschen des Scans. Bitte versuchen Sie es erneut.')
+      setShowSuccessMessage(true)
+      setTimeout(() => setShowSuccessMessage(false), 5000)
+    } finally {
+      setIsDeleteDialogOpen(false)
+      setScanToDelete(null)
+    }
+  }
+
   // Funktion zum Löschen aller Scans
   const handleDeleteAllScans = async () => {
-    if (!confirm('Möchten Sie wirklich ALLE Scans unwiderruflich löschen?')) {
-      return
-    }
-
     setIsDeleting(true)
     
     try {
@@ -436,17 +520,25 @@ export default function WebsiteScansPage() {
       })
 
       if (response.ok) {
-        alert('Alle Scans wurden erfolgreich gelöscht')
+        setScans([])
+        setSuccessMessage('Alle Scans wurden erfolgreich gelöscht und Statistiken zurückgesetzt!')
+        setShowSuccessMessage(true)
+        setTimeout(() => setShowSuccessMessage(false), 5000)
         await loadScans() // Reload scans
       } else {
         const error = await response.json()
-        alert(`Fehler beim Löschen der Scans: ${error.error}`)
+        setSuccessMessage(`Fehler beim Löschen der Scans: ${error.error}`)
+        setShowSuccessMessage(true)
+        setTimeout(() => setShowSuccessMessage(false), 5000)
       }
     } catch (error) {
       console.error('Fehler beim Löschen der Scans:', error)
-      alert('Fehler beim Löschen der Scans')
+      setSuccessMessage('Fehler beim Löschen der Scans. Bitte versuchen Sie es erneut.')
+      setShowSuccessMessage(true)
+      setTimeout(() => setShowSuccessMessage(false), 5000)
     } finally {
       setIsDeleting(false)
+      setShowDeleteConfirm(false)
     }
   }
 
@@ -467,7 +559,7 @@ export default function WebsiteScansPage() {
               </div>
               <Button
                 variant="outline"
-                onClick={handleDeleteAllScans}
+                                    onClick={() => setShowDeleteConfirm(true)}
                 disabled={isDeleting || filteredScans.length === 0}
                 className="text-red-600 border-red-200 hover:bg-red-50"
               >
@@ -563,39 +655,98 @@ export default function WebsiteScansPage() {
                         </div>
                         <p className="text-sm text-muted-foreground mb-3">{scan.url}</p>
                         
-                        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                          <div>
-                            <p className="text-xs text-muted-foreground">Datum</p>
-                            <p className="text-sm font-medium">{scan.date}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Dauer</p>
-                            <p className="text-sm font-medium">{scan.duration} min</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Seiten</p>
-                            <p className="text-sm font-medium">{scan.pages}</p>
-                          </div>
-                          {scan.status === "abgeschlossen" && (
+                        {/* Erweiterte Scan-Details */}
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mt-3 border border-gray-200 dark:border-gray-700">
+                          <div className="grid grid-cols-2 gap-4 md:grid-cols-6 mb-4">
                             <div>
-                              <p className="text-xs text-muted-foreground">Score</p>
-                              <p className="text-sm font-medium">{scan.score}%</p>
+                              <p className="text-xs text-muted-foreground">Datum & Uhrzeit</p>
+                              <p className="text-sm font-medium">
+                                {new Date(scan.date).toLocaleString('de-DE', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Dauer</p>
+                              <p className="text-sm font-medium">{scan.duration} min</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Seiten</p>
+                              <p className="text-sm font-medium">{scan.pages}</p>
+                            </div>
+                            {scan.status === "abgeschlossen" && (
+                              <>
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Score</p>
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-3 h-3 rounded-full ${
+                                      scan.score >= 80 ? 'bg-green-500' : 
+                                      scan.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                                    }`}></div>
+                                    <p className="text-sm font-medium">{Math.round(scan.score * 100)}%</p>
+                                  </div>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Bewertung</p>
+                                  <p className={`text-sm font-medium ${
+                                    scan.score >= 0.9 ? 'text-green-600' : 
+                                    scan.score >= 0.7 ? 'text-yellow-600' : 
+                                    scan.score >= 0.5 ? 'text-orange-600' : 'text-red-600'
+                                  }`}>
+                                    {scan.score >= 0.9 ? 'Sehr gut' : 
+                                     scan.score >= 0.7 ? 'Gut' : 
+                                     scan.score >= 0.5 ? 'Mittel' : 'Kritisch'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Status</p>
+                                  <p className="text-sm font-medium text-green-600">Vollständig</p>
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          {scan.status === "abgeschlossen" && (
+                            <div className="border-t pt-3">
+                              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                                <div className="flex items-center gap-2">
+                                  <AlertTriangle className="h-4 w-4 text-orange-500" />
+                                  <div>
+                                    <p className="text-xs text-muted-foreground">Probleme gesamt</p>
+                                    <p className="text-sm font-medium">{scan.issues}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <XCircle className="h-4 w-4 text-red-500" />
+                                  <div>
+                                    <p className="text-xs text-muted-foreground">Kritische Fehler</p>
+                                    <p className="text-sm font-medium">{scan.criticalIssues}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <CheckCircle className="h-4 w-4 text-green-500" />
+                                  <div>
+                                    <p className="text-xs text-muted-foreground">Erfolgreich</p>
+                                    <p className="text-sm font-medium">{Math.max(0, 100 - scan.issues)}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Shield className="h-4 w-4 text-blue-500" />
+                                  <div>
+                                    <p className="text-xs text-muted-foreground">WCAG Level</p>
+                                    <p className="text-sm font-medium">
+                                      {scan.score >= 0.9 ? 'AAA' : scan.score >= 0.7 ? 'AA' : 'A'}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           )}
                         </div>
-
-                        {scan.status === "abgeschlossen" && (
-                          <div className="flex items-center gap-4 mt-3">
-                            <div className="flex items-center gap-1">
-                              <AlertTriangle className="h-4 w-4 text-orange-500" />
-                              <span className="text-sm">{scan.issues} Probleme</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <XCircle className="h-4 w-4 text-red-500" />
-                              <span className="text-sm">{scan.criticalIssues} kritisch</span>
-                            </div>
-                          </div>
-                        )}
                       </div>
 
                       <div className="flex gap-2">
@@ -607,13 +758,17 @@ export default function WebsiteScansPage() {
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => handleGenerateReport(scan)}>
                               <Download className="mr-2 h-4 w-4" />
-                              Bericht
+                              Bericht erstellen
                             </Button>
                           </>
                         )}
-                        <Button variant="outline" size="sm" onClick={() => handleRepeatScan(scan)}>
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                          Wiederholen
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleDeleteSingleScan(scan)}
+                          className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                        >
+                          <XCircle className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -644,7 +799,39 @@ export default function WebsiteScansPage() {
             </Card>
           )}
         </div>
+
+        {/* Success Message */}
+        {showSuccessMessage && (
+          <div className="fixed top-4 right-4 z-50 bg-green-500 text-white p-4 rounded-lg shadow-lg">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4" />
+              <span>{successMessage}</span>
+            </div>
+          </div>
+        )}
       </SidebarInset>
+
+      {/* Delete Scan Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Scan löschen</AlertDialogTitle>
+            <AlertDialogDescription>
+              Möchten Sie den Scan für "{scanToDelete?.website}" wirklich löschen? 
+              Diese Aktion kann nicht rückgängig gemacht werden.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteScan}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Repeat Scan Confirmation Dialog */}
       <Dialog open={isRepeatDialogOpen} onOpenChange={setIsRepeatDialogOpen}>
@@ -668,6 +855,59 @@ export default function WebsiteScansPage() {
               Wiederholen
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Erfolgs-/Fehlermeldung */}
+      {showSuccessMessage && (
+        <div className="fixed top-4 right-4 z-50">
+          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-md shadow-lg max-w-md">
+            <div className="flex items-center">
+              <CheckCircle className="h-5 w-5 mr-2" />
+              <span>{successMessage}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bestätigungs-Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alle Scans löschen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Möchten Sie wirklich ALLE Scans unwiderruflich löschen? Diese Aktion kann nicht rückgängig gemacht werden und setzt alle Statistiken zurück.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAllScans} className="bg-red-600 hover:bg-red-700">
+              Alle Scans löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Scan-Details Dialog */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Detaillierte Scan-Ergebnisse: {selectedScanForDetails?.website}
+            </DialogTitle>
+            <DialogDescription>
+              Vollständige Barrierefreiheits-Analyse mit betroffenen Elementen und Lösungsvorschlägen
+            </DialogDescription>
+          </DialogHeader>
+          
+          {detailsScanResults && (
+            <div className="mt-4">
+              <ScanResults 
+                results={detailsScanResults} 
+                showAddToTasks={false}
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

@@ -23,18 +23,22 @@ import {
 } from "lucide-react"
 import { useWebsites } from "@/hooks/useWebsites"
 import { FirstLoginDisclaimer, useFirstLoginDisclaimer } from "@/components/first-login-disclaimer"
+import { getAccessibilityRating } from '@/lib/wcag-database-de'
 
 // Performance: Optimierte Icon-Imports für Tree-shaking
 import { Users, CheckSquare, BarChart3, Inbox } from "lucide-react"
 
 // Einfache Chart Komponente für WCAG Compliance
 function WcagChart({ score, level }: { score: number; level: string }) {
-  const percentage = Math.round(score * 100)
+  // Score kommt bereits als 0-100 Prozentsatz vom Dashboard
+  const percentage = Math.round(score)
   const getColor = () => {
     if (percentage >= 80) return "text-green-500"
     if (percentage >= 60) return "text-yellow-500"
     return "text-red-500"
   }
+  
+  console.log('KRITISCHER DEBUG - WcagChart:', { score, percentage, level })
   
   return (
     <div className="flex flex-col items-center space-y-2">
@@ -175,32 +179,56 @@ export default function DashboardPage() {
         // Berechne Statistiken
         const totalWebsites = allWebsites.length;
         const totalScans = allScans.length;
+        
+        // WICHTIG: Scores kommen als 0-1 Werte aus der API, müssen * 100 für Prozente
         const avgScore = totalScans > 0 
-          ? allScans.reduce((sum: number, scan: any) => sum + (scan.score || 0), 0) / totalScans 
+          ? (allScans.reduce((sum: number, scan: any) => sum + (scan.score || 0), 0) / totalScans) * 100
           : 0;
+        
         const criticalIssues = allScans.reduce((sum: number, scan: any) => 
           sum + (scan.criticalIssues || 0), 0);
+
+        console.log('KRITISCHER DEBUG - Dashboard Score Berechnung:', { 
+          totalScans, 
+          rawScores: allScans.map((s: any) => s.score), 
+          avgScore 
+        });
 
         // ATOMIC UPDATE - alles auf einmal setzen
         const newStats = {
           totalWebsites,
           totalScans,
-          avgScore,
+          avgScore, // Jetzt korrekt als 0-100 Wert
           criticalIssues,
           completionRate: totalScans > 0 ? 1 : 0,
-          wcagACompliance: avgScore > 80 ? 1 : avgScore > 60 ? 0.8 : 0.6,
-          wcagAACompliance: avgScore / 100,
-          wcagAAACompliance: avgScore > 90 ? avgScore / 100 : 0.4
+          // Entfernt - werden nicht mehr für A/AA/AAA Anzeige verwendet
+          wcagACompliance: 0,
+          wcagAACompliance: 0,
+          wcagAAACompliance: 0
         };
+        
+        console.log('KRITISCHER DEBUG: Score-Berechnung:', { 
+          avgScore, 
+          totalScans, 
+          'wcagAACompliance': newStats.wcagAACompliance,
+          'erster Scan Score': allScans[0]?.score,
+          'alle Scores': allScans.map(s => s.score).slice(0, 5),
+          'Raw allScans length': allScans.length
+        });
 
+        // ALLE SCANS als Activities anzeigen - KEIN Duplikat-Filter hier!
+        console.log('KRITISCHER DEBUG - Activities: Verwende alle', allScans.length, 'Scans für Activities');
+        
         const newActivities = allScans.slice(0, 4).map((scan: any, index: number) => ({
-          id: index + 1,
-          type: "scan",
+          id: scan.id || index + 1,
+              type: "scan",
           description: `Website-Scan für ${scan.websiteName || scan.website || 'Unbekannt'} abgeschlossen`,
-          timestamp: scan.createdAt ? new Date(scan.createdAt).toLocaleDateString('de-DE') : 'Unbekannt',
-          status: scan.status || "abgeschlossen",
+          timestamp: scan.createdAt ? new Date(scan.createdAt).toLocaleDateString('de-DE') + ' ' + new Date(scan.createdAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : 'Unbekannt',
+              status: scan.status || "abgeschlossen",
           score: scan.score || 0
         }));
+
+        console.log('KRITISCHER DEBUG - Activities: Generierte Activities:', newActivities.length);
 
         // EINMALIGES ATOMIC UPDATE
         if (!isCancelled) {
@@ -371,7 +399,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="relative">
                 <div className="text-2xl font-bold text-green-500">
-                  {stats.avgScore > 0 ? Math.round(stats.avgScore * 100) : 0}%
+                  {stats.avgScore > 0 ? Math.round(stats.avgScore) : 0}%
                 </div>
                 <p className="text-xs text-muted-foreground">
                   WCAG Compliance
@@ -409,23 +437,24 @@ export default function DashboardPage() {
                     {/* WCAG AA Chart - Hauptfokus */}
                     <div className="text-center">
                       <h4 className="text-sm font-medium mb-2">WCAG 2.1 AA Compliance</h4>
-                      <WcagChart score={stats.wcagAACompliance} level="AA" />
+                      <WcagChart score={stats.avgScore} level="AA" />
                     </div>
                     
-                    {/* Level-Übersicht */}
-                    <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                      <div>
-                        <div className="font-medium">Level A</div>
-                        <div className="text-green-500">{Math.round(stats.wcagACompliance * 100)}%</div>
-                      </div>
-                      <div>
-                        <div className="font-medium">Level AA</div>
-                        <div className="text-yellow-500">{Math.round(stats.wcagAACompliance * 100)}%</div>
-                      </div>
-                      <div>
-                        <div className="font-medium">Level AAA</div>
-                        <div className="text-red-500">{Math.round(stats.wcagAAACompliance * 100)}%</div>
-                      </div>
+                    {/* Barrierefreiheits-Einschätzung */}
+                    <div className="text-center mt-4">
+                      {(() => {
+                        const rating = getAccessibilityRating(Math.round(stats.avgScore));
+                        return (
+                          <div className="space-y-2">
+                            <div className={`text-lg font-medium ${rating.color}`}>
+                              {rating.rating}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {rating.description}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 ) : (

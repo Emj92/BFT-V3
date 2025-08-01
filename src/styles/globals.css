@@ -220,3 +220,19 @@
   animation: gradient-shift 10s ease infinite;
   background-size: 400% 400%;
 }
+
+/* Dialog X-Button Focus-Rahmen entfernen */
+[data-radix-dialog-content] button[data-radix-dialog-close]:focus-visible,
+[data-radix-dialog-content] button[data-radix-dialog-close]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Dialog close buttons spezifisch */
+.dialog-close-button:focus-visible,
+.dialog-close-button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}

@@ -30,26 +30,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 })
     }
 
-    // Erstelle ein Standard-Projekt wenn keines existiert
-    let userProject = await prisma.project.findFirst({
-      where: { ownerId: user.id }
-    })
-
-    if (!userProject) {
-      userProject = await prisma.project.create({
-        data: {
-          name: `${user.name || user.email} - Websites`,
-          description: 'Automatisch erstelltes Projekt für Website-Verwaltung',
-          ownerId: user.id
-        }
-      })
-    }
-
-    // Websites des Benutzers abrufen
+    console.log('KRITISCHER DEBUG - GET: Lade Websites für User:', user.email)
+    
+    // KEINE Projekt-Erstellung hier! Nur Websites aus ALLEN Projekten des Users laden
     const websites = await prisma.website.findMany({
       where: {
         project: {
-          ownerId: user.id
+          ownerId: user.id  // Alle Projekte des Users durchsuchen
         }
       },
       include: {
@@ -88,9 +75,25 @@ export async function GET(request: NextRequest) {
       lastScanStatus: website.pages[0]?.scans[0]?.status || null
     }))
 
+    console.log('KRITISCHER DEBUG - GET: Gefundene Websites aus DB:', websites.length)
+    console.log('KRITISCHER DEBUG - GET: Formatierte Websites:', formattedWebsites.map(w => ({ id: w.id, name: w.name, url: w.url })))
+    
+    // Duplikat-Check: Websites mit gleicher URL nur einmal zurückgeben
+    const uniqueWebsites = formattedWebsites.reduce((unique: any[], website: any) => {
+      if (!unique.find(w => w.url === website.url)) {
+        unique.push(website)
+      } else {
+        console.log('KRITISCHER DEBUG - GET: Duplikat entfernt:', website.url)
+      }
+      return unique
+    }, [])
+    
+    console.log('KRITISCHER DEBUG - GET: Nach Duplikat-Entfernung:', uniqueWebsites.length)
+    
     return NextResponse.json({ 
-      websites: formattedWebsites,
-      total: websites.length 
+      success: true,
+      websites: uniqueWebsites,  // Eindeutige Websites
+      total: uniqueWebsites.length 
     })
 
   } catch (error) {
@@ -138,8 +141,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // URL formatieren
-    const formattedUrl = url.startsWith('http') ? url : `https://${url}`
+    // URL formatieren und normalisieren
+    let formattedUrl = url.startsWith('http') ? url : `https://${url}`
+    formattedUrl = formattedUrl.replace(/\/+$/, '') // Entferne trailing slashes
 
     // Prüfen ob URL bereits existiert
     const existingWebsite = await prisma.website.findFirst({
@@ -158,19 +162,43 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    console.log('KRITISCHER DEBUG - POST: Neue Website hinzufügen:', name, url)
+    
+    // Prüfe ZUERST auf Duplikate in ALLEN Projekten des Users
+    const existingWebsiteCheck = await prisma.website.findFirst({
+      where: {
+        baseUrl: formattedUrl,
+        project: {
+          ownerId: user.id  // Über alle Projekte suchen!
+        }
+      }
+    })
+
+    if (existingWebsiteCheck) {
+      console.log('KRITISCHER DEBUG - POST: Website bereits vorhanden:', existingWebsiteCheck.id)
+      return NextResponse.json(
+        { error: 'Diese Website wurde bereits hinzugefügt' },
+        { status: 409 }
+      )
+    }
+    
     // Standard-Projekt des Benutzers finden oder erstellen
     let userProject = await prisma.project.findFirst({
-      where: { ownerId: user.id }
+      where: { 
+        ownerId: user.id,
+        name: "Standard-Projekt"  // Verwende gleichen Namen wie in Scans API!
+      }
     })
 
     if (!userProject) {
       userProject = await prisma.project.create({
         data: {
-          name: `${user.name || user.email} - Websites`,
+          name: "Standard-Projekt",  // GLEICHER NAME wie in Scans API!
           description: 'Automatisch erstelltes Projekt für Website-Verwaltung',
           ownerId: user.id
         }
       })
+      console.log('KRITISCHER DEBUG - POST: Standard-Projekt erstellt:', userProject.id)
     }
 
     // Website erstellen

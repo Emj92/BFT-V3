@@ -67,8 +67,20 @@ export function useWebsites() {
         const data = await response.json()
         const websitesList = data.websites || []
         
-        console.log('Websites von API geladen:', websitesList.length)
-        setWebsites(websitesList)
+        console.log('KRITISCHER DEBUG - Frontend: Websites von API geladen:', websitesList.length)
+        
+        // ZUSÄTZLICHER Frontend-Duplikat-Check für doppelte Sicherheit
+        const uniqueWebsites = websitesList.reduce((unique: Website[], website: Website) => {
+          if (!unique.find(w => w.url === website.url || w.id === website.id)) {
+            unique.push(website)
+          } else {
+            console.log('KRITISCHER DEBUG - Frontend: Duplikat entfernt:', website.url)
+          }
+          return unique
+        }, [])
+        
+        console.log('KRITISCHER DEBUG - Frontend: Nach Duplikat-Entfernung:', uniqueWebsites.length)
+        setWebsites(uniqueWebsites)
         
         // Entferne localStorage komplett
         localStorage.removeItem(WEBSITES_STORAGE_KEY)
@@ -138,9 +150,18 @@ export function useWebsites() {
         
         console.log('Website erfolgreich über API hinzugefügt:', newWebsite)
         
+        // STRENGE Duplikat-Prüfung VOR dem Hinzufügen
+        const isAlreadyAdded = websites.find(w => w.id === newWebsite.id || w.url === newWebsite.url)
+        if (isAlreadyAdded) {
+          console.log('KRITISCHER DEBUG - Frontend: Website bereits in Liste, nicht hinzufügen:', newWebsite.url)
+          return isAlreadyAdded
+        }
+        
         // Aktualisiere lokale Liste
         const updatedWebsites = [...websites, newWebsite]
         setWebsites(updatedWebsites)
+        
+        console.log('KRITISCHER DEBUG - Frontend: Website zur Liste hinzugefügt:', newWebsite.url, 'Neue Anzahl:', updatedWebsites.length)
         
         // Entferne localStorage komplett
         localStorage.removeItem(WEBSITES_STORAGE_KEY)

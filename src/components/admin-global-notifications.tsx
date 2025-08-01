@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Trash2, Eye, EyeOff, Save, Plus } from 'lucide-react'
+import { toast } from "sonner"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 interface GlobalNotification {
   id: string
@@ -28,6 +30,10 @@ export function AdminGlobalNotifications() {
   const [notifications, setNotifications] = useState<GlobalNotification[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [deleteDialog, setDeleteDialog] = useState<{open: boolean, notification: GlobalNotification | null}>({
+    open: false,
+    notification: null
+  })
   
   // Form state
   const [notificationType, setNotificationType] = useState<'notification' | 'banner'>('notification')
@@ -58,7 +64,7 @@ export function AdminGlobalNotifications() {
   const colorPresets = [
     { name: 'Blau', bg: '#3b82f6', text: '#ffffff' },
     { name: 'Grün', bg: '#10b981', text: '#ffffff' },
-    { name: 'Gelb', bg: '#f59e0b', text: '#000000' },
+    { name: 'Gelb', bg: '#f59e0b', text: '#ffffff' },
     { name: 'Rot', bg: '#ef4444', text: '#ffffff' },
     { name: 'Lila', bg: '#8b5cf6', text: '#ffffff' },
     { name: 'Grau', bg: '#6b7280', text: '#ffffff' }
@@ -83,12 +89,12 @@ export function AdminGlobalNotifications() {
   // Create notification
   const createNotification = async () => {
     if (!formData.message.trim()) {
-      alert('Bitte eine Nachricht eingeben')
+      toast.error('Bitte eine Nachricht eingeben')
       return
     }
 
     if (notificationType === 'notification' && !formData.title.trim()) {
-      alert('Bitte einen Titel eingeben')
+      toast.error('Bitte einen Titel eingeben')
       return
     }
 
@@ -131,14 +137,14 @@ export function AdminGlobalNotifications() {
         await loadNotifications()
         setShowCreateForm(false)
         resetForm()
-        alert(`${notificationType === 'banner' ? 'Banner' : 'Benachrichtigung'} erfolgreich erstellt!`)
+        toast.success(`${notificationType === 'banner' ? 'Banner' : 'Benachrichtigung'} erfolgreich erstellt!`)
       } else {
         const error = await response.json()
-        alert(`Fehler: ${error.error}`)
+        toast.error(`Fehler: ${error.error}`)
       }
     } catch (error) {
       console.error('Fehler beim Erstellen:', error)
-      alert('Fehler beim Erstellen der Benachrichtigung')
+      toast.error('Fehler beim Erstellen der Benachrichtigung')
     } finally {
       setIsLoading(false)
     }
@@ -176,21 +182,28 @@ export function AdminGlobalNotifications() {
     }
   }
 
+  // Open delete dialog
+  const openDeleteDialog = (notification: GlobalNotification) => {
+    setDeleteDialog({ open: true, notification })
+  }
+
   // Delete notification
-  const deleteNotification = async (id: string) => {
-    if (!confirm('Benachrichtigung wirklich löschen?')) return
+  const confirmDeleteNotification = async () => {
+    if (!deleteDialog.notification) return
 
     try {
-      const response = await fetch(`/api/admin/global-notifications/${id}`, {
+      const response = await fetch(`/api/admin/global-notifications/${deleteDialog.notification.id}`, {
         method: 'DELETE'
       })
 
       if (response.ok) {
         await loadNotifications()
-        alert('Benachrichtigung gelöscht')
+        toast.success('Benachrichtigung erfolgreich gelöscht')
+        setDeleteDialog({ open: false, notification: null })
       }
     } catch (error) {
       console.error('Fehler beim Löschen:', error)
+      toast.error('Fehler beim Löschen der Benachrichtigung')
     }
   }
 
@@ -518,7 +531,7 @@ export function AdminGlobalNotifications() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => deleteNotification(notification.id)}
+                    onClick={() => openDeleteDialog(notification)}
                     className="text-red-600 hover:bg-red-50"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -537,6 +550,32 @@ export function AdminGlobalNotifications() {
           </Card>
         )}
       </div>
+
+      {/* Lösch-Dialog */}
+      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog(prev => ({...prev, open}))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Benachrichtigung löschen</DialogTitle>
+            <DialogDescription>
+              Möchten Sie diese Benachrichtigung wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialog({ open: false, notification: null })}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteNotification}
+            >
+              Löschen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 

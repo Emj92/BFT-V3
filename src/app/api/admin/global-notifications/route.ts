@@ -8,27 +8,32 @@ export const dynamic = 'force-dynamic'
 // GET - Alle globalen Benachrichtigungen abrufen
 export async function GET(request: NextRequest) {
   try {
+    // Prüfe ob Admin-Zugriff (für Admin-Panel vs. normale Banner-Anzeige)
     const token = cookies().get('auth-token')?.value
+    let isAdmin = false
     
-    if (!token) {
-      return NextResponse.json({ error: 'Nicht authentifiziert' }, { status: 401 })
+    if (token) {
+      try {
+        const decoded = verify(token, process.env.JWT_SECRET || 'barrierefrei-secret-key') as any
+        const user = await prisma.user.findUnique({
+          where: { id: decoded.id }
+        })
+        isAdmin = user?.role === 'ADMIN'
+      } catch (error) {
+        // Token invalid, continue as non-admin
+      }
     }
 
-    const decoded = verify(token, process.env.JWT_SECRET || 'barrierefrei-secret-key') as any
+    // Admin sieht ALLE Banner, normale User nur aktive
+    const whereClause = isAdmin ? {} : { isActive: true }
     
-    // Prüfe Admin-Berechtigung
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id }
-    })
-
-    if (!user || user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Keine Berechtigung' }, { status: 403 })
-    }
-
-    // Lade alle globalen Benachrichtigungen
     const notifications = await prisma.globalNotification.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' }
     })
+
+    console.log('KRITISCHER DEBUG - Banner API: Gefundene Banner:', notifications.length, 'isAdmin:', isAdmin)
+    notifications.forEach(n => console.log('Banner:', n.id, n.title, n.targetPackages, 'isActive:', n.isActive))
 
     return NextResponse.json(notifications)
 

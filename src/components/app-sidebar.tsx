@@ -321,6 +321,8 @@ export default function AppSidebar() {
           title: isGerman ? 'WCAG Coach' : 'WCAG Coach',
           url: "/wcag-coach",
           icon: MessageSquare,
+          tooltip: hasPremiumSupport ? undefined : (isGerman ? "Nur ab STARTER-Paket verfügbar" : "Only available from STARTER package"),
+          disabled: !hasPremiumSupport
         },
         {
           title: isGerman ? 'BFE-Generator' : 'BFE Generator',

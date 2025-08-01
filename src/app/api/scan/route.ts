@@ -37,94 +37,9 @@ export async function POST(req: NextRequest) {
     // Führe den Scan durch
     const result = await scanUrl(formattedUrl, standard);
     
-    // Speichere Scan-Ergebnisse in der Datenbank für registrierte Benutzer
-    try {
-      const token = cookies().get('auth-token')?.value;
-      
-      if (token) {
-        const decoded = jwt.verify(
-          token,
-          process.env.JWT_SECRET || 'barrierefrei-secret-key'
-        ) as { id: string };
-
-        const user = await prisma.user.findUnique({
-          where: { id: decoded.id }
-        });
-
-        if (user) {
-          // Finde oder erstelle Website
-          let website = await prisma.website.findFirst({
-            where: {
-              baseUrl: formattedUrl,
-              project: { ownerId: user.id }
-            }
-          });
-
-          if (!website) {
-            // Erstelle Standard-Projekt wenn nicht vorhanden
-            let project = await prisma.project.findFirst({
-              where: { ownerId: user.id }
-            });
-
-            if (!project) {
-              project = await prisma.project.create({
-                data: {
-                  name: `${user.name || user.email} - Websites`,
-                  ownerId: user.id
-                }
-              });
-            }
-
-            // Erstelle Website
-            website = await prisma.website.create({
-              data: {
-                name: new URL(formattedUrl).hostname,
-                baseUrl: formattedUrl,
-                projectId: project.id
-              }
-            });
-          }
-
-          // Finde oder erstelle Page
-          let page = await prisma.page.findFirst({
-            where: {
-              url: formattedUrl,
-              websiteId: website.id
-            }
-          });
-
-          if (!page) {
-            page = await prisma.page.create({
-              data: {
-                url: formattedUrl,
-                title: new URL(formattedUrl).hostname,
-                websiteId: website.id
-              }
-            });
-          }
-
-          // Speichere Scan-Ergebnis
-          await prisma.scan.create({
-            data: {
-              userId: user.id,
-              pageId: page.id,
-              status: 'COMPLETED',
-              score: result.score,
-              violations: result.summary.violations,
-              warnings: result.summary.incomplete,
-              passes: result.summary.passes,
-              results: result,
-              completedAt: new Date()
-            }
-          });
-
-          console.log('Scan erfolgreich in Datenbank gespeichert für:', user.email);
-        }
-      }
-    } catch (dbError) {
-      console.error('Fehler beim Speichern des Scans:', dbError);
-      // Scan-Ergebnis trotzdem zurückgeben, auch wenn Speichern fehlschlägt
-    }
+    // WICHTIG: Homepage-Scans werden NICHT gespeichert!
+    // Diese API ist nur für öffentliche/Gast-Scans gedacht
+    console.log('HOMEPAGE-SCAN: Scan durchgeführt aber NICHT gespeichert für URL:', formattedUrl);
     
     return NextResponse.json(result);
   } catch (error) {

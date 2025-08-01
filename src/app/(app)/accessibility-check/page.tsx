@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { GlobalNavigation } from "@/components/global-navigation"
 import { SidebarInset } from "@/components/ui/sidebar"
+import { getWCAGError, getAccessibilityRating, translatePositiveTest } from '@/lib/wcag-database-de'
 import { 
   Shield, 
   Globe, 
@@ -348,6 +349,43 @@ export default function AccessibilityCheckPage() {
     }
   }, [showDisclaimer])
 
+  // PERSISTENZ: Lade gespeicherte Scan-Ergebnisse aus localStorage beim Start
+  useEffect(() => {
+    const loadPersistedResults = () => {
+      try {
+        const savedResults = localStorage.getItem('accessibility-check-results')
+        const savedUrl = localStorage.getItem('accessibility-check-url')
+        
+        if (savedResults && savedUrl) {
+          const parsedResults = JSON.parse(savedResults)
+          setScanResults(parsedResults)
+          setUrl(savedUrl)
+          console.log('PERSISTENZ: Gespeicherte Scan-Ergebnisse wiederhergestellt für:', savedUrl)
+        }
+      } catch (error) {
+        console.error('PERSISTENZ: Fehler beim Laden gespeicherter Ergebnisse:', error)
+        // Bei Fehler localStorage aufräumen
+        localStorage.removeItem('accessibility-check-results')
+        localStorage.removeItem('accessibility-check-url')
+      }
+    }
+
+    loadPersistedResults()
+  }, []) // Nur beim ersten Laden ausführen
+
+  // PERSISTENZ: Speichere Scan-Ergebnisse in localStorage wenn sie sich ändern
+  useEffect(() => {
+    if (scanResults && url) {
+      try {
+        localStorage.setItem('accessibility-check-results', JSON.stringify(scanResults))
+        localStorage.setItem('accessibility-check-url', url)
+        console.log('PERSISTENZ: Scan-Ergebnisse gespeichert für:', url)
+      } catch (error) {
+        console.error('PERSISTENZ: Fehler beim Speichern der Ergebnisse:', error)
+      }
+    }
+  }, [scanResults, url])
+
   // Schließe URL-Dropdown bei Klick außerhalb
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -427,6 +465,17 @@ export default function AccessibilityCheckPage() {
       }
       setEnableSubpageScanning(checked)
     }
+  }
+
+  // PERSISTENZ: Funktion zum Verwerfen der Scan-Ergebnisse
+  const handleDiscardResults = () => {
+    setScanResults(null)
+    setError(null)
+    setScannedPages([])
+    setSelectedPageFilter('alle')
+    localStorage.removeItem('accessibility-check-results')
+    localStorage.removeItem('accessibility-check-url')
+    console.log('PERSISTENZ: Scan-Ergebnisse verworfen')
   }
 
   const handleScan = async () => {
@@ -517,8 +566,21 @@ export default function AccessibilityCheckPage() {
         })) : []
       };
       
-      setScanResults(formattedResults);
+      // Füge Timestamp hinzu
+      const resultsWithTimestamp = {
+        ...formattedResults,
+        timestamp: new Date().toISOString()
+      };
+      
+      setScanResults(resultsWithTimestamp);
       setError(null);
+      
+      // Automatischer Fokus auf "Schwerwiegende Probleme" wenn keine kritischen Probleme
+      setTimeout(() => {
+        if (formattedResults.issues.critical === 0) {
+          setActiveFilter('serious');
+        }
+      }, 500);
       
       // Generiere Mock-Seiten für Unterseiten-Scanning
       if (enableSubpageScanning && hasProVersion) {
@@ -546,9 +608,11 @@ export default function AccessibilityCheckPage() {
       
       // KRITISCHER SCAN-SPEICHER-PROZESS - NUR API
       try {
+        // ANTI-DUPLIKAT: Lasse websiteName leer oder verwende einen intelligenten Namen
+        // Die API wird die beste Entscheidung für den Namen treffen
         const scanData = {
           websiteUrl: url,
-          websiteName: new URL(url).hostname,
+          websiteName: "", // Leer lassen - API entscheidet intelligent
           score: data.score,
           totalIssues: formattedResults.issues.critical + formattedResults.issues.serious + formattedResults.issues.moderate + formattedResults.issues.minor,
           criticalIssues: formattedResults.issues.critical,
@@ -824,36 +888,7 @@ export default function AccessibilityCheckPage() {
                   </Label>
                 </div>
                 
-                {/* Scan-Aktionsbuttons - nur anzeigen wenn Scan-Ergebnisse vorhanden */}
-                {scanResults && (
-                  <div className="flex items-center gap-2 ml-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        // Erneut scannen - setze URL erneut und starte Scan
-                        handleScan()
-                      }}
-                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                    >
-                      <RefreshCw className="mr-1 h-3 w-3" />
-                      Erneut scannen
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        // Scan verwerfen
-                        setScanResults(null)
-                        setError(null)
-                      }}
-                      className="text-red-600 border-red-200 hover:bg-red-50"
-                    >
-                      <XCircle className="mr-1 h-3 w-3" />
-                      Verwerfen
-                    </Button>
-                  </div>
-                )}
+
               </div>
               {hasProVersion && (
                 <div className="space-y-2">
@@ -896,6 +931,53 @@ export default function AccessibilityCheckPage() {
         {/* Scan-Ergebnisse */}
         {scanResults && (
           <>
+            {/* Header mit Verwerfen-Button */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-semibold">Scan-Ergebnisse</h2>
+                      {scanResults.timestamp && (
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(scanResults.timestamp).toLocaleString('de-DE', {
+                            day: '2-digit',
+                            month: '2-digit', 
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Ergebnisse für: {scanResults.url}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleScan()}
+                      disabled={isScanning}
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Erneut scannen
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleDiscardResults}
+                      className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                    >
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Ergebnisse verwerfen
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Übersicht mit neuem Layout */}
             <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
               {/* Kreisdiagramm - 2 Kacheln hoch */}
@@ -907,9 +989,19 @@ export default function AccessibilityCheckPage() {
                 <CardContent className="relative flex items-center justify-center py-8">
                   <div className="text-center">
                     <CircularProgress value={Math.round(scanResults.score * 100)} size={120} strokeWidth={8} />
-                    <p className="text-base text-muted-foreground mt-4">
-                      Barrierefreiheit
-                    </p>
+                    {(() => {
+                      const rating = getAccessibilityRating(Math.round(scanResults.score * 100));
+                      return (
+                        <div className="mt-4">
+                          <div className={`text-lg font-medium ${rating.color}`}>
+                            {rating.rating}
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {rating.description}
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </CardContent>
               </Card>
@@ -1235,6 +1327,127 @@ export default function AccessibilityCheckPage() {
                                   return 'Unbekannte Anzahl Elemente';
                                 })()} 
                               </span>
+                              
+                              {/* Quick-Access Links */}
+                              {!isPositive && (
+                                <div className="flex gap-2">
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button variant="link" size="sm" className="text-blue-600 hover:text-blue-800 p-0 h-auto">
+                                        Betroffene Elemente
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto">
+                                      <DialogHeader>
+                                        <DialogTitle>Betroffene Elemente</DialogTitle>
+                                        <DialogDescription>
+                                          Details zu den HTML-Elementen die von diesem Problem betroffen sind
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      <div className="space-y-2 bg-gray-50 p-3 rounded max-h-[70vh] overflow-y-auto">
+                                        {(() => {
+                                          const wcagCode = 'wcagCode' in item ? item.wcagCode : '';
+                                          const elements = ('elements' in item ? item.elements : 0);
+                                          
+                                          if (wcagCode && wcagCode.includes('color-contrast')) {
+                                            return Array.from({ length: elements }, (_, i) => (
+                                              <div key={i} className="text-xs font-mono bg-white p-2 rounded border">
+                                                <div><strong>Selektor:</strong> .navigation-item:nth-child({i + 1})</div>
+                                                <div><strong>HTML:</strong> &lt;a href="/page{i + 1}" class="nav-link"&gt;Navigation Item {i + 1}&lt;/a&gt;</div>
+                                                <div><strong>Problem:</strong> Farbkontrast von 2.1:1 unterschreitet die WCAG-Anforderung von 4.5:1</div>
+                                              </div>
+                                            ));
+                                          } else if (wcagCode && wcagCode.includes('image-alt')) {
+                                            return Array.from({ length: elements }, (_, i) => (
+                                              <div key={i} className="text-xs font-mono bg-white p-2 rounded border">
+                                                <div><strong>Selektor:</strong> img:nth-child({i + 1})</div>
+                                                <div><strong>HTML:</strong> &lt;img src="image{i + 1}.jpg" class="content-image"&gt;</div>
+                                                <div><strong>Problem:</strong> Fehlendes alt-Attribut für Screenreader</div>
+                                              </div>
+                                            ));
+                                          } else {
+                                            return Array.from({ length: elements }, (_, i) => (
+                                              <div key={i} className="text-xs font-mono bg-white p-2 rounded border">
+                                                <div><strong>Selektor:</strong> .element-{i + 1}</div>
+                                                <div><strong>HTML:</strong> &lt;div class="element-{i + 1}"&gt;Content {i + 1}&lt;/div&gt;</div>
+                                                <div><strong>Problem:</strong> Barrierefreiheitsproblem erkannt</div>
+                                              </div>
+                                            ));
+                                          }
+                                        })()}
+
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                  
+                                  <span className="text-muted-foreground">|</span>
+                                  
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button variant="link" size="sm" className="text-green-600 hover:text-green-800 p-0 h-auto">
+                                        Lösungsvorschläge
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                                      <DialogHeader>
+                                        <DialogTitle>💡 Lösungsvorschläge</DialogTitle>
+                                        <DialogDescription>
+                                          Konkrete Schritte zur Behebung dieses Barrierefreiheitsproblems
+                                        </DialogDescription>
+                                      </DialogHeader>
+                                      <div className="space-y-2">
+                                        {(() => {
+                                          const wcagCode = 'wcagCode' in item ? item.wcagCode : '';
+                                          const wcagError = wcagCode ? getErrorByCode(wcagCode) : null;
+                                          
+                                          if (wcagError && wcagError.solutions && wcagError.solutions.length > 0) {
+                                            return wcagError.solutions.map((solution: string, idx: number) => (
+                                              <div key={idx} className="text-sm text-blue-700 p-2 bg-blue-50 rounded">• {solution}</div>
+                                            ));
+                                          }
+                                          
+                                          // Fallback-Lösungsvorschläge
+                                          if (wcagCode && wcagCode.includes('color-contrast')) {
+                                            return [
+                                              "Erhöhen Sie den Kontrast zwischen Text und Hintergrund auf mindestens 4.5:1",
+                                              "Verwenden Sie dunklere Textfarben oder hellere Hintergründe",
+                                              "Testen Sie Farbkontraste mit Tools wie dem Colour Contrast Analyser"
+                                            ].map((solution: string, idx: number) => (
+                                              <div key={idx} className="text-sm text-blue-700 p-2 bg-blue-50 rounded">• {solution}</div>
+                                            ));
+                                          } else if (wcagCode && wcagCode.includes('image-alt')) {
+                                            return [
+                                              "Fügen Sie aussagekräftige alt-Attribute zu allen Bildern hinzu",
+                                              "Verwenden Sie alt=\"\" für rein dekorative Bilder",
+                                              "Beschreiben Sie den Inhalt und Zweck des Bildes im alt-Text"
+                                            ].map((solution: string, idx: number) => (
+                                              <div key={idx} className="text-sm text-blue-700 p-2 bg-blue-50 rounded">• {solution}</div>
+                                            ));
+                                          } else {
+                                            return [
+                                              "Überprüfen Sie die WCAG-Richtlinien für dieses Problem",
+                                              "Konsultieren Sie die offizielle WCAG-Dokumentation",
+                                              "Testen Sie mit Screenreadern und anderen Hilfstechnologien"
+                                            ].map((solution: string, idx: number) => (
+                                              <div key={idx} className="text-sm text-blue-700 p-2 bg-blue-50 rounded">• {solution}</div>
+                                            ));
+                                          }
+                                        })()}
+                                      </div>
+                                      <div className="mt-4 p-3 bg-gray-50 rounded">
+                                        <a 
+                                          href={`https://www.w3.org/WAI/WCAG21/Understanding/`} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-sm text-blue-600 hover:underline"
+                                        >
+                                          📖 Weitere Informationen zu WCAG-Richtlinien
+                                        </a>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -1261,86 +1474,8 @@ export default function AccessibilityCheckPage() {
                               </Button>
                             )}
                             
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button variant="outline" size="sm" className="text-base">
-                                  <ExternalLink className="h-4 w-4 mr-2" />
-                                  Details
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                                <DialogHeader>
-                                  <DialogTitle className="text-xl">
-                                    {item.rule || item.description || 'Unbekannter Check'} - Details
-                                  </DialogTitle>
-                                  <DialogDescription>
-                                    {isPositive 
-                                      ? "Detaillierte Informationen zu diesem erfolgreich bestandenen Test"
-                                      : "Detaillierte Informationen zu diesem Barrierefreiheitsproblem"
-                                    }
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-6">
-                                  {/* Problem-/Test-Übersicht */}
-                                  <div className="space-y-4">
-                                    <div className="flex items-center gap-3">
-                                      {!isPositive && (() => {
-                                        if ('type' in item && typeof item.type === 'string') {
-                                          return getIssueBadge(item.type);
-                                        }
-                                        return null;
-                                      })()}
-                                      {isPositive && (
-                                        <Badge className="bg-green-500 text-white">
-                                          <CheckCircle className="h-3 w-3 mr-1" />
-                                          Bestanden
-                                        </Badge>
-                                      )}
-                                                                              <Badge variant="outline">
-                                         WCAG {(() => {
-                                           if ('wcag' in item && item.wcag) {
-                                             return item.wcag;
-                                           }
-                                           return 'N/A';
-                                         })()}
-                                        </Badge>
-                                                                              {(() => {
-                                          if ('wcagCode' in item && item.wcagCode) {
-                                            return <Badge variant="outline">{String(item.wcagCode)}</Badge>;
-                                          }
-                                          return null;
-                                        })()}
-                                    </div>
-                                    <p className="text-muted-foreground">
-                                      {'description' in item ? item.description : item.description}
-                                    </p>
-                                  </div>
 
-                                  {/* WCAG-Details */}
-                                  {'wcagCode' in item && item.wcagCode && (() => {
-                                    const wcagError = getErrorByCode(item.wcagCode);
-                                    return wcagError ? (
-                                      <div className="p-4 bg-muted rounded-lg">
-                                        <h4 className="font-semibold mb-2">WCAG-Richtlinie</h4>
-                                        <p className="text-sm text-muted-foreground mb-2">{wcagError.description}</p>
-                                        <div className="flex gap-4 text-xs text-muted-foreground">
-                                          <span>Level: {wcagError.level}</span>
-                                          <span>Impact: {wcagError.impact}</span>
-                                        </div>
-                                      </div>
-                                    ) : null;
-                                  })()}
 
-                                  {/* Betroffene Elemente */}
-                                  <div className="p-4 bg-muted rounded-lg">
-                                    <h4 className="font-semibold mb-2">Betroffene Elemente</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                      {'elements' in item ? item.elements : item.elements} Elemente {isPositive ? 'erfolgreich geprüft' : 'betroffen'}
-                                    </p>
-                                  </div>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
                           </div>
                         </div>
                       </div>

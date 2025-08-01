@@ -305,20 +305,21 @@ enum NotificationType {
 
 // Support-Ticket-System
 model SupportTicket {
-  id          String            @id @default(cuid())
-  subject     String
-  description String
-  priority    TicketPriority    @default(MEDIUM)
-  status      TicketStatus      @default(OPEN)
-  category    TicketCategory    @default(OTHER)
+  id           String            @id @default(cuid())
+  ticketNumber String?           // Ticket-Nummer (z.B. "HP-ABC12345")
+  subject      String
+  description  String
+  priority     TicketPriority    @default(MEDIUM)
+  status       TicketStatus      @default(OPEN)
+  category     TicketCategory    @default(OTHER)
   
   // Beziehungen
-  user        User              @relation(fields: [userId], references: [id])
-  userId      String
-  messages    TicketMessage[]
+  user         User              @relation(fields: [userId], references: [id])
+  userId       String
+  messages     TicketMessage[]
   
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 }
 
 // Ticket-Nachrichten für Kommunikation zwischen User und Admin
