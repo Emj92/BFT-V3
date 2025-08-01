@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import jwt from 'jsonwebtoken'
 import { prisma } from '@/lib/prisma'
+import { normalizeUrlForDuplicateCheck } from '@/lib/utils'
 
 export async function GET(request: NextRequest) {
   try {
@@ -92,6 +93,16 @@ export async function GET(request: NextRequest) {
         results: parsedResults // Vollständige Scan-Details mit Fehlern, Lösungsvorschlägen, etc.
       }
       
+      // Debug-Log für erste paar Scans
+      if (scan.id && (scan.id % 5 === 0 || scan.id <= 3)) {
+        console.log(`KRITISCHER DEBUG - GET: Scan ${scan.id} formatiert - Results vorhanden:`, !!parsedResults, parsedResults ? {
+          hasViolations: !!parsedResults.violations,
+          violationsCount: parsedResults.violations?.length || 0,
+          hasPasses: !!parsedResults.passes,
+          passesCount: parsedResults.passes?.length || 0
+        } : 'KEINE PARSED RESULTS')
+      }
+      
       console.log('KRITISCHER DEBUG - API: Formatierter Scan:', formatted.id, formatted.website, formatted.score)
       return formatted
     })
@@ -139,9 +150,18 @@ export async function POST(request: NextRequest) {
     }
 
     // URL normalisieren für bessere Duplikatserkennung
-    const normalizedUrl = websiteUrl.replace(/\/+$/, ''); // Entferne trailing slashes
+    const normalizedUrl = normalizeUrlForDuplicateCheck(websiteUrl); // Verbesserte Normalisierung
     
     console.log('KRITISCHER DEBUG - POST: Scan-Speicherung startet für:', normalizedUrl, 'Score:', score, 'User:', userId)
+    console.log('KRITISCHER DEBUG - POST: Eingabe-URL:', websiteUrl, '-> Normalisiert:', normalizedUrl)
+    console.log('KRITISCHER DEBUG - POST: ScanResults Struktur:', scanResults ? {
+      hasViolations: !!scanResults.violations,
+      violationsCount: scanResults.violations?.length || 0,
+      hasPasses: !!scanResults.passes,
+      passesCount: scanResults.passes?.length || 0,
+      hasDetails: !!scanResults.details,
+      detailsCount: scanResults.details?.length || 0
+    } : 'KEINE SCAN-RESULTS')
 
     // KRITISCHER DUPLIKAT-CHECK: Prüfe ob ein identischer Scan in den letzten 30 Sekunden erstellt wurde
     const recentScan = await prisma.scan.findFirst({
@@ -161,7 +181,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    if (recentScan && recentScan.page?.url === websiteUrl) {
+    if (recentScan && recentScan.page?.url === normalizedUrl) {
       console.log('KRITISCHER DEBUG - POST: Identischer Scan bereits vorhanden, verweigere Duplikat:', recentScan.id)
       return NextResponse.json({
         success: true,
@@ -202,6 +222,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('KRITISCHER DEBUG - POST: Suche Website für URL:', normalizedUrl, 'User:', userId)
+    console.log('KRITISCHER DEBUG - POST: Ursprüngliche URL war:', websiteUrl)
     
     // Finde Website ÜBER ALLE PROJEKTE des Users, nicht nur Standard-Projekt!
     let website = await prisma.website.findFirst({
@@ -215,6 +236,8 @@ export async function POST(request: NextRequest) {
         project: true
       }
     })
+    
+    console.log('KRITISCHER DEBUG - POST: Website-Suche Ergebnis:', website ? `GEFUNDEN: ${website.id} - ${website.name}` : 'NICHT GEFUNDEN')
 
     if (!website) {
       console.log('KRITISCHER DEBUG - POST: Website nicht gefunden, erstelle neue für Projekt:', project.id)
@@ -231,7 +254,7 @@ export async function POST(request: NextRequest) {
           projectId: project.id
         }
       })
-      console.log('KRITISCHER DEBUG - POST: Neue Website erstellt:', website.id, website.name)
+      console.log('KRITISCHER DEBUG - POST: Neue Website erstellt:', website.id, website.name, 'baseUrl:', website.baseUrl)
     } else {
       console.log('KRITISCHER DEBUG - POST: Bestehende Website gefunden:', website.id, website.name, 'Projekt:', website.project?.name)
       // ANTI-DUPLIKAT: Bestehenden Namen NICHT überschreiben! Der User hat vielleicht einen schönen Namen gesetzt.

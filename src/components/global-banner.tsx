@@ -18,8 +18,6 @@ interface GlobalNotification {
 
 export function GlobalBanner() {
   const [globalNotification, setGlobalNotification] = useState<GlobalNotification | null>(null)
-  const [earlyBirdVisible, setEarlyBirdVisible] = useState(false) // Starte mit false
-  const [spotsLeft, setSpotsLeft] = useState(67)
   const [bannerDisabled, setBannerDisabled] = useState(false)
   const [dismissedBanners, setDismissedBanners] = useState<string[]>([])
   const [isLoaded, setIsLoaded] = useState(false) // Neuer Loading-State
@@ -64,17 +62,10 @@ export function GlobalBanner() {
           
           if (activeNotification) {
             setGlobalNotification(activeNotification)
-            setEarlyBirdVisible(false) // Verstecke EarlyBird wenn globale Benachrichtigung aktiv
-          } else if (isLoaded) {
-            // Zeige EarlyBird nur wenn geladen und keine globale Benachrichtigung
-            setEarlyBirdVisible(true)
           }
         }
       } catch (error) {
         console.error('Fehler beim Laden der globalen Benachrichtigungen:', error)
-        if (isLoaded) {
-          setEarlyBirdVisible(true) // Fallback zu EarlyBird bei Fehler
-        }
       }
     }
 
@@ -83,29 +74,12 @@ export function GlobalBanner() {
     }
   }, [user?.bundle, dismissedBanners, isLoaded]) // Lade neu wenn sich das Bundle, dismissed banners oder Loading-Status ändern
 
-  // EarlyBird Spots reduzieren
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSpotsLeft(prev => {
-        if (prev > 50 && Math.random() < 0.1) {
-          return prev - 1
-        }
-        return prev
-      })
-    }, 300000) // Alle 5 Minuten
 
-    return () => clearInterval(interval)
-  }, [])
 
   const handleDisableBanner = () => {
     localStorage.setItem('banner-disabled', 'true')
     setBannerDisabled(true)
-    setEarlyBirdVisible(false)
     setGlobalNotification(null)
-  }
-
-  const handleCloseEarlyBird = () => {
-    setEarlyBirdVisible(false)
   }
 
   const handleCloseGlobalNotification = () => {
@@ -157,31 +131,7 @@ export function GlobalBanner() {
     )
   }
 
-  // Zeige EarlyBird Banner als Fallback
-  if (earlyBirdVisible) {
-    return (
-      <div className="bg-blue-600 text-white py-1.5 px-4 relative">
-        <div className="flex items-center justify-center text-sm font-medium">
-          <span>
-            🎯 Jetzt einen der <strong>{spotsLeft}</strong> verbleibenden Early-Bird Plätze sichern und{' '}
-            <a 
-              href="/einstellungen#pro-paket" 
-              className="underline hover:text-blue-200 font-bold"
-            >
-              10% auf das PRO Paket sparen
-            </a>
-          </span>
-          <button
-            onClick={handleCloseEarlyBird}
-            className="absolute right-4 p-1 hover:bg-blue-700 rounded"
-            aria-label="Banner schließen"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-    )
-  }
+
 
   return null
 } 

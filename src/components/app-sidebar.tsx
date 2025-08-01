@@ -74,6 +74,8 @@ import { useEffect, useState } from "react"
 import { useBundle } from "@/hooks/useBundle"
 import { useWebsites, Website } from "@/hooks/useWebsites"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { normalizeUrlForDuplicateCheck } from "@/lib/utils"
+import { toast } from "sonner"
 
 // Benutzer-Daten aus API laden
 interface User {
@@ -211,28 +213,37 @@ export default function AppSidebar() {
       await removeWebsite(websiteToDelete.id)
       setDeleteDialogOpen(false)
       setWebsiteToDelete(null)
+      
+      // Erfolgreiche Toast-Nachricht anzeigen
+      toast.success(`Website "${websiteToDelete.name}" wurde erfolgreich gelöscht!`)
     } catch (error) {
       console.error('Fehler beim Löschen der Website:', error)
+      toast.error('Fehler beim Löschen der Website. Bitte versuchen Sie es erneut.')
     }
   }
 
   const handleAddWebsite = async () => {
-    if (!newWebsiteName.trim() || !newWebsiteUrl.trim()) return
+    if (!newWebsiteUrl.trim()) return
     
     try {
-      // Prüfe auf Duplikate basierend auf URL
+      // Formatiere und normalisiere URL
       const formattedUrl = newWebsiteUrl.trim().startsWith('http') 
         ? newWebsiteUrl.trim() 
         : `https://${newWebsiteUrl.trim()}`
       
-      const existingWebsite = websites.find(w => w.url === formattedUrl)
+      // Verwende normalizeUrlForDuplicateCheck für bessere Duplikatserkennung
+      const normalizedUrl = normalizeUrlForDuplicateCheck(formattedUrl)
+      
+      const existingWebsite = websites.find(w => normalizeUrlForDuplicateCheck(w.url) === normalizedUrl)
       if (existingWebsite) {
         alert('Diese Website ist bereits in Ihrer Liste vorhanden.')
         return
       }
       
-      await addWebsite(newWebsiteName.trim(), newWebsiteUrl.trim())
-      setNewWebsiteName("")
+      // Generiere automatisch Namen aus Domain
+      const hostname = new URL(formattedUrl).hostname.replace(/^www\./, '')
+      
+      await addWebsite(hostname, formattedUrl)
       setNewWebsiteUrl("")
       setAddWebsiteDialogOpen(false)
     } catch (error) {
@@ -308,17 +319,18 @@ export default function AppSidebar() {
       ],
       tools: [
         {
-          title: isGerman ? 'Accessibility Check' : 'Accessibility Check',
+          title: isGerman ? 'BFSE-Scanner' : 'BFSE Scanner',
           url: "/accessibility-check",
           icon: Shield,
+          badge: 'Top'
         },
         {
-          title: isGerman ? 'WCAG Bibliothek' : 'WCAG Library',
+          title: isGerman ? 'BFE-Bibliothek' : 'WCAG Library',
           url: "/wcag-bibliothek",
           icon: BookOpen,
         },
         {
-          title: isGerman ? 'WCAG Coach' : 'WCAG Coach',
+          title: isGerman ? 'BFE-Coach' : 'WCAG Coach',
           url: "/wcag-coach",
           icon: MessageSquare,
           tooltip: hasPremiumSupport ? undefined : (isGerman ? "Nur ab STARTER-Paket verfügbar" : "Only available from STARTER package"),
@@ -328,7 +340,6 @@ export default function AppSidebar() {
           title: isGerman ? 'BFE-Generator' : 'BFE Generator',
           url: "/barrierefreiheitsgenerator",
           icon: FileCheck,
-          tooltip: hasPremiumSupport ? (isGerman ? "Barrierefreiheitserklärung-Generator" : "Accessibility Declaration Generator") : (isGerman ? "Nur ab STARTER-Paket verfügbar" : "Only available from STARTER package"),
           disabled: !hasPremiumSupport
         },
       ],
@@ -405,7 +416,7 @@ export default function AppSidebar() {
             <SidebarMenu className="space-y-0">
               {navigation.overview.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-8 px-3 text-sm font-normal hover:bg-accent hover:text-accent-foreground transition-colors">
+                  <SidebarMenuButton asChild className="h-8 px-3 text-xs font-normal hover:bg-accent hover:text-accent-foreground transition-colors">
                     <a href={item.url} className="flex items-center gap-3">
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
@@ -426,7 +437,7 @@ export default function AppSidebar() {
             <SidebarMenu className="space-y-0">
               {navigation.management.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-8 px-3 text-sm font-normal hover:bg-accent hover:text-accent-foreground transition-colors">
+                  <SidebarMenuButton asChild className="h-8 px-3 text-xs font-normal hover:bg-accent hover:text-accent-foreground transition-colors">
                     <a href={item.url} className="flex items-center gap-3">
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
@@ -453,7 +464,7 @@ export default function AppSidebar() {
                         <TooltipTrigger asChild>
                           <SidebarMenuButton 
                             asChild={!item.disabled}
-                            className={`h-8 px-3 text-sm font-normal transition-colors ${item.disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-accent hover:text-accent-foreground"}`}
+                            className={`h-8 px-3 text-xs font-normal transition-colors ${item.disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-accent hover:text-accent-foreground"}`}
                             onClick={item.disabled ? (e) => e.preventDefault() : undefined}
                           >
                             {item.disabled ? (
@@ -464,7 +475,7 @@ export default function AppSidebar() {
                                 </div>
                                 <span>{item.title}</span>
                                 {item.badge && (
-                                  <span className="bg-blue-500 text-white text-xs font-normal py-0.5 px-1.5 rounded ml-auto">
+                                  <span className="bg-blue-500 text-white font-normal py-0.5 px-1.5 rounded ml-auto" style={{ fontSize: '14px' }}>
                                     {item.badge}
                                   </span>
                                 )}
@@ -474,7 +485,7 @@ export default function AppSidebar() {
                                 <item.icon className="h-4 w-4" />
                                 <span>{item.title}</span>
                                 {item.badge && (
-                                  <span className="bg-blue-500 text-white text-xs font-normal py-0.5 px-1.5 rounded ml-auto">
+                                  <span className="bg-blue-500 text-white font-normal py-0.5 px-1.5 rounded ml-auto" style={{ fontSize: '14px' }}>
                                     {item.badge}
                                   </span>
                                 )}
@@ -493,7 +504,7 @@ export default function AppSidebar() {
                   ) : (
                     <SidebarMenuButton 
                       asChild={!item.disabled}
-                      className={`h-8 px-3 text-sm font-normal transition-colors ${item.disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-accent hover:text-accent-foreground"}`}
+                      className={`h-8 px-3 text-xs font-normal transition-colors ${item.disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-accent hover:text-accent-foreground"}`}
                       onClick={item.disabled ? (e) => e.preventDefault() : undefined}
                     >
                       {item.disabled ? (
@@ -534,7 +545,7 @@ export default function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu className="space-y-0">
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild className="h-8 px-3 text-sm font-normal hover:bg-accent hover:text-accent-foreground transition-colors">
+                  <SidebarMenuButton asChild className="h-8 px-3 text-xs font-normal hover:bg-accent hover:text-accent-foreground transition-colors">
                     <a href="/team" className="flex items-center gap-3">
                       <Users className="h-4 w-4" />
                       <span>{language === 'de' ? 'Team verwalten' : 'Manage Team'}</span>
@@ -542,7 +553,7 @@ export default function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild className="h-8 px-3 text-sm font-normal hover:bg-accent hover:text-accent-foreground transition-colors">
+                  <SidebarMenuButton asChild className="h-8 px-3 text-xs font-normal hover:bg-accent hover:text-accent-foreground transition-colors">
                     <a href="/team/chat" className="flex items-center gap-3">
                       <MessageSquare className="h-4 w-4" />
                       <span>{language === 'de' ? 'Team Chat' : 'Team Chat'}</span>
@@ -650,7 +661,7 @@ export default function AppSidebar() {
             <SidebarMenu className="space-y-0">
               {navigation.settings.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="h-8 px-3 text-sm font-normal hover:bg-accent hover:text-accent-foreground transition-colors">
+                  <SidebarMenuButton asChild className="h-8 px-3 text-xs font-normal hover:bg-accent hover:text-accent-foreground transition-colors">
                     <a href={item.url} className="flex items-center gap-3">
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
@@ -672,7 +683,7 @@ export default function AppSidebar() {
               <SidebarMenu className="space-y-0">
                                   {adminItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild className="h-8 px-3 text-sm font-normal hover:bg-accent hover:text-accent-foreground transition-colors">
+                      <SidebarMenuButton asChild className="h-8 px-3 text-xs font-normal hover:bg-accent hover:text-accent-foreground transition-colors">
                         <a href={item.url} className="flex items-center gap-3">
                           <item.icon className="h-4 w-4" />
                           <span>{item.title}</span>
@@ -807,23 +818,12 @@ export default function AppSidebar() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="website-name">
-                {language === 'de' ? 'Website-Name' : 'Website Name'}
-              </Label>
-              <Input
-                id="website-name"
-                placeholder={language === 'de' ? 'z.B. Meine Website' : 'e.g. My Website'}
-                value={newWebsiteName}
-                onChange={(e) => setNewWebsiteName(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
               <Label htmlFor="website-url">
-                {language === 'de' ? 'Website-URL' : 'Website URL'}
+                {language === 'de' ? 'Website-Domain' : 'Website URL'}
               </Label>
               <Input
                 id="website-url"
-                placeholder={language === 'de' ? 'https://example.com' : 'https://example.com'}
+                placeholder={language === 'de' ? 'meindl-webdesign.de oder https://example.com' : 'example.com or https://example.com'}
                 value={newWebsiteUrl}
                 onChange={(e) => setNewWebsiteUrl(e.target.value)}
               />
@@ -835,7 +835,7 @@ export default function AppSidebar() {
             </Button>
             <Button 
               onClick={handleAddWebsite}
-              disabled={!newWebsiteName.trim() || !newWebsiteUrl.trim()}
+              disabled={!newWebsiteUrl.trim()}
             >
               {language === 'de' ? 'Hinzufügen' : 'Add'}
             </Button>

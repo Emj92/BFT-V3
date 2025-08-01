@@ -40,13 +40,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Hole aktuelle Generation-Anzahl aus der Datenbank
-    const generationRecord = await prisma.bfeGeneration.findFirst({
-      where: { userId: user.id },
-      orderBy: { createdAt: 'desc' }
+    const generationCount = await prisma.bfeGeneration.count({
+      where: { userId: user.id }
     })
 
     return NextResponse.json({
-      generations: generationRecord?.generationsUsed || 0,
+      generations: generationCount,
       limit: GENERATION_LIMITS[user.bundle as keyof typeof GENERATION_LIMITS] || GENERATION_LIMITS.FREE
     })
   } catch (error) {
@@ -72,7 +71,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 })
     }
 
-    const { action } = await request.json()
+    const { action, websiteUrl, content } = await request.json()
 
     if (action === 'use') {
       // Prüfe Credits (3 Credits für BFE Generator)
@@ -107,7 +106,8 @@ export async function POST(request: NextRequest) {
       const newRecord = await prisma.bfeGeneration.create({
         data: {
           userId: fullUser.id,
-          generationsUsed: 1
+          websiteUrl: websiteUrl || 'Unknown',
+          content: content || {}
         }
       })
 
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
         success: true,
         creditsUsed: 3,
         creditsRemaining: fullUser.credits - 3,
-        generations: newRecord.generationsUsed 
+        generations: await prisma.bfeGeneration.count({ where: { userId: fullUser.id } })
       })
     }
 

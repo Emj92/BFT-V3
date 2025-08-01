@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import { prisma } from '@/lib/prisma'
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
+import { normalizeUrlForDuplicateCheck } from '@/lib/utils'
 
 // GET /api/websites - Alle Websites des Benutzers abrufen
 export async function GET(request: NextRequest) {
@@ -78,12 +79,13 @@ export async function GET(request: NextRequest) {
     console.log('KRITISCHER DEBUG - GET: Gefundene Websites aus DB:', websites.length)
     console.log('KRITISCHER DEBUG - GET: Formatierte Websites:', formattedWebsites.map(w => ({ id: w.id, name: w.name, url: w.url })))
     
-    // Duplikat-Check: Websites mit gleicher URL nur einmal zurückgeben
+    // Duplikat-Check: Websites mit gleicher URL nur einmal zurückgeben (mit Normalisierung)
     const uniqueWebsites = formattedWebsites.reduce((unique: any[], website: any) => {
-      if (!unique.find(w => w.url === website.url)) {
+      const normalizedUrl = normalizeUrlForDuplicateCheck(website.url)
+      if (!unique.find(w => normalizeUrlForDuplicateCheck(w.url) === normalizedUrl)) {
         unique.push(website)
       } else {
-        console.log('KRITISCHER DEBUG - GET: Duplikat entfernt:', website.url)
+        console.log('KRITISCHER DEBUG - GET: Duplikat entfernt:', website.url, '(normalisiert:', normalizedUrl, ')')
       }
       return unique
     }, [])
@@ -141,9 +143,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // URL formatieren und normalisieren
-    let formattedUrl = url.startsWith('http') ? url : `https://${url}`
-    formattedUrl = formattedUrl.replace(/\/+$/, '') // Entferne trailing slashes
+    // URL formatieren und normalisieren - KONSISTENT mit Scans API
+    const formattedUrl = normalizeUrlForDuplicateCheck(url.startsWith('http') ? url : `https://${url}`)
 
     // Prüfen ob URL bereits existiert
     const existingWebsite = await prisma.website.findFirst({

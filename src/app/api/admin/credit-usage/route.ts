@@ -25,18 +25,65 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Keine Berechtigung' }, { status: 403 })
     }
 
-    // Lade alle Credit-Transaktionen (Verbrauch - negative Beträge)
+    // URL-Parameter für Filterung
+    const url = new URL(request.url)
+    const period = url.searchParams.get('period') || 'month' // month, week, day
+    const bundle = url.searchParams.get('bundle') || 'alle' // alle, FREE, STARTER, PRO, ENTERPRISE
+
+    // Berechne Zeitraum für Filterung
+    const now = new Date()
+    let startDate = new Date()
+    
+    switch (period) {
+      case 'day':
+        startDate.setDate(now.getDate() - 30) // Letzte 30 Tage
+        break
+      case 'week':
+        startDate.setDate(now.getDate() - 7 * 12) // Letzte 12 Wochen
+        break
+      case 'month':
+      default:
+        startDate.setMonth(now.getMonth() - 12) // Letzte 12 Monate
+        break
+    }
+
+    // Baue WHERE clause für Credit-Transaktionen
+    const whereClause: any = {
+      amount: {
+        lt: 0 // Nur negative Beträge (Verbrauch)
+      },
+      createdAt: {
+        gte: startDate
+      }
+    }
+
+    // Filter nach Bundle wenn spezifisch gewählt
+    if (bundle !== 'alle') {
+      whereClause.user = {
+        bundle: bundle
+      }
+    }
+
+    // Lade Credit-Transaktionen mit Filterung
     const creditTransactions = await prisma.creditTransaction.findMany({
-      where: {
-        amount: {
-          lt: 0 // Nur negative Beträge (Verbrauch)
+      where: whereClause,
+      include: {
+        user: {
+          select: {
+            bundle: true
+          }
         }
       },
       select: {
         amount: true,
         type: true,
         createdAt: true,
-        description: true
+        description: true,
+        user: {
+          select: {
+            bundle: true
+          }
+        }
       }
     })
 

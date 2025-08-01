@@ -98,6 +98,14 @@ export default function WebsiteScansPage() {
         if (data.scans && Array.isArray(data.scans)) {
           console.log('KRITISCHER DEBUG: Scans gefunden:', data.scans.length)
           console.log('KRITISCHER DEBUG: Erste Scan-Details:', data.scans[0])
+          console.log('KRITISCHER DEBUG: Erste Scan Results-Struktur:', data.scans[0]?.results ? {
+            hasViolations: !!data.scans[0].results.violations,
+            violationsCount: data.scans[0].results.violations?.length || 0,
+            hasPasses: !!data.scans[0].results.passes,
+            passesCount: data.scans[0].results.passes?.length || 0,
+            hasDetails: !!data.scans[0].results.details,
+            detailsCount: data.scans[0].results.details?.length || 0
+          } : 'KEINE RESULTS IN SCAN')
           
           // KRITISCHER DUPLIKAT-FIX: Entferne doppelte Scans basierend auf ID oder URL+Score
           const uniqueScans = data.scans.reduce((unique: WebsiteScan[], scan: WebsiteScan) => {
@@ -209,17 +217,25 @@ export default function WebsiteScansPage() {
   // Funktion zum Anzeigen von Scan-Details
   const handleViewDetails = async (scan: WebsiteScan) => {
     try {
+      console.log('WEBSITE-SCANS DEBUG: handleViewDetails aufgerufen für Scan:', scan.id, scan.url)
       setSelectedScanForDetails(scan)
       
       // Verwende bereits geladene Results oder lade detaillierte Scan-Ergebnisse
       let scanResults = scan.results
+      console.log('WEBSITE-SCANS DEBUG: Scan.results verfügbar:', !!scanResults)
       
       if (!scanResults) {
         // Fallback: Lade detaillierte Scan-Ergebnisse aus der API
+        console.log('WEBSITE-SCANS DEBUG: Lade Details für Scan-ID:', scan.id)
         const response = await fetch(`/api/scans/${scan.id}`)
+        console.log('WEBSITE-SCANS DEBUG: API Response Status:', response.status)
         if (response.ok) {
           const data = await response.json()
+          console.log('WEBSITE-SCANS DEBUG: API Response Data:', data)
           scanResults = data.results
+        } else {
+          const errorText = await response.text()
+          console.error('WEBSITE-SCANS DEBUG: API Error:', response.status, errorText)
         }
       }
       
@@ -644,7 +660,7 @@ export default function WebsiteScansPage() {
               </Card>
             ) : (
               filteredScans.map((scan) => (
-                <Card key={scan.id}>
+                <Card key={scan.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => scan.status === "abgeschlossen" && handleViewDetails(scan)}>
                   <CardContent className="pt-6">
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                       <div className="flex-1">
@@ -711,7 +727,8 @@ export default function WebsiteScansPage() {
                           </div>
 
                           {scan.status === "abgeschlossen" && (
-                            <div className="border-t pt-3">
+                            <div className="border-t pt-3 space-y-3">
+                              {/* Überblick über Probleme */}
                               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                                 <div className="flex items-center gap-2">
                                   <AlertTriangle className="h-4 w-4 text-orange-500" />
@@ -731,7 +748,7 @@ export default function WebsiteScansPage() {
                                   <CheckCircle className="h-4 w-4 text-green-500" />
                                   <div>
                                     <p className="text-xs text-muted-foreground">Erfolgreich</p>
-                                    <p className="text-sm font-medium">{Math.max(0, 100 - scan.issues)}</p>
+                                    <p className="text-sm font-medium">{scan.results?.passes?.length || Math.max(0, 100 - scan.issues)}</p>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -744,32 +761,100 @@ export default function WebsiteScansPage() {
                                   </div>
                                 </div>
                               </div>
+
+                              {/* Detaillierte Scan-Ergebnisse */}
+                              {scan.results && scan.results.violations && scan.results.violations.length > 0 && (
+                                <div className="border-t pt-3">
+                                  <h4 className="text-sm font-semibold mb-2 text-red-600">Gefundene Probleme:</h4>
+                                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                                    {scan.results.violations.slice(0, 5).map((violation: any, index: number) => (
+                                      <div key={index} className="bg-red-50 dark:bg-red-900/20 p-2 rounded text-xs">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="font-medium text-red-700 dark:text-red-300">{violation.id}</span>
+                                          <span className={`px-2 py-0.5 rounded text-xs ${
+                                            violation.impact === 'critical' ? 'bg-red-100 text-red-800' :
+                                            violation.impact === 'serious' ? 'bg-orange-100 text-orange-800' :
+                                            'bg-yellow-100 text-yellow-800'
+                                          }`}>
+                                            {violation.impact === 'critical' ? 'Kritisch' :
+                                             violation.impact === 'serious' ? 'Schwerwiegend' :
+                                             violation.impact === 'moderate' ? 'Moderat' : 'Gering'}
+                                          </span>
+                                        </div>
+                                        <p className="text-gray-600 dark:text-gray-300 mb-1">{violation.description}</p>
+                                        <p className="text-gray-500 dark:text-gray-400">
+                                          <span className="font-medium">{violation.nodes?.length || 0} Elemente betroffen</span>
+                                          {violation.help && (
+                                            <> • <span className="text-blue-600 dark:text-blue-400">{violation.help}</span></>
+                                          )}
+                                        </p>
+                                      </div>
+                                    ))}
+                                    {scan.results.violations.length > 5 && (
+                                      <p className="text-xs text-gray-500 text-center py-1">
+                                        ... und {scan.results.violations.length - 5} weitere Probleme
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Erfolgreiche Tests */}
+                              {scan.results && scan.results.passes && scan.results.passes.length > 0 && (
+                                <div className="border-t pt-3">
+                                  <h4 className="text-sm font-semibold mb-2 text-green-600">Erfolgreich geprüft:</h4>
+                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-1 text-xs">
+                                    {scan.results.passes.slice(0, 6).map((pass: any, index: number) => (
+                                      <div key={index} className="bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded text-green-700 dark:text-green-300">
+                                        {pass.id}
+                                      </div>
+                                    ))}
+                                    {scan.results.passes.length > 6 && (
+                                      <div className="text-green-600 dark:text-green-400 px-2 py-1">
+                                        +{scan.results.passes.length - 6} weitere
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex justify-end">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteSingleScan(scan)
+                            }}
+                            className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
                         {scan.status === "abgeschlossen" && (
-                          <>
-                            <Button variant="outline" size="sm" onClick={() => handleViewDetails(scan)}>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={(e) => {
+                              e.stopPropagation()
+                              handleViewDetails(scan)
+                            }} className="flex-1">
                               <Eye className="mr-2 h-4 w-4" />
                               Details
                             </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleGenerateReport(scan)}>
+                            <Button variant="outline" size="sm" onClick={(e) => {
+                              e.stopPropagation()
+                              handleGenerateReport(scan)
+                            }}>
                               <Download className="mr-2 h-4 w-4" />
                               Bericht erstellen
                             </Button>
-                          </>
+                          </div>
                         )}
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleDeleteSingleScan(scan)}
-                          className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -800,15 +885,7 @@ export default function WebsiteScansPage() {
           )}
         </div>
 
-        {/* Success Message */}
-        {showSuccessMessage && (
-          <div className="fixed top-4 right-4 z-50 bg-green-500 text-white p-4 rounded-lg shadow-lg">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4" />
-              <span>{successMessage}</span>
-            </div>
-          </div>
-        )}
+
       </SidebarInset>
 
       {/* Delete Scan Confirmation Dialog */}

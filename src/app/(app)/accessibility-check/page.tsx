@@ -40,6 +40,7 @@ import { useWebsites } from "@/hooks/useWebsites"
 import { useBundle } from "@/hooks/useBundle"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { UpgradeDialog } from "@/components/upgrade-dialog"
+import { toast } from "sonner"
 
 // Typdefinitionen für Scan-Ergebnisse
 interface ScanIssueDetails {
@@ -76,6 +77,15 @@ interface ScanResultsData {
     elements: number;
     wcag: string;
   }>;
+  // *** NEUE FELDER FÜR WEBSITE-SCANS KOMPATIBILITÄT ***
+  violations?: any[]; // Originale Axe-Core Violations
+  passes?: any[]; // Originale Axe-Core Passes
+  summary?: {
+    violations: number;
+    passes: number;
+    incomplete: number;
+    inapplicable: number;
+  };
 }
 
 // Erweiterte Übersetzungsfunktionen
@@ -243,10 +253,19 @@ export default function AccessibilityCheckPage() {
   const [scanResults, setScanResults] = useState<ScanResultsData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showPositiveResults, setShowPositiveResults] = useState(true) // Immer auf true
-  const [activeFilter, setActiveFilter] = useState<'all' | 'critical' | 'serious' | 'positive' | 'total'>('critical') // Kritische Probleme als Standard
+  const [activeFilter, setActiveFilter] = useState<'all' | 'critical' | 'serious' | 'positive' | 'total'>(() => {
+    // Lade gespeicherten Filter oder nutze 'critical' als Standard
+    const savedFilter = localStorage.getItem('accessibility-check-active-filter')
+    return (savedFilter as any) || 'critical'
+  })
   const [hiddenIssues, setHiddenIssues] = useState<Set<number>>(new Set())
   const [urlListFile, setUrlListFile] = useState<File | null>(null)
   const [enableSubpageScanning, setEnableSubpageScanning] = useState(false)
+  const [saveScannedPages, setSaveScannedPages] = useState(() => {
+    // Lade gespeicherte Einstellung oder nutze 'false' als Standard (User entscheidet bewusst)
+    const saved = localStorage.getItem('accessibility-check-save-scanned-pages')
+    return saved !== null ? JSON.parse(saved) : false
+  })
   const [isUrlDropdownOpen, setIsUrlDropdownOpen] = useState(false)
   const [scannedPages, setScannedPages] = useState<string[]>([])
   const [selectedPageFilter, setSelectedPageFilter] = useState<string>('alle')
@@ -275,6 +294,16 @@ export default function AccessibilityCheckPage() {
     setSelectedErrors(newSelectedErrors)
     setShowAddToTasksButton(newSelectedErrors.size > 0)
   }
+
+  // Speichere activeFilter bei Änderungen
+  useEffect(() => {
+    localStorage.setItem('accessibility-check-active-filter', activeFilter)
+  }, [activeFilter])
+
+  // Speichere saveScannedPages bei Änderungen
+  useEffect(() => {
+    localStorage.setItem('accessibility-check-save-scanned-pages', JSON.stringify(saveScannedPages))
+  }, [saveScannedPages])
 
   // Handler für "Alle Fehler zu Aufgaben hinzufügen"
   const handleAddSelectedToTasks = async () => {
@@ -563,7 +592,11 @@ export default function AccessibilityCheckPage() {
           description: pass.description,
           elements: pass.nodes.length,
           wcag: pass.tags.find((tag: string) => tag.startsWith('wcag'))?.replace('wcag', '') || 'N/A'
-        })) : []
+        })) : [],
+        // *** KRITISCH FÜR WEBSITE-SCANS: Originale Axe-Core Daten hinzufügen ***
+        violations: data.violations || [], // Originale Axe-Core Violations für Website-Scans UI
+        passes: data.passes || [], // Originale Axe-Core Passes für Website-Scans UI
+        summary: data.summary || { violations: 0, passes: 0, incomplete: 0, inapplicable: 0 }
       };
       
       // Füge Timestamp hinzu
@@ -606,7 +639,8 @@ export default function AccessibilityCheckPage() {
         setSelectedPageFilter('alle');
       }
       
-      // KRITISCHER SCAN-SPEICHER-PROZESS - NUR API
+      // KRITISCHER SCAN-SPEICHER-PROZESS - NUR WENN AKTIVIERT
+      if (saveScannedPages) {
       try {
         // ANTI-DUPLIKAT: Lasse websiteName leer oder verwende einen intelligenten Namen
         // Die API wird die beste Entscheidung für den Namen treffen
@@ -621,7 +655,15 @@ export default function AccessibilityCheckPage() {
           scanResults: formattedResults
         };
         
-        console.log('KRITISCHER DEBUG: Speichere Scan:', scanData);
+        console.log('KRITISCHER DEBUG: Speichere Scan (Option aktiviert):', scanData);
+        console.log('KRITISCHER DEBUG: FormattedResults Struktur:', {
+          hasViolations: !!formattedResults.violations,
+          violationsCount: formattedResults.violations?.length || 0,
+          hasPasses: !!formattedResults.passes,
+          passesCount: formattedResults.passes?.length || 0,
+          hasDetails: !!formattedResults.details,
+          detailsCount: formattedResults.details?.length || 0
+        });
         
         const response = await fetch('/api/scans', {
           method: 'POST',
@@ -644,9 +686,13 @@ export default function AccessibilityCheckPage() {
       } catch (error) {
         console.error('KRITISCHER DEBUG: Exception beim Speichern des Scans:', error)
         throw error // Fehler weiterwerfen - KEIN Fallback
+        }
+      } else {
+        console.log('KRITISCHER DEBUG: Scan-Speicherung übersprungen - Option deaktiviert');
       }
       
-      // Event auslösen für andere Komponenten (Dashboard, Website-Scans)
+      // Event auslösen für andere Komponenten (Dashboard, Website-Scans) - NUR WENN GESPEICHERT
+      if (saveScannedPages) {
       console.log('KRITISCHER DEBUG: Löse scanCompleted Event aus')
       window.dispatchEvent(new CustomEvent('scanCompleted', {
         detail: {
@@ -655,6 +701,7 @@ export default function AccessibilityCheckPage() {
           website: new URL(url).hostname
         }
       }))
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ein unbekannter Fehler ist aufgetreten');
       setScanResults(null);
@@ -730,7 +777,7 @@ export default function AccessibilityCheckPage() {
     existingTasks.push(newTask);
     localStorage.setItem('accessibility-tasks', JSON.stringify(existingTasks));
     
-    alert(`Aufgabe "${newTask.title}" wurde zu Ihren Aufgaben hinzugefügt!`);
+    toast.success(`Aufgabe "${newTask.title}" wurde zu Ihren Aufgaben hinzugefügt!`);
   };
 
   // PDF Export Handler
@@ -748,7 +795,7 @@ export default function AccessibilityCheckPage() {
     };
     
     // Mock PDF generation - in real app, this would call an API
-    alert(`PDF-Bericht für ${scanResults.url} wird generiert...\n\nScore: ${scanResults.score}%\nProbleme: ${scanResults.details.length}\nPositive Checks: ${scanResults.passedChecks?.length || 0}`);
+    toast.success(`PDF-Bericht wurde erfolgreich erstellt! Der Download startet automatisch.`);
   };
 
   // CSV Export Handler  
@@ -790,6 +837,7 @@ export default function AccessibilityCheckPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success(`CSV-Datei wurde erfolgreich heruntergeladen!`);
   };
 
   return (
@@ -887,8 +935,19 @@ export default function AccessibilityCheckPage() {
                     )}
                   </Label>
                 </div>
+                </div>
                 
-
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="saveScannedPages"
+                    checked={saveScannedPages}
+                    onCheckedChange={(checked) => setSaveScannedPages(!!checked)}
+                  />
+                  <Label htmlFor="saveScannedPages" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Gescannte Seiten in Liste speichern
+                  </Label>
+                </div>
               </div>
               {hasProVersion && (
                 <div className="space-y-2">

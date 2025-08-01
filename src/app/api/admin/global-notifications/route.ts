@@ -65,6 +65,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Keine Berechtigung' }, { status: 403 })
     }
 
+    const requestBody = await request.json()
+    console.log('ADMIN-NOTIFICATIONS DEBUG: Request Body:', requestBody)
+    
     const {
       message,
       link,
@@ -72,9 +75,10 @@ export async function POST(request: NextRequest) {
       backgroundColor,
       textColor,
       targetPackages,
+      specificUsers,
       isActive,
       dismissible
-    } = await request.json()
+    } = requestBody
 
     if (!message || !message.trim()) {
       return NextResponse.json({ error: 'Nachricht ist erforderlich' }, { status: 400 })
@@ -89,6 +93,7 @@ export async function POST(request: NextRequest) {
         backgroundColor: backgroundColor || '#3b82f6',
         textColor: textColor || '#ffffff',
         targetPackages: targetPackages || ['ALL'],
+        specificUsers: specificUsers || [],
         isActive: isActive ?? true,
         dismissible: dismissible ?? true,
         createdBy: user.id

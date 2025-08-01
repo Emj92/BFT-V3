@@ -9,7 +9,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { Trash2, Eye, EyeOff, Save, Plus } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Trash2, Eye, EyeOff, Save, Plus, ChevronDown } from 'lucide-react'
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
@@ -21,9 +22,17 @@ interface GlobalNotification {
   backgroundColor: string
   textColor: string
   targetPackages: string[]
+  specificUsers?: string[]
   isActive: boolean
   dismissible: boolean
   createdAt: Date
+}
+
+interface User {
+  id: string
+  name: string
+  email: string
+  bundle: string
 }
 
 export function AdminGlobalNotifications() {
@@ -34,6 +43,9 @@ export function AdminGlobalNotifications() {
     open: false,
     notification: null
   })
+  const [users, setUsers] = useState<User[]>([])
+  const [userSearchTerm, setUserSearchTerm] = useState('')
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
   
   // Form state
   const [notificationType, setNotificationType] = useState<'notification' | 'banner'>('notification')
@@ -42,6 +54,7 @@ export function AdminGlobalNotifications() {
     title: '',
     message: '',
     targetPackages: [] as string[],
+    specificUsers: [] as string[],
     isActive: true,
     
     // Banner-spezifische Felder
@@ -56,9 +69,9 @@ export function AdminGlobalNotifications() {
     { value: 'FREE', label: 'FREE Nutzer' },
     { value: 'STARTER', label: 'STARTER Nutzer' },
     { value: 'PRO', label: 'PRO Nutzer' },
-    { value: 'PROFESSIONAL', label: 'PROFESSIONAL Nutzer' },
     { value: 'ENTERPRISE', label: 'ENTERPRISE Nutzer' },
-    { value: 'ALL', label: 'Alle Nutzer' }
+    { value: 'ALL', label: 'Alle Nutzer' },
+    { value: 'SPECIFIC', label: 'Spezifische Nutzer' }
   ]
 
   const colorPresets = [
@@ -83,6 +96,25 @@ export function AdminGlobalNotifications() {
       console.error('Fehler beim Laden der Benachrichtigungen:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Load users
+  const loadUsers = async () => {
+    try {
+      const response = await fetch('/api/users')
+      if (response.ok) {
+        const data = await response.json()
+        const userList = Array.isArray(data) ? data : (data.users || [])
+        setUsers(userList.map((user: any) => ({
+          id: user.id,
+          name: user.name || user.email,
+          email: user.email,
+          bundle: user.bundle || 'FREE'
+        })))
+      }
+    } catch (error) {
+      console.error('Fehler beim Laden der Benutzer:', error)
     }
   }
 
@@ -114,6 +146,7 @@ export function AdminGlobalNotifications() {
             backgroundColor: formData.backgroundColor,
             textColor: formData.textColor,
             targetPackages: formData.targetPackages,
+            specificUsers: formData.specificUsers,
             isActive: formData.isActive,
             dismissible: formData.dismissible
           })
@@ -128,7 +161,8 @@ export function AdminGlobalNotifications() {
             message: formData.message,
             type: 'INFO',
             isGlobal: true,
-            targetPackages: formData.targetPackages
+            targetPackages: formData.targetPackages,
+            specificUsers: formData.specificUsers
           })
         })
       }
@@ -155,6 +189,7 @@ export function AdminGlobalNotifications() {
       title: '',
       message: '',
       targetPackages: [],
+      specificUsers: [],
       isActive: true,
       link: '',
       linkText: '',
@@ -163,6 +198,8 @@ export function AdminGlobalNotifications() {
       dismissible: true
     })
     setNotificationType('notification')
+    setUserSearchTerm('')
+    setShowUserDropdown(false)
   }
 
   // Toggle notification status
@@ -209,6 +246,7 @@ export function AdminGlobalNotifications() {
 
   useEffect(() => {
     loadNotifications()
+    loadUsers()
   }, [])
 
   return (
@@ -267,6 +305,8 @@ export function AdminGlobalNotifications() {
               </div>
             </div>
 
+            {/* Titel und Nachricht nebeneinander */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Titel - nur für Benachrichtigungen */}
             {notificationType === 'notification' && (
               <div>
@@ -282,7 +322,7 @@ export function AdminGlobalNotifications() {
             )}
 
             {/* Nachricht */}
-            <div>
+              <div className={notificationType === 'banner' ? 'md:col-span-2' : ''}>
               <Label htmlFor="message">
                 {notificationType === 'banner' ? 'Banner-Text *' : 'Nachrichten-Text *'}
               </Label>
@@ -294,11 +334,14 @@ export function AdminGlobalNotifications() {
                 className="mt-1"
                 rows={notificationType === 'banner' ? 2 : 3}
               />
+              </div>
             </div>
 
             {/* Banner-spezifische Felder */}
             {notificationType === 'banner' && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Links-Seite: Banner-Optionen */}
+                <div className="space-y-4">
                 <div>
                   <Label htmlFor="link">Link (optional)</Label>
                   <Input
@@ -320,33 +363,9 @@ export function AdminGlobalNotifications() {
                   />
                 </div>
               </div>
-            )}
 
-            <div>
-              <Label>Zielgruppe</Label>
-              <Select 
-                value={formData.targetPackages[0] || 'ALL'} 
-                onValueChange={(value) => setFormData(prev => ({ 
-                  ...prev, 
-                  targetPackages: value === 'ALL' ? ['ALL'] : [value] 
-                }))}
-              >
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Zielgruppe auswählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {packageOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Banner-spezifische Styling-Optionen */}
-            {notificationType === 'banner' && (
-              <>
+                {/* Rechts-Seite: Farb-Optionen */}
+                <div className="space-y-4">
                 <div>
                   <Label>Farb-Presets</Label>
               <div className="flex gap-2 mt-2">
@@ -371,45 +390,179 @@ export function AdminGlobalNotifications() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="backgroundColor">Hintergrundfarbe</Label>
+                      <Label htmlFor="backgroundColor" className="text-sm">Hintergrund</Label>
                 <div className="flex gap-2 mt-1">
                   <Input
                     id="backgroundColor"
                     type="color"
                     value={formData.backgroundColor}
                     onChange={(e) => setFormData(prev => ({ ...prev, backgroundColor: e.target.value }))}
-                    className="w-16 h-10 p-1"
+                          className="w-12 h-8 p-1"
                   />
                   <Input
                     value={formData.backgroundColor}
                     onChange={(e) => setFormData(prev => ({ ...prev, backgroundColor: e.target.value }))}
                     placeholder="#3b82f6"
-                    className="flex-1"
+                          className="flex-1 text-xs"
                   />
                 </div>
               </div>
               <div>
-                <Label htmlFor="textColor">Textfarbe</Label>
+                      <Label htmlFor="textColor" className="text-sm">Text</Label>
                 <div className="flex gap-2 mt-1">
                   <Input
                     id="textColor"
                     type="color"
                     value={formData.textColor}
                     onChange={(e) => setFormData(prev => ({ ...prev, textColor: e.target.value }))}
-                    className="w-16 h-10 p-1"
+                          className="w-12 h-8 p-1"
                   />
                   <Input
                     value={formData.textColor}
                     onChange={(e) => setFormData(prev => ({ ...prev, textColor: e.target.value }))}
                     placeholder="#ffffff"
-                    className="flex-1"
+                          className="flex-1 text-xs"
                   />
                 </div>
               </div>
             </div>
+                </div>
+              </div>
+            )}
 
+            {/* Zielgruppe, Buttons und Aktivierung in einer Reihe */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div>
+                <Label className="text-sm">Zielgruppe</Label>
+                <Select 
+                  value={formData.targetPackages[0] || 'ALL'} 
+                  onValueChange={(value) => {
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      targetPackages: value === 'ALL' ? ['ALL'] : [value] 
+                    }))
+                    if (value !== 'SPECIFIC') {
+                      setFormData(prev => ({ ...prev, specificUsers: [] }))
+                    }
+                  }}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Zielgruppe wählen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {packageOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={formData.isActive}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
+                />
+                <Label className="text-sm">Sofort aktivieren</Label>
+              </div>
+
+              <Button onClick={createNotification} disabled={isLoading}>
+                <Save className="w-4 h-4 mr-2" />
+                Erstellen
+              </Button>
+              
+              <Button variant="outline" onClick={() => {
+                setShowCreateForm(false)
+                resetForm()
+              }}>
+                Abbrechen
+              </Button>
+            </div>
+
+            {/* Spezifische Benutzer-Auswahl */}
+            {formData.targetPackages.includes('SPECIFIC') && (
+              <div>
+                <Label className="text-sm">Spezifische Benutzer auswählen</Label>
+                <div className="mt-2 space-y-2">
+                  <div className="relative">
+                    <Input
+                      placeholder="Benutzer suchen..."
+                      value={userSearchTerm}
+                      onChange={(e) => setUserSearchTerm(e.target.value)}
+                      onFocus={() => setShowUserDropdown(true)}
+                      className="pr-10"
+                    />
+                    <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  </div>
+                  
+                  {showUserDropdown && (
+                    <div className="border rounded-lg bg-white shadow-lg max-h-48 overflow-y-auto p-2">
+                      {users
+                        .filter(user => 
+                          user.name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+                          user.email.toLowerCase().includes(userSearchTerm.toLowerCase())
+                        )
+                        .map(user => (
+                          <div key={user.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
+                            <Checkbox
+                              checked={formData.specificUsers.includes(user.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    specificUsers: [...prev.specificUsers, user.id]
+                                  }))
+                                } else {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    specificUsers: prev.specificUsers.filter(id => id !== user.id)
+                                  }))
+                                }
+                              }}
+                            />
+                            <div className="flex-1">
+                              <div className="text-sm font-medium">{user.name}</div>
+                              <div className="text-xs text-gray-500">{user.email}</div>
+                              <Badge variant="outline" className="text-xs">{user.bundle}</Badge>
+                            </div>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  )}
+
+                  {/* Ausgewählte Benutzer anzeigen */}
+                  {formData.specificUsers.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {formData.specificUsers.map(userId => {
+                        const user = users.find(u => u.id === userId)
+                        return user ? (
+                          <Badge key={userId} variant="secondary" className="flex items-center gap-1">
+                            {user.name}
+                            <button
+                              onClick={() => setFormData(prev => ({
+                                ...prev,
+                                specificUsers: prev.specificUsers.filter(id => id !== userId)
+                              }))}
+                              className="ml-1 hover:bg-red-100 rounded-full p-0.5"
+                            >
+                              ×
+                            </button>
+                          </Badge>
+                        ) : null
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Banner-spezifische zusätzliche Optionen */}
+            {notificationType === 'banner' && (
+              <>
             {/* Preview */}
             <div>
               <Label>Vorschau</Label>
@@ -461,26 +614,7 @@ export function AdminGlobalNotifications() {
               </>
             )}
 
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={formData.isActive}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
-              />
-              <Label>Sofort aktivieren</Label>
-            </div>
 
-            <div className="flex gap-2">
-              <Button onClick={createNotification} disabled={isLoading}>
-                <Save className="w-4 h-4 mr-2" />
-                Erstellen
-              </Button>
-              <Button variant="outline" onClick={() => {
-                setShowCreateForm(false)
-                resetForm()
-              }}>
-                Abbrechen
-              </Button>
-            </div>
           </CardContent>
         </Card>
       )}
@@ -514,6 +648,11 @@ export function AdminGlobalNotifications() {
                         {packageOptions.find(p => p.value === pkg)?.label || pkg}
                       </Badge>
                     ))}
+                    {notification.specificUsers && notification.specificUsers.length > 0 && (
+                      <Badge variant="secondary">
+                        {notification.specificUsers.length} spez. Nutzer
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 ml-4">

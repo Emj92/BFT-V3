@@ -70,10 +70,16 @@ export function AdminCharts() {
   const [loading, setLoading] = useState(true)
 
   // Funktion zum Laden der Credit-Verbrauchsstatistiken - ECHTE DATEN
-  const loadCreditUsageStats = async (users: any[]) => {
+  const loadCreditUsageStats = async () => {
     try {
+      // Baue URL mit Filter-Parametern
+      const params = new URLSearchParams({
+        period: usagePeriod,
+        bundle: selectedBundle
+      })
+      
       // Lade echte Credit-Verbrauchsdaten von API
-      const response = await fetch('/api/admin/credit-usage', {
+      const response = await fetch(`/api/admin/credit-usage?${params.toString()}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache'
@@ -161,7 +167,7 @@ export function AdminCharts() {
           }))
           
           // Lade Credit-Verbrauchsdaten - ECHTE DATEN
-          await loadCreditUsageStats(users)
+          await loadCreditUsageStats()
           setRegistrationData(registrationChartData)
         }
 
@@ -211,6 +217,13 @@ export function AdminCharts() {
 
     loadStats()
   }, [registrationPeriod, creditPeriod])
+
+  // Separater useEffect für Credit-Usage Filter
+  useEffect(() => {
+    if (!loading) { // Nur laden wenn schon initialisiert
+      loadCreditUsageStats()
+    }
+  }, [usagePeriod, selectedBundle])
 
   if (loading) {
     return (
