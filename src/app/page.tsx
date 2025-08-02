@@ -1429,8 +1429,8 @@ export default function HomePage() {
                   <div className="text-4xl mb-2">🚀</div>
                   <CardTitle className="text-2xl">STARTER</CardTitle>
                   <div className="text-lg text-muted-foreground">"Für Einzelpersonen"</div>
-                  <div className="text-3xl font-bold">{isYearly ? '92€' : '9€'}</div>
-                  <CardDescription>{isYearly ? '/ Jahr (7,67€/Monat)' : '/ Monat'}</CardDescription>
+                  <div className="text-3xl font-bold">{isYearly ? '91,80€' : '9€'}</div>
+                  <CardDescription>{isYearly ? '/ Jahr (7,65€/Monat)' : '/ Monat'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 flex-1 flex flex-col">
                   <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
@@ -1524,8 +1524,8 @@ export default function HomePage() {
                   <div className="text-4xl mb-2">⭐</div>
                   <CardTitle className="text-2xl">PROFESSIONAL</CardTitle>
                   <div className="text-lg text-muted-foreground">"Für Unternehmen"</div>
-                  <div className="text-3xl font-bold">{isYearly ? '296€' : '29€'}</div>
-                  <CardDescription>{isYearly ? '/ Jahr (24,67€/Monat)' : '/ Monat'}</CardDescription>
+                  <div className="text-3xl font-bold">{isYearly ? '295,60€' : '29€'}</div>
+                  <CardDescription>{isYearly ? '/ Jahr (24,63€/Monat)' : '/ Monat'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 flex-1 flex flex-col">
                   <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
@@ -1611,8 +1611,8 @@ export default function HomePage() {
                   <div className="text-4xl mb-2">🏢</div>
                   <CardTitle className="text-2xl">ENTERPRISE</CardTitle>
                   <div className="text-lg text-muted-foreground">"Für Agenturen & Teams"</div>
-                  <div className="text-3xl font-bold">{isYearly ? 'Ab 806€' : 'Ab 79€'}</div>
-                  <CardDescription>{isYearly ? '/ Jahr (67,17€/Monat)' : '/ Monat'}</CardDescription>
+                  <div className="text-3xl font-bold">{isYearly ? 'Ab 805,40€' : 'Ab 79€'}</div>
+                  <CardDescription>{isYearly ? '/ Jahr (67,12€/Monat)' : '/ Monat'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 flex-1 flex flex-col">
                   <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
@@ -1709,6 +1709,33 @@ export default function HomePage() {
                     <div className="text-sm text-muted-foreground">Credits</div>
                     <div className="text-lg font-semibold mt-2">15€</div>
                     <div className="text-xs text-muted-foreground">1,50€ pro Credit</div>
+                    <Button 
+                      className="w-full mt-3" 
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/payments/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              type: 'credits',
+                              credits: 10,
+                              amount: 15
+                            })
+                          });
+                          const data = await response.json();
+                          if (data.success) {
+                            window.location.href = data.paymentUrl;
+                          } else {
+                            toast.error('Fehler: ' + data.error);
+                          }
+                        } catch (error) {
+                          toast.error('Netzwerkfehler beim Erstellen der Zahlung');
+                        }
+                      }}
+                    >
+                      Kaufen
+                    </Button>
                   </CardContent>
                 </Card>
                 
@@ -1718,6 +1745,33 @@ export default function HomePage() {
                     <div className="text-sm text-muted-foreground">Credits</div>
                     <div className="text-lg font-semibold mt-2">30€</div>
                     <div className="text-xs text-green-600">20% Rabatt</div>
+                    <Button 
+                      className="w-full mt-3" 
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/payments/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              type: 'credits',
+                              credits: 25,
+                              amount: 30
+                            })
+                          });
+                          const data = await response.json();
+                          if (data.success) {
+                            window.location.href = data.paymentUrl;
+                          } else {
+                            toast.error('Fehler: ' + data.error);
+                          }
+                        } catch (error) {
+                          toast.error('Netzwerkfehler beim Erstellen der Zahlung');
+                        }
+                      }}
+                    >
+                      Kaufen
+                    </Button>
                   </CardContent>
                 </Card>
                 
@@ -1727,6 +1781,33 @@ export default function HomePage() {
                     <div className="text-sm text-muted-foreground">Credits</div>
                     <div className="text-lg font-semibold mt-2">50€</div>
                     <div className="text-xs text-green-600">33% Rabatt</div>
+                    <Button 
+                      className="w-full mt-3" 
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/payments/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              type: 'credits',
+                              credits: 50,
+                              amount: 50
+                            })
+                          });
+                          const data = await response.json();
+                          if (data.success) {
+                            window.location.href = data.paymentUrl;
+                          } else {
+                            toast.error('Fehler: ' + data.error);
+                          }
+                        } catch (error) {
+                          toast.error('Netzwerkfehler beim Erstellen der Zahlung');
+                        }
+                      }}
+                    >
+                      Kaufen
+                    </Button>
                   </CardContent>
                 </Card>
                 
@@ -1736,6 +1817,33 @@ export default function HomePage() {
                     <div className="text-sm text-muted-foreground">Credits</div>
                     <div className="text-lg font-semibold mt-2">85€</div>
                     <div className="text-xs text-green-600">43% Rabatt</div>
+                    <Button 
+                      className="w-full mt-3" 
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/payments/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              type: 'credits',
+                              credits: 100,
+                              amount: 85
+                            })
+                          });
+                          const data = await response.json();
+                          if (data.success) {
+                            window.location.href = data.paymentUrl;
+                          } else {
+                            toast.error('Fehler: ' + data.error);
+                          }
+                        } catch (error) {
+                          toast.error('Netzwerkfehler beim Erstellen der Zahlung');
+                        }
+                      }}
+                    >
+                      Kaufen
+                    </Button>
                   </CardContent>
                 </Card>
                 
@@ -1745,6 +1853,33 @@ export default function HomePage() {
                     <div className="text-sm text-muted-foreground">Credits</div>
                     <div className="text-lg font-semibold mt-2">175€</div>
                     <div className="text-xs text-green-600">53% Rabatt</div>
+                    <Button 
+                      className="w-full mt-3" 
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/api/payments/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              type: 'credits',
+                              credits: 250,
+                              amount: 175
+                            })
+                          });
+                          const data = await response.json();
+                          if (data.success) {
+                            window.location.href = data.paymentUrl;
+                          } else {
+                            toast.error('Fehler: ' + data.error);
+                          }
+                        } catch (error) {
+                          toast.error('Netzwerkfehler beim Erstellen der Zahlung');
+                        }
+                      }}
+                    >
+                      Kaufen
+                    </Button>
                   </CardContent>
                 </Card>
                 

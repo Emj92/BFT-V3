@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
         id: true,
         bundle: true,
         bundlePurchasedAt: true,
+        bundleExpiresAt: true,
         credits: true,
         name: true,
         email: true,
@@ -43,26 +44,35 @@ export async function GET(request: NextRequest) {
     // Admins bekommen automatisch Pro-Features
     const isAdmin = user.role === 'ADMIN'
     
-    // Pro Features sind verfügbar für PRO, ENTERPRISE Bundles oder Admins
-    const hasProFeatures = user.bundle === BundleType.PRO || 
-                          user.bundle === BundleType.ENTERPRISE || 
+    // Prüfe ob Bundle abgelaufen ist (nur für jährliche Pakete)
+    const now = new Date()
+    const bundleExpired = user.bundleExpiresAt && now > new Date(user.bundleExpiresAt)
+    
+    // Bei abgelaufenem Bundle auf FREE zurücksetzen (außer Admin)
+    let effectiveBundle = user.bundle || BundleType.FREE
+    if (bundleExpired && !isAdmin) {
+      effectiveBundle = BundleType.FREE
+    }
+    
+    // Pro Features sind verfügbar für PRO, ENTERPRISE Bundles (die nicht abgelaufen sind) oder Admins
+    const hasProFeatures = (effectiveBundle === BundleType.PRO || 
+                          effectiveBundle === BundleType.ENTERPRISE) && 
+                          !bundleExpired || 
                           isAdmin
 
-    // Pro ist aktiv wenn Bundle gekauft wurde oder wenn Benutzer Admin ist
-    const isProActive = hasProFeatures && (
-      isAdmin || // Admins haben immer aktiven Pro-Zugang
-      !user.bundlePurchasedAt || 
-      new Date(user.bundlePurchasedAt).getTime() > Date.now() - (30 * 24 * 60 * 60 * 1000)
-    )
+    // Pro ist aktiv wenn Bundle nicht abgelaufen ist oder wenn Benutzer Admin ist
+    const isProActive = hasProFeatures && !bundleExpired
 
     // Für Admins: Setze Bundle auf PRO falls noch kein Bundle gesetzt
-    const effectiveBundle = isAdmin && !user.bundle 
-      ? BundleType.PRO 
-      : (user.bundle || BundleType.FREE)
+    if (isAdmin && !user.bundle) {
+      effectiveBundle = BundleType.PRO
+    }
 
     return NextResponse.json({
       bundle: effectiveBundle,
       bundlePurchasedAt: user.bundlePurchasedAt,
+      bundleExpiresAt: user.bundleExpiresAt,
+      bundleExpired,
       credits: user.credits || (isAdmin ? 999 : 0), // Admins bekommen viele Credits
       isProActive,
       hasProFeatures,

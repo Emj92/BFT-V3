@@ -39,6 +39,7 @@ model User {
   credits       Int       @default(5) // Free User bekommen 5 Credits zum Start
   bundle        BundleType   
   bundlePurchasedAt DateTime?
+  bundleExpiresAt DateTime? // Für jährliche Pakete - NULL bedeutet unbegrenzt/monatlich
   
   // Team-System für Enterprise
   teamId        String?   // Verweis auf Team (nur für Enterprise)

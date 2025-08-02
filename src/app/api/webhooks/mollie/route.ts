@@ -23,11 +23,21 @@ export async function POST(request: NextRequest) {
       
       if (metadata.type === 'bundle') {
         // Bundle-Upgrade durchführen
+        const purchaseDate = new Date()
+        let expiresAt = null
+        
+        // Für jährliche Pakete: Ablaufdatum auf 1 Jahr setzen
+        if (metadata.interval === 'yearly') {
+          expiresAt = new Date(purchaseDate)
+          expiresAt.setFullYear(expiresAt.getFullYear() + 1)
+        }
+        
         await prisma.user.update({
           where: { id: metadata.userId },
           data: {
             bundle: metadata.bundle as BundleType,
-            bundlePurchasedAt: new Date()
+            bundlePurchasedAt: purchaseDate,
+            bundleExpiresAt: expiresAt
           }
         })
 

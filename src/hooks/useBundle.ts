@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react'
 interface BundleInfo {
   bundle: 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE'
   bundlePurchasedAt: string | null
+  bundleExpiresAt: string | null
+  bundleExpired: boolean
   credits: number
   isProActive: boolean
   hasProFeatures: boolean
