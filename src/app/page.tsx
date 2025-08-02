@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { toast } from "sonner"
 import { LanguageToggle } from "@/components/language-toggle"
 import { formatUrl, isValidUrl } from '@/lib/utils'
 import ScanResults from '@/components/scan-results'
@@ -1381,11 +1382,11 @@ export default function HomePage() {
                   <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">Accessibility Check</span>
+                    <span className="text-base">BF-Scanner</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <X className="h-4 w-4 text-red-600 flex-shrink-0" />
-                    <span className="text-base">BFSG Coach</span>
+                    <span className="text-base">BF-Coach</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <X className="h-4 w-4 text-red-600 flex-shrink-0" />
@@ -1449,7 +1450,7 @@ export default function HomePage() {
                   <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">Accessibility Check</span>
+                    <span className="text-base">BF-Scanner</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
@@ -1497,10 +1498,10 @@ export default function HomePage() {
                         if (data.success) {
                           window.location.href = data.paymentUrl;
                         } else {
-                          alert('Fehler: ' + data.error);
+                          toast.error('Fehler: ' + data.error);
                         }
                       } catch (error) {
-                        alert('Netzwerkfehler beim Erstellen der Zahlung');
+                        toast.error('Netzwerkfehler beim Erstellen der Zahlung');
                       }
                     }}
                   >
@@ -1544,7 +1545,7 @@ export default function HomePage() {
                   <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">Accessibility Check</span>
+                    <span className="text-base">BF-Scanner</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
@@ -1592,10 +1593,10 @@ export default function HomePage() {
                         if (data.success) {
                           window.location.href = data.paymentUrl;
                         } else {
-                          alert('Fehler: ' + data.error);
+                          toast.error('Fehler: ' + data.error);
                         }
                       } catch (error) {
-                        alert('Netzwerkfehler beim Erstellen der Zahlung');
+                        toast.error('Netzwerkfehler beim Erstellen der Zahlung');
                       }
                     }}
                   >
@@ -1679,10 +1680,10 @@ export default function HomePage() {
                         if (data.success) {
                           window.location.href = data.paymentUrl;
                         } else {
-                          alert('Fehler: ' + data.error);
+                          toast.error('Fehler: ' + data.error);
                         }
                       } catch (error) {
-                        alert('Netzwerkfehler beim Erstellen der Zahlung');
+                        toast.error('Netzwerkfehler beim Erstellen der Zahlung');
                       }
                     }}
                   >
@@ -1860,16 +1861,20 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="bg-background border-t pt-12 pb-7" style={{ fontSize: '17px' }}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Logo zentralisiert */}
+          <div className="flex justify-center md:justify-start mb-6">
+            <div className="flex items-center space-x-2">
+              <img 
+                src="/logo3.png" 
+                alt="barriere-frei24.de Logo" 
+                className="h-10 w-auto" 
+              />
+            </div>
+          </div>
+          
           <div className="grid md:grid-cols-2 gap-8 items-start">
-            {/* Links - Logo und Über mich */}
+            {/* Links - Über mich */}
             <div className="flex flex-col h-full">
-              <div className="flex items-center space-x-2 mb-4">
-                <img 
-                  src="/logo3.png" 
-                  alt="barriere-frei24.de Logo" 
-                  className="h-10 w-auto" 
-                />
-              </div>
               <h3 className="font-semibold mb-3 text-base">Über Mich</h3>
               <p className="text-muted-foreground text-sm leading-relaxed flex-1">
                 Ich entwickle professionelle Tools zur Barrierefreiheits-Prüfung von Websites. 

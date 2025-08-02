@@ -246,7 +246,7 @@ export default function TeamChatPage() {
 
         {/* Chat Messages - WhatsApp Style */}
         <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-muted/20 to-muted/10">
-          <div className="max-w-4xl mx-auto space-y-4">
+          <div className="max-w-[800px] mx-auto space-y-4">
             {chatMessages.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
                 <div className="h-20 w-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
@@ -271,7 +271,7 @@ export default function TeamChatPage() {
                     )}
                     
                     {/* Message Bubble */}
-                    <div className={`max-w-xs lg:max-w-md ${isOwnMessage ? 'ml-2' : ''}`}>
+                    <div className={`max-w-[400px] ${isOwnMessage ? 'ml-2' : ''}`}>
                       <div className={`px-3 py-2 rounded-2xl relative ${
                         isOwnMessage 
                           ? 'bg-blue-500 text-white rounded-br-sm' 
@@ -282,7 +282,7 @@ export default function TeamChatPage() {
                             {sender.name || sender.email?.split('@')[0] || 'Unbekannt'}
                           </div>
                         )}
-                        <p className={`text-sm leading-tight ${isOwnMessage ? 'text-white' : 'text-gray-900'}`}>
+                        <p className={`text-sm leading-tight break-words ${isOwnMessage ? 'text-white' : 'text-gray-900'}`}>
                           {msg.message}
                         </p>
                         <div className={`text-xs mt-1 text-right ${isOwnMessage ? 'text-blue-100' : 'text-gray-400'}`}>

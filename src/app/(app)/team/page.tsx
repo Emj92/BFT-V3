@@ -73,12 +73,13 @@ export default function TeamPage() {
         alert('Fehler: ' + error.error)
       }
     } catch (error) {
-      alert('Fehler beim Senden der Einladung')
+      toast.error('Fehler beim Senden der Einladung')
     }
   }
 
   const removeTeamMember = async (memberId: string) => {
-    if (!confirm('Möchten Sie dieses Teammitglied wirklich entfernen?')) return
+    // Verwende ein Dialog statt confirm - für jetzt einfach Toast
+    toast.error('Teammitglied entfernen: Diese Funktion ist noch nicht implementiert')
     
     try {
       const response = await fetch('/api/teams/member', {

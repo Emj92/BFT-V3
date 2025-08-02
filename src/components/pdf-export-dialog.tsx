@@ -471,7 +471,7 @@ ${formData.additionalInfo ? `## Zusätzliche Informationen\n\n${formData.additio
               <div className="space-y-a11y-xs">
                 <Label className="text-hint font-medium">Konformitätsstatus</Label>
                 <Select value={formData.conformanceStatus} onValueChange={(value) => updateFormData('conformanceStatus', value)}>
-                  <SelectTrigger className="text-hint h-touch">
+                  <SelectTrigger className="text-hint h-touch bg-white dark:bg-white border-gray-300 dark:border-gray-300">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -498,7 +498,7 @@ ${formData.additionalInfo ? `## Zusätzliche Informationen\n\n${formData.additio
                     value={formData.knownIssues}
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateFormData('knownIssues', e.target.value)}
                     placeholder="Beschreiben Sie bekannte Probleme..."
-                    className="text-hint min-h-24"
+                    className="text-hint min-h-24 bg-white dark:bg-white border-gray-300 dark:border-gray-300"
                   />
                 </div>
                 <div className="space-y-a11y-xs">
@@ -508,7 +508,7 @@ ${formData.additionalInfo ? `## Zusätzliche Informationen\n\n${formData.additio
                     value={formData.plannedFixes}
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateFormData('plannedFixes', e.target.value)}
                     placeholder="Beschreiben Sie geplante Verbesserungen..."
-                    className="text-hint min-h-24"
+                    className="text-hint min-h-24 bg-white dark:bg-white border-gray-300 dark:border-gray-300"
                   />
                 </div>
                 <div className="space-y-a11y-xs">
@@ -518,7 +518,7 @@ ${formData.additionalInfo ? `## Zusätzliche Informationen\n\n${formData.additio
                     value={formData.alternativeAccess}
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateFormData('alternativeAccess', e.target.value)}
                     placeholder="Beschreiben Sie alternative Zugangswege..."
-                    className="text-hint min-h-24"
+                    className="text-hint min-h-24 bg-white dark:bg-white border-gray-300 dark:border-gray-300"
                   />
                 </div>
               </div>

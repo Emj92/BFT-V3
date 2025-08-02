@@ -309,45 +309,11 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
           align="end" 
           sideOffset={8}
         >
-          <Card className="border-0 shadow-lg">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Benachrichtigungen</CardTitle>
-                <div className="flex gap-2">
-                  {unreadCount > 0 && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={markAllAsRead}
-                      className="text-xs"
-                    >
-                      Alle als gelesen markieren
-                    </Button>
-                  )}
-                  {notifications.length > 0 && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={deleteAllNotifications}
-                      className="text-xs text-red-600 hover:text-red-700"
-                    >
-                      Alle löschen
-                    </Button>
-                  )}
-                </div>
-              </div>
-              {unreadCount > 0 && (
-                <CardDescription>
-                  {unreadCount} ungelesene Nachricht{unreadCount !== 1 ? 'en' : ''}
-                </CardDescription>
-              )}
-            </CardHeader>
-            
+          <Card className="border-0 shadow-lg">            
             <CardContent className="p-0">
               <ScrollArea className="h-96">
                 {notifications.length === 0 ? (
                   <div className="p-6 text-center text-muted-foreground">
-                    <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>Keine Benachrichtigungen</p>
                   </div>
                 ) : (

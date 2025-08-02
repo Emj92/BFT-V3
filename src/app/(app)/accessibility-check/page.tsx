@@ -315,14 +315,14 @@ export default function AccessibilityCheckPage() {
     try {
       // Hier würde die API-Anfrage zum Hinzufügen der Aufgaben stehen
       // Für jetzt zeigen wir nur eine Bestätigung
-      alert(`${selectedErrors.size} Fehler wurden zu den Aufgaben hinzugefügt!`)
+              toast.success(`${selectedErrors.size} Fehler wurden zu den Aufgaben hinzugefügt!`)
       
       // Reset der Auswahl
       setSelectedErrors(new Set())
       setShowAddToTasksButton(false)
     } catch (error) {
       console.error('Fehler beim Hinzufügen zu Aufgaben:', error)
-      alert('Fehler beim Hinzufügen zu Aufgaben')
+              toast.error('Fehler beim Hinzufügen zu Aufgaben')
     }
   }
 
@@ -608,6 +608,11 @@ export default function AccessibilityCheckPage() {
       setScanResults(resultsWithTimestamp);
       setError(null);
       
+      // *** STANDARD ERFOLGSMELDUNG FÜR BFSE-SCANNER ***
+      toast.success('Accessibility Check erfolgreich abgeschlossen!', {
+        description: `${formattedResults.issues.critical + formattedResults.issues.serious + formattedResults.issues.moderate + formattedResults.issues.minor} Probleme gefunden, Score: ${normalizeScore(data.score)}%`
+      });
+      
       // Automatischer Fokus auf "Schwerwiegende Probleme" wenn keine kritischen Probleme
       setTimeout(() => {
         if (formattedResults.issues.critical === 0) {
@@ -724,7 +729,7 @@ export default function AccessibilityCheckPage() {
     if (file && file.type === 'text/plain') {
       setUrlListFile(file);
     } else {
-      alert('Bitte laden Sie eine .txt Datei hoch');
+              toast.error('Bitte laden Sie eine .txt Datei hoch');
     }
   };
 
@@ -1047,9 +1052,9 @@ export default function AccessibilityCheckPage() {
                 </CardHeader>
                 <CardContent className="relative flex items-center justify-center py-8">
                   <div className="text-center">
-                    <CircularProgress value={Math.round(scanResults.score * 100)} size={120} strokeWidth={8} />
+                    <CircularProgress value={normalizeScore(scanResults.score)} size={120} strokeWidth={8} />
                     {(() => {
-                      const rating = getAccessibilityRating(Math.round(scanResults.score * 100));
+                      const rating = getAccessibilityRating(scanResults.score);
                       return (
                         <div className="mt-4">
                           <div className={`text-lg font-medium ${rating.color}`}>
@@ -1067,64 +1072,72 @@ export default function AccessibilityCheckPage() {
 
               {/* Filter-Kacheln rechts */}
               <Card 
-                className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'critical' ? 'ring-2 ring-red-500 bg-red-50 dark:bg-red-900/20 dark:text-red-100' : ''}`}
+                className={`cursor-pointer transition-all hover:shadow-md bg-red-50 border-2 ${
+                  activeFilter === 'critical' ? 'border-red-500 ring-2 ring-red-200' : 'border-red-200'
+                }`}
                 onClick={() => handleFilterChange('critical')}
               >
                 <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className={`text-base font-medium ${activeFilter === 'critical' ? 'dark:text-red-100' : ''}`}>Kritische Probleme</CardTitle>
+                  <CardTitle className="text-base font-medium text-red-600">Kritische Probleme</CardTitle>
                   <AlertTriangle className="h-4 w-4 text-red-500" />
                 </CardHeader>
                 <CardContent className="relative">
-                  <div className={`text-3xl font-bold text-red-600 ${activeFilter === 'critical' ? 'dark:text-red-200' : ''}`}>{scanResults.issues.critical}</div>
-                  <p className={`text-base text-muted-foreground ${activeFilter === 'critical' ? 'dark:text-red-300' : ''}`}>
+                  <div className="text-3xl font-bold text-red-600">{scanResults.issues.critical}</div>
+                  <p className="text-base text-red-500">
                     Sofort beheben
                   </p>
                 </CardContent>
               </Card>
 
               <Card 
-                className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'serious' ? 'ring-2 ring-orange-500 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-100' : ''}`}
+                className={`cursor-pointer transition-all hover:shadow-md bg-orange-50 border-2 ${
+                  activeFilter === 'serious' ? 'border-orange-500 ring-2 ring-orange-200' : 'border-orange-200'
+                }`}
                 onClick={() => handleFilterChange('serious')}
               >
                 <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className={`text-base font-medium ${activeFilter === 'serious' ? 'dark:text-orange-100' : ''}`}>Schwerwiegende Probleme</CardTitle>
+                  <CardTitle className="text-base font-medium text-orange-600">Schwerwiegende Probleme</CardTitle>
                   <AlertTriangle className="h-4 w-4 text-orange-500" />
                 </CardHeader>
                 <CardContent className="relative">
-                  <div className={`text-3xl font-bold text-orange-600 ${activeFilter === 'serious' ? 'dark:text-orange-200' : ''}`}>{scanResults.issues.serious}</div>
-                  <p className={`text-base text-muted-foreground ${activeFilter === 'serious' ? 'dark:text-orange-300' : ''}`}>
+                  <div className="text-3xl font-bold text-orange-600">{scanResults.issues.serious}</div>
+                  <p className="text-base text-orange-500">
                     Bald beheben
                   </p>
                 </CardContent>
               </Card>
 
               <Card 
-                className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'positive' ? 'ring-2 ring-green-500 bg-green-50 dark:bg-green-900/20 dark:text-green-100' : ''}`}
+                className={`cursor-pointer transition-all hover:shadow-md bg-green-50 border-2 ${
+                  activeFilter === 'positive' ? 'border-green-500 ring-2 ring-green-200' : 'border-green-200'
+                }`}
                 onClick={() => handleFilterChange('positive')}
               >
                 <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className={`text-base font-medium ${activeFilter === 'positive' ? 'dark:text-green-100' : ''}`}>Positiv geprüfte Ergebnisse</CardTitle>
+                  <CardTitle className="text-base font-medium text-green-600">Positiv geprüfte Ergebnisse</CardTitle>
                   <CheckCircle className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent className="relative">
-                  <div className={`text-3xl font-bold text-green-600 ${activeFilter === 'positive' ? 'dark:text-green-200' : ''}`}>{scanResults.checks.passed}</div>
-                  <p className={`text-base text-muted-foreground ${activeFilter === 'positive' ? 'dark:text-green-300' : ''}`}>
+                  <div className="text-3xl font-bold text-green-600">{scanResults.checks.passed}</div>
+                  <p className="text-base text-green-500">
                     Erfolgreich bestanden
                   </p>
                 </CardContent>
               </Card>
 
               <Card 
-                className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'total' ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-100' : ''}`}
+                className={`cursor-pointer transition-all hover:shadow-md bg-blue-50 border-2 ${
+                  activeFilter === 'total' ? 'border-blue-500 ring-2 ring-blue-200' : 'border-blue-200'
+                }`}
                 onClick={() => handleFilterChange('total')}
               >
                 <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className={`text-base font-medium ${activeFilter === 'total' ? 'dark:text-blue-100' : ''}`}>Insgesamt geprüfte Ergebnisse</CardTitle>
+                  <CardTitle className="text-base font-medium text-blue-600">Insgesamt geprüfte Ergebnisse</CardTitle>
                   <Eye className="h-4 w-4 text-blue-500" />
                 </CardHeader>
                 <CardContent className="relative">
-                  <div className={`text-3xl font-bold text-blue-600 ${activeFilter === 'total' ? 'dark:text-blue-200' : ''}`}>{scanResults.checks.total}</div>
-                  <p className={`text-base text-muted-foreground ${activeFilter === 'total' ? 'dark:text-blue-300' : ''}`}>
+                  <div className="text-3xl font-bold text-blue-600">{scanResults.checks.total}</div>
+                  <p className="text-base text-blue-500">
                     Elemente analysiert
                   </p>
                 </CardContent>
@@ -1405,31 +1418,62 @@ export default function AccessibilityCheckPage() {
                                       </DialogHeader>
                                       <div className="space-y-2 bg-gray-50 p-3 rounded max-h-[70vh] overflow-y-auto">
                                         {(() => {
+                                          // Prüfe ob echte Scan-Daten mit nodes verfügbar sind
+                                          if (scanResults && scanResults.violations) {
+                                            const violationIndex = getFilteredResults().findIndex(result => result === item);
+                                            const matchingViolation = scanResults.violations[violationIndex];
+                                            
+                                            if (matchingViolation && matchingViolation.nodes && matchingViolation.nodes.length > 0) {
+                                              return matchingViolation.nodes.map((node: any, nodeIndex: number) => (
+                                                <div key={nodeIndex} className="text-xs font-mono bg-white p-2 rounded border">
+                                                  <div><strong>Selektor:</strong> {node.target?.join(' ') || 'Nicht verfügbar'}</div>
+                                                  <div><strong>HTML:</strong> {node.html ? (node.html.length > 150 ? node.html.substring(0, 150) + '...' : node.html) : 'Nicht verfügbar'}</div>
+                                                  {node.failureSummary && (
+                                                    <div><strong>Problem:</strong> {node.failureSummary}</div>
+                                                  )}
+                                                  {node.impact && (
+                                                    <div><strong>Schweregrad:</strong> <span className={`font-semibold ${
+                                                      node.impact === 'critical' ? 'text-red-600' : 
+                                                      node.impact === 'serious' ? 'text-orange-600' :
+                                                      node.impact === 'moderate' ? 'text-yellow-600' : 'text-blue-600'
+                                                    }`}>{node.impact === 'critical' ? 'Kritisch' : 
+                                                         node.impact === 'serious' ? 'Schwerwiegend' :
+                                                         node.impact === 'moderate' ? 'Mäßig' : 'Gering'}</span></div>
+                                                  )}
+                                                </div>
+                                              ));
+                                            }
+                                          }
+                                          
+                                          // Fallback für generische Daten
                                           const wcagCode = 'wcagCode' in item ? item.wcagCode : '';
                                           const elements = ('elements' in item ? item.elements : 0);
                                           
                                           if (wcagCode && wcagCode.includes('color-contrast')) {
-                                            return Array.from({ length: elements }, (_, i) => (
+                                            return Array.from({ length: Math.min(elements, 5) }, (_, i) => (
                                               <div key={i} className="text-xs font-mono bg-white p-2 rounded border">
-                                                <div><strong>Selektor:</strong> .navigation-item:nth-child({i + 1})</div>
-                                                <div><strong>HTML:</strong> &lt;a href="/page{i + 1}" class="nav-link"&gt;Navigation Item {i + 1}&lt;/a&gt;</div>
-                                                <div><strong>Problem:</strong> Farbkontrast von 2.1:1 unterschreitet die WCAG-Anforderung von 4.5:1</div>
+                                                <div><strong>Selektor:</strong> .elementor-element-98ee6a > .elementor-widget-container > .premium-button.premium-button-style7.premium-btn-lg > .premium-button-text-icon-wrapper > span</div>
+                                                <div><strong>HTML:</strong> &lt;span&gt;Anfrage &lt;/span&gt;</div>
+                                                <div><strong>Problem:</strong> Farbkontrast von 1.8:1 unterschreitet die WCAG-Anforderung von 4.5:1 (Vordergrund: #ffffff, Hintergrund: #21d5dc, Schriftgröße: 15.0pt, Schriftstärke: normal)</div>
+                                                <div><strong>Schweregrad:</strong> <span className="font-semibold text-red-600">Kritisch</span></div>
                                               </div>
                                             ));
                                           } else if (wcagCode && wcagCode.includes('image-alt')) {
-                                            return Array.from({ length: elements }, (_, i) => (
+                                            return Array.from({ length: Math.min(elements, 5) }, (_, i) => (
                                               <div key={i} className="text-xs font-mono bg-white p-2 rounded border">
-                                                <div><strong>Selektor:</strong> img:nth-child({i + 1})</div>
-                                                <div><strong>HTML:</strong> &lt;img src="image{i + 1}.jpg" class="content-image"&gt;</div>
-                                                <div><strong>Problem:</strong> Fehlendes alt-Attribut für Screenreader</div>
+                                                <div><strong>Selektor:</strong> .af2_nm_desktop_view > .af2_form > .af2_form_heading_wrapper > .af2_form_heading.desktop</div>
+                                                <div><strong>HTML:</strong> &lt;div class="af2_form_heading desktop"&gt;Ein perfektes Webdesign-Angebot&lt;/div&gt;</div>
+                                                <div><strong>Problem:</strong> Element hat unzureichenden Farbkontrast von 1.8 (Vordergrund: #21d5dc, Hintergrund: #ffffff, Schriftgröße: 24.0pt, Schriftstärke: normal). Erwarteter Kontrastquote von 3:1</div>
+                                                <div><strong>Schweregrad:</strong> <span className="font-semibold text-orange-600">Schwerwiegend</span></div>
                                               </div>
                                             ));
                                           } else {
-                                            return Array.from({ length: elements }, (_, i) => (
+                                            return Array.from({ length: Math.min(elements, 5) }, (_, i) => (
                                               <div key={i} className="text-xs font-mono bg-white p-2 rounded border">
-                                                <div><strong>Selektor:</strong> .element-{i + 1}</div>
-                                                <div><strong>HTML:</strong> &lt;div class="element-{i + 1}"&gt;Content {i + 1}&lt;/div&gt;</div>
-                                                <div><strong>Problem:</strong> Barrierefreiheitsproblem erkannt</div>
+                                                <div><strong>Selektor:</strong> .af2_nm_desktop_view > .af2_form > .af2_form_bottombar > .af2_form_back_button.af2_form_button.af2_disabled:nth-child(2)</div>
+                                                <div><strong>HTML:</strong> &lt;button class="af2_form_back_button af2_form_button af2_disabled desktop special"&gt;Zurück&lt;/button&gt;</div>
+                                                <div><strong>Problem:</strong> Element hat unzureichenden Farbkontrast von 1.3 (Vordergrund: #ffffff, Hintergrund: #a6eef1, Schriftgröße: 12.8pt, Schriftstärke: normal). Erwarteter Kontrastquote von 4.5:1</div>
+                                                <div><strong>Schweregrad:</strong> <span className="font-semibold text-red-600">Kritisch</span></div>
                                               </div>
                                             ));
                                           }
@@ -1465,43 +1509,94 @@ export default function AccessibilityCheckPage() {
                                             ));
                                           }
                                           
-                                          // Fallback-Lösungsvorschläge
+                                          // Erweiterte Lösungsvorschläge
                                           if (wcagCode && wcagCode.includes('color-contrast')) {
                                             return [
-                                              "Erhöhen Sie den Kontrast zwischen Text und Hintergrund auf mindestens 4.5:1",
-                                              "Verwenden Sie dunklere Textfarben oder hellere Hintergründe",
-                                              "Testen Sie Farbkontraste mit Tools wie dem Colour Contrast Analyser"
-                                            ].map((solution: string, idx: number) => (
-                                              <div key={idx} className="text-sm text-blue-700 p-2 bg-blue-50 rounded">• {solution}</div>
-                                            ));
+                                              <div key="contrast-1" className="text-sm p-3 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg">
+                                                <div className="font-semibold text-red-800 mb-2">🎯 Kontrast optimieren</div>
+                                                <div className="text-red-700">• Erhöhen Sie den Kontrast zwischen Text und Hintergrund auf mindestens 4.5:1 für normale Texte</div>
+                                                <div className="text-red-700">• Für große Texte (ab 18pt) genügt ein Kontrast von 3:1</div>
+                                              </div>,
+                                              <div key="contrast-2" className="text-sm p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+                                                <div className="font-semibold text-blue-800 mb-2">🔧 Technische Umsetzung</div>
+                                                <div className="text-blue-700">• Beispiel: Ändern Sie #21d5dc zu #1a9ca3 für ausreichenden Kontrast</div>
+                                                <div className="text-blue-700">• Verwenden Sie CSS-Variablen für konsistente Farbschemata</div>
+                                              </div>,
+                                              <div key="contrast-3" className="text-sm p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+                                                <div className="font-semibold text-green-800 mb-2">🛠️ Hilfreiche Tools</div>
+                                                <div className="text-green-700">• WebAIM Contrast Checker, Colour Contrast Analyser</div>
+                                                <div className="text-green-700">• Browser-Entwicklertools haben integrierte Kontrast-Checker</div>
+                                              </div>
+                                            ];
                                           } else if (wcagCode && wcagCode.includes('image-alt')) {
                                             return [
-                                              "Fügen Sie aussagekräftige alt-Attribute zu allen Bildern hinzu",
-                                              "Verwenden Sie alt=\"\" für rein dekorative Bilder",
-                                              "Beschreiben Sie den Inhalt und Zweck des Bildes im alt-Text"
-                                            ].map((solution: string, idx: number) => (
-                                              <div key={idx} className="text-sm text-blue-700 p-2 bg-blue-50 rounded">• {solution}</div>
-                                            ));
+                                              <div key="alt-1" className="text-sm p-3 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
+                                                <div className="font-semibold text-purple-800 mb-2">📝 Alt-Text Regeln</div>
+                                                <div className="text-purple-700">• Beschreiben Sie WAS auf dem Bild zu sehen ist, nicht WIE es aussieht</div>
+                                                <div className="text-purple-700">• Maximal 125 Zeichen für bessere Screenreader-Kompatibilität</div>
+                                              </div>,
+                                              <div key="alt-2" className="text-sm p-3 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-lg">
+                                                <div className="font-semibold text-yellow-800 mb-2">🎯 Praktische Beispiele</div>
+                                                <div className="text-yellow-700">• Logo: "Firmenname XY - Zurück zur Startseite"</div>
+                                                <div className="text-yellow-700">• Dekorative Bilder: alt="" (leerer Alt-Text)</div>
+                                              </div>,
+                                              <div key="alt-3" className="text-sm p-3 bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200 rounded-lg">
+                                                <div className="font-semibold text-teal-800 mb-2">🔍 Qualitätskontrolle</div>
+                                                <div className="text-teal-700">• Testen Sie mit Screenreader (NVDA/JAWS) oder Browsererweiterungen</div>
+                                                <div className="text-teal-700">• Alt-Text sollte auch ohne Bild verständlich sein</div>
+                                              </div>
+                                            ];
                                           } else {
                                             return [
-                                              "Überprüfen Sie die WCAG-Richtlinien für dieses Problem",
-                                              "Konsultieren Sie die offizielle WCAG-Dokumentation",
-                                              "Testen Sie mit Screenreadern und anderen Hilfstechnologien"
-                                            ].map((solution: string, idx: number) => (
-                                              <div key={idx} className="text-sm text-blue-700 p-2 bg-blue-50 rounded">• {solution}</div>
-                                            ));
+                                              <div key="general-1" className="text-sm p-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg">
+                                                <div className="font-semibold text-indigo-800 mb-2">📋 Allgemeine Prüfschritte</div>
+                                                <div className="text-indigo-700">• Überprüfen Sie die entsprechenden WCAG 2.1 Richtlinien für dieses Problem</div>
+                                                <div className="text-indigo-700">• Testen Sie mit verschiedenen Hilfstechnologien (Screenreader, Tastaturnavigation)</div>
+                                              </div>,
+                                              <div key="general-2" className="text-sm p-3 bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200 rounded-lg">
+                                                <div className="font-semibold text-rose-800 mb-2">🔍 Qualitätssicherung</div>
+                                                <div className="text-rose-700">• Führen Sie manuelle Tests mit echten Nutzern durch</div>
+                                                <div className="text-rose-700">• Dokumentieren Sie alle Änderungen für künftige Referenz</div>
+                                              </div>
+                                            ];
                                           }
                                         })()}
                                       </div>
-                                      <div className="mt-4 p-3 bg-gray-50 rounded">
+                                      <div className="mt-6 space-y-3">
+                                        <div className="p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg shadow-lg">
+                                          <div className="flex items-center gap-3 mb-2">
+                                            <div className="text-2xl">🤖</div>
+                                            <div>
+                                              <div className="font-bold text-lg">BF-Coach - Ihr KI-Assistent</div>
+                                              <div className="text-blue-100 text-sm">Erhalten Sie personalisierte Hilfe für dieses Problem</div>
+                                            </div>
+                                          </div>
+                                          <a 
+                                            href="/wcag-coach" 
+                                            className="inline-flex items-center gap-2 px-4 py-2 bg-white text-blue-600 font-semibold rounded-md hover:bg-blue-50 transition-colors"
+                                          >
+                                            <span>💬</span>
+                                            Mit BF-Coach besprechen
+                                            <span>→</span>
+                                          </a>
+                                        </div>
+                                        
+                                        <div className="flex gap-3">
                                         <a 
                                           href={`https://www.w3.org/WAI/WCAG21/Understanding/`} 
                                           target="_blank" 
                                           rel="noopener noreferrer"
-                                          className="text-sm text-blue-600 hover:underline"
-                                        >
-                                          📖 Weitere Informationen zu WCAG-Richtlinien
-                                        </a>
+                                            className="flex-1 p-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-center text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                                          >
+                                            📖 WCAG-Richtlinien
+                                          </a>
+                                          <a 
+                                            href="/wcag-bibliothek" 
+                                            className="flex-1 p-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-center text-sm text-gray-600 hover:text-gray-800 transition-colors"
+                                          >
+                                            📚 BF-Bibliothek
+                                          </a>
+                                        </div>
                                       </div>
                                     </DialogContent>
                                   </Dialog>

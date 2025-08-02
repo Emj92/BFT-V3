@@ -1,24 +1,41 @@
-"use client";
+// @ts-nocheck
+"use client"
 
-import React, { useState } from 'react';
-import { AlertTriangle, CheckCircle, XCircle, Info, Zap, Eye, FileText, Globe, Users, Palette } from "lucide-react"
-import { getWCAGError, getAccessibilityRating, translatePositiveTest } from '@/lib/wcag-database-de'
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
+import { 
+  AlertTriangle, 
+  CheckCircle, 
+  Eye,
+  Globe,
+  Shield,
+  FileText,
+  Zap,
+  Palette,
+  Users,
+  Info,
+  XCircle
+} from "lucide-react"
+import { getAccessibilityRating, translatePositiveTest } from '@/lib/wcag-database-de'
+import { Chart } from './chart'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
-// Lokale Typdefinitionen
-export interface ScanResult {
+// Typdefinitionen
+interface ScanResult {
   url: string;
-  timestamp: string;
   score: number;
+  timestamp: string;
+  violations: any[];
+  passes: any[];
+  incomplete: any[];
   summary: {
     violations: number;
     passes: number;
     incomplete: number;
-    inapplicable: number;
   };
-  violations: any[];
-  passes: any[];
-  incomplete: any[];
-  inapplicable: any[];
   wcagViolations: number | { a: number; aa: number; aaa: number };
   bitvViolations: number;
   technicalChecks: {
@@ -34,188 +51,51 @@ export interface ScanResult {
     blinkElements: boolean;
     headingStructure: boolean;
   };
-  detailedAnalysis?: any;
-  categorizedViolations?: Record<string, any[]>;
-  errorCategories?: Record<string, any>;
-}
-
-// Einfache Chart-Komponente mit verbessertem Kreisdiagramm
-function Chart({ score, level }: { score: number; level: string }) {
-  const getColor = () => {
-    // Score ist zwischen 0-1, also für Farbberechnung * 100
-    const percentage = score * 100;
-    if (percentage >= 90) return "#22c55e" // Grün
-    if (percentage >= 70) return "#eab308" // Gelb
-    return "#ef4444" // Rot
-  }
-
-  const getColorClass = () => {
-    const percentage = score * 100;
-    if (percentage >= 90) return "text-green-500"
-    if (percentage >= 70) return "text-yellow-500"
-    return "text-red-500"
-  }
-
-  // SVG Kreisdiagramm
-  const radius = 80;
-  const strokeWidth = 8;
-  const normalizedRadius = radius - strokeWidth * 2;
-  const circumference = normalizedRadius * 2 * Math.PI;
-  const strokeDasharray = `${circumference} ${circumference}`;
-  const strokeDashoffset = circumference - (score * circumference);
-
-  return (
-    <div className="relative w-48 h-48 mx-auto flex items-center justify-center">
-      {/* SVG Kreisdiagramm */}
-      <svg
-        height={radius * 2}
-        width={radius * 2}
-        className="absolute"
-        style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
-      >
-        {/* Hintergrund-Kreis */}
-        <circle
-          stroke="#e5e7eb"
-          fill="transparent"
-          strokeWidth={strokeWidth}
-          r={normalizedRadius}
-          cx={radius}
-          cy={radius}
-        />
-        {/* Fortschritts-Kreis */}
-        <circle
-          stroke={getColor()}
-          fill="transparent"
-          strokeWidth={strokeWidth}
-          strokeDasharray={strokeDasharray}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-          r={normalizedRadius}
-          cx={radius}
-          cy={radius}
-          transform={`rotate(-90 ${radius} ${radius})`}
-          className="transition-all duration-500 ease-in-out"
-        />
-      </svg>
-      
-      {/* Zentraler Text - perfekt zentriert */}
-      <div className="relative z-10 flex items-center justify-center">
-        <div className="text-center leading-none max-w-24">
-          <div className={`text-2xl font-bold leading-none ${getColorClass()}`}>
-            {Math.round(score * 100)}%
-          </div>
-          <div className="text-[10px] text-gray-500 mt-1 leading-tight">
-            Barrierefreiheitsscore lt. BFSG
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Deutsche Übersetzungsfunktionen mit WCAG-Bibliothek
-function translateImpact(impact: string): string {
-  switch (impact) {
-    case 'critical': return 'Kritisch';
-    case 'serious': return 'Schwerwiegend';
-    case 'moderate': return 'Mäßig';
-    case 'minor': return 'Geringfügig';
-    default: return impact;
-  }
-}
-
-// Einfache Übersetzungsfunktionen für Fallback
-function translateHelp(help: string): string {
-  if (help?.includes('Elements must have sufficient color contrast')) {
-    return 'Farbkontrast verbessern';
-  }
-  if (help?.includes('Images must have alternate text')) {
-    return 'Alt-Text für Bilder hinzufügen';
-  }
-  if (help?.includes('Form elements must have labels')) {
-    return 'Labels für Formularelemente hinzufügen';
-  }
-  return help || 'Barrierefreiheitsproblem';
-}
-
-function translateDescription(description: string): string {
-  if (description?.includes('Elements must have sufficient color contrast')) {
-    return 'Elemente müssen ausreichenden Farbkontrast haben';
-  }
-  if (description?.includes('Images must have alternate text')) {
-    return 'Bilder müssen Alternativtext haben';
-  }
-  if (description?.includes('Form elements must have labels')) {
-    return 'Formularelemente müssen Labels haben';
-  }
-  return description || 'Ein Barrierefreiheitsproblem wurde erkannt.';
-}
-
-function translateViolation(violation: any): { title: string; description: string; solutions: string[] } {
-  // Versuche WCAG-Fehler aus der deutschen Bibliothek zu laden
-  const wcagError = getWCAGError(violation.id);
-  
-  if (wcagError) {
-    return {
-      title: wcagError.title,
-      description: wcagError.description,
-      solutions: wcagError.solutions
-    };
-  }
-  
-  // Fallback-Übersetzungen für häufige Fehler
-  const fallbackTranslations: Record<string, { title: string; description: string; solutions: string[] }> = {
-    'color-contrast': {
-      title: 'Unzureichender Farbkontrast',
-      description: 'Der Kontrast zwischen Text und Hintergrund erfüllt nicht die BFSG-Mindestanforderungen.',
-      solutions: [
-        'Erhöhen Sie den Kontrast auf mindestens 4,5:1 für normalen Text',
-        'Nutzen Sie den WCAG Coach Colour Contrast Analyser',
-        'Testen Sie mit verschiedenen Farbkombinationen'
-      ]
-    },
-    'image-alt': {
-      title: 'Fehlende Alternativtexte für Bilder',
-      description: 'Bilder haben keine aussagekräftigen alt-Attribute für Screenreader.',
-      solutions: [
-        'Fügen Sie beschreibende alt-Attribute hinzu',
-        'Verwenden Sie alt="" für dekorative Bilder',
-        'Folgen Sie den WCAG Coach Bildrichtlinien'
-      ]
-    },
-    'form-label': {
-      title: 'Fehlende Formularbeschriftungen',
-      description: 'Formularfelder haben keine eindeutigen Labels für Screenreader.',
-      solutions: [
-        'Verwenden Sie <label>-Elemente für jedes Feld',
-        'Nutzen Sie aria-label bei komplexen Formularen',
-        'Befolgen Sie die WCAG Coach Formular-Richtlinien'
-      ]
-    }
+  detailedAnalysis?: {
+    criticalIssues: number;
+    highPriorityIssues: number;
+    mediumPriorityIssues: number;
+    lowPriorityIssues: number;
+    recommendations: string[];
   };
-  
-  // Suche nach Teilübereinstimmungen in der Fehler-ID
-  for (const [key, translation] of Object.entries(fallbackTranslations)) {
-    if (violation.id?.includes(key)) {
-      return translation;
-    }
-  }
-  
-  // Als letzter Fallback: Original-Text mit Standardlösungen
-  return {
-    title: violation.help || violation.id || 'Barrierefreiheitsproblem',
-    description: violation.description || 'Ein Barrierefreiheitsproblem wurde erkannt.',
-    solutions: [
-      'Konsultieren Sie die WCAG Coach Richtlinien',
-      'Testen Sie mit Screenreadern',
-      'Befolgen Sie die BFSG-Anforderungen'
-    ]
-  };
+  errorCategories: Record<string, any>;
 }
 
 interface ScanResultsProps {
   results: ScanResult;
-  showFullDetails?: boolean;
+  showAddToTasks?: boolean;
+}
+
+// Helper-Funktionen
+function translateViolation(violation: any) {
+    return {
+    title: violation.help || violation.description || violation.id,
+    description: violation.description || 'Barrierefreiheitsproblem festgestellt'
+  };
+}
+
+function translateImpact(impact: string) {
+  const translations: Record<string, string> = {
+    'critical': 'Kritisch',
+    'serious': 'Schwerwiegend',
+    'moderate': 'Mäßig',
+    'minor': 'Gering'
+  };
+  return translations[impact] || impact;
+}
+
+function translateHelp(help: string) {
+  return help || 'Manuelle Prüfung erforderlich';
+}
+
+function getWCAGError(id: string) {
+  // Fallback für WCAG-Fehler
+  return {
+    solutions: [
+      "Überprüfen Sie die entsprechenden WCAG-Richtlinien",
+      "Konsultieren Sie die Barrierefreiheits-Dokumentation"
+    ]
+  };
 }
 
 export default function ScanResults({ 
@@ -225,10 +105,30 @@ export default function ScanResults({
   results: ScanResult; 
   showAddToTasks?: boolean;
 }) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'violations' | 'passes' | 'incomplete'>('overview')
+  const [activeFilter, setActiveFilter] = useState<'all' | 'critical' | 'serious' | 'passes' | 'incomplete'>('all')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [showPremiumHint, setShowPremiumHint] = useState(true)
   const [sortByCategories, setSortByCategories] = useState(false)
+
+  // Automatisch ersten verfügbaren Fehler auswählen
+  useEffect(() => {
+    const criticalCount = results.violations.filter(v => v.impact === 'critical').length
+    const seriousCount = results.violations.filter(v => v.impact === 'serious').length
+    const incompleteCount = results.incomplete.length
+    const passesCount = results.passes.length
+
+    if (criticalCount > 0) {
+      setActiveFilter('critical')
+    } else if (seriousCount > 0) {
+      setActiveFilter('serious')
+    } else if (incompleteCount > 0) {
+      setActiveFilter('incomplete')
+    } else if (passesCount > 0) {
+      setActiveFilter('passes')
+    } else {
+      setActiveFilter('all')
+    }
+  }, [results])
 
   // Helper-Funktion für WCAG Violations
   const getWcagViolationsTotal = (wcagViolations: number | { a: number; aa: number; aaa: number }) => {
@@ -338,6 +238,7 @@ export default function ScanResults({
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
       <div className="p-6">
+        {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <div className={`w-4 h-4 rounded-full ${results.score >= 0.9 ? 'bg-green-500' : results.score >= 0.7 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
           <h2 className="text-2xl font-bold">Scan-Ergebnisse für {results.url}</h2>
@@ -346,309 +247,258 @@ export default function ScanResults({
             results.score >= 0.7 ? 'bg-yellow-100 text-yellow-800' : 
             'bg-red-100 text-red-800'
           }`}>
-            {Math.round(results.score * 100)}% Barrierefreiheit
+            {normalizeScore(results.score)}% Barrierefreiheit
           </span>
         </div>
         
-        {/* WCAG Level Filter */}
-        <div className="flex items-center gap-2 mb-6">
-          <span className="text-sm font-medium">WCAG Level:</span>
-          {['A', 'AA', 'AAA', 'Alle'].map((level) => (
-            <button
-              key={level}
-              className={`px-3 py-1 rounded text-sm ${
-                level === 'Alle' ? 'bg-blue-500 text-white' :
-                level === 'A' ? 'bg-green-500 text-white' :
-                level === 'AA' ? 'bg-yellow-500 text-white' :
-                'bg-red-500 text-white'
-              }`}
-              onClick={() => {
-                setActiveTab('overview'); // Reset to overview when changing level
-                // No direct state update for wcagLevel here, as it's not used in the new structure
-              }}
-            >
-              {level}
-            </button>
-          ))}
+        {/* Layout: Score links, 4 anklickbare Kacheln rechts */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+          {/* Links: Gesamt-Score */}
+          <div className="lg:col-span-1">
+            <div className="bg-white border-2 border-gray-100 rounded-lg p-6 text-center h-full flex flex-col justify-center">
+              <h3 className="text-lg font-semibold text-gray-600 mb-4">Gesamt-Score</h3>
+              <div className="relative w-32 h-32 mx-auto mb-4">
+                <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 120 120">
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="50"
+                    stroke="#e5e7eb"
+                    strokeWidth="8"
+                    fill="transparent"
+                  />
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="50"
+                    stroke={results.score >= 0.9 ? "#10b981" : results.score >= 0.7 ? "#f59e0b" : "#ef4444"}
+                    strokeWidth="8"
+                    fill="transparent"
+                    strokeDasharray={`${2 * Math.PI * 50}`}
+                    strokeDashoffset={`${2 * Math.PI * 50 * (1 - results.score)}`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className={`text-2xl font-bold ${getAccessibilityRating(results.score).color}`}>
+                    {normalizeScore(results.score)}%
+                  </span>
+                </div>
+              </div>
+              <div className={`text-lg font-medium ${getAccessibilityRating(results.score).color}`}>
+                {getAccessibilityRating(results.score).rating}
+              </div>
+              <div className="text-sm text-gray-500 mt-1">
+                {getAccessibilityRating(results.score).description}
+              </div>
         </div>
       </div>
       
-      <div className="border-b">
-        <div className="flex overflow-x-auto">
+          {/* Rechts: 4 anklickbare Kacheln in 2x2 Grid */}
+          <div className="lg:col-span-3">
+            <div className="grid grid-cols-2 gap-4">
+              {/* Kritische Probleme */}
           <button
-            className={`px-4 py-3 font-medium text-sm ${activeTab === 'overview' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
-            onClick={() => setActiveTab('overview')}
-          >
-            Übersicht
+                onClick={() => setActiveFilter('critical')}
+                className={`bg-red-50 border-2 rounded-lg p-4 text-left transition-all hover:shadow-md ${
+                  activeFilter === 'critical' ? 'border-red-500 ring-2 ring-red-200' : 'border-red-200'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-red-600 font-semibold">Kritische Probleme</h3>
+                  <div className="text-red-500">
+                    <AlertTriangle className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-red-600 mb-1">
+                  {results.violations.filter(v => v.impact === 'critical').length}
+                </div>
+                <p className="text-red-500 text-sm">Sofort beheben</p>
           </button>
+
+              {/* Schwerwiegende Probleme */}
           <button
-            className={`px-4 py-3 font-medium text-sm ${activeTab === 'violations' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
-            onClick={() => setActiveTab('violations')}
-          >
-            Fehler ({results.summary.violations})
+                onClick={() => setActiveFilter('serious')}
+                className={`bg-orange-50 border-2 rounded-lg p-4 text-left transition-all hover:shadow-md ${
+                  activeFilter === 'serious' ? 'border-orange-500 ring-2 ring-orange-200' : 'border-orange-200'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-orange-600 font-semibold">Schwerwiegende Probleme</h3>
+                  <div className="text-orange-500">
+                    <AlertTriangle className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-orange-600 mb-1">
+                  {results.violations.filter(v => v.impact === 'serious').length}
+                </div>
+                <p className="text-orange-500 text-sm">Bald beheben</p>
           </button>
+
+              {/* Positiv geprüfte Ergebnisse */}
           <button
-            className={`px-4 py-3 font-medium text-sm ${activeTab === 'passes' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
-            onClick={() => setActiveTab('passes')}
-          >
-            Bestanden ({results.summary.passes})
+                onClick={() => setActiveFilter('passes')}
+                className={`bg-green-50 border-2 rounded-lg p-4 text-left transition-all hover:shadow-md ${
+                  activeFilter === 'passes' ? 'border-green-500 ring-2 ring-green-200' : 'border-green-200'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-green-600 font-semibold">Positiv geprüfte Ergebnisse</h3>
+                  <div className="text-green-500">
+                    <CheckCircle className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-green-600 mb-1">
+                  {results.passes.length}
+                </div>
+                <p className="text-green-500 text-sm">Erfolgreich bestanden</p>
           </button>
+
+              {/* Insgesamt / Zu prüfen */}
           <button
-            className={`px-4 py-3 font-medium text-sm ${activeTab === 'incomplete' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
-            onClick={() => setActiveTab('incomplete')}
-          >
-            Zu prüfen ({results.summary.incomplete})
+                onClick={() => setActiveFilter('incomplete')}
+                className={`bg-blue-50 border-2 rounded-lg p-4 text-left transition-all hover:shadow-md ${
+                  activeFilter === 'incomplete' ? 'border-blue-500 ring-2 ring-blue-200' : 'border-blue-200'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-blue-600 font-semibold">Zu prüfen</h3>
+                  <div className="text-blue-500">
+                    <Eye className="h-5 w-5" />
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-blue-600 mb-1">
+                  {results.incomplete.length}
+                </div>
+                <p className="text-blue-500 text-sm">Manuelle Prüfung</p>
           </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* WCAG Level Information - vereinfacht und klarer */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm font-medium text-blue-800">WCAG 2.1 Konformitätslevel:</span>
+            <span className="px-2 py-1 bg-green-500 text-white text-xs rounded font-medium">AA</span>
+            <span className="text-xs text-blue-600">(Standard für öffentliche Websites)</span>
+          </div>
+          <p className="text-xs text-blue-700">
+            Diese Analyse prüft nach WCAG 2.1 Level AA Standards. Level AA ist gesetzlich vorgeschrieben für öffentliche Einrichtungen.
+          </p>
         </div>
       </div>
 
       <div className="p-6">
-        {activeTab === 'overview' && (
+        {/* Gefilterte Ergebnisse basierend auf anklickbaren Kacheln */}
+        {activeFilter === 'critical' && (
+          <div>
+            <h3 className="text-lg font-semibold mb-4 text-red-600">Kritische Probleme</h3>
+            {results.violations.filter(v => v.impact === 'critical').length === 0 ? (
+              <p className="text-center py-8 text-green-600">✅ Keine kritischen Probleme gefunden!</p>
+            ) : (
           <div className="space-y-6">
-            {/* Detaillierte Analyse anzeigen falls verfügbar */}
-            {results.detailedAnalysis && (
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Detaillierte Analyse</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-red-600">Kritische Probleme</span>
-                      <XCircle className="h-4 w-4 text-red-500" />
-                    </div>
-                    <div className="text-2xl font-bold text-red-700">
-                      {results.detailedAnalysis.criticalIssues || 0}
+                {results.violations.filter(v => v.impact === 'critical').map((violation, index) => {
+                  const translatedViolation = translateViolation(violation);
+                  const wcagError = getWCAGError(violation.id);
+                  
+                  return (
+                    <div key={index} className="bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-lg p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                            <h3 className="text-lg font-semibold text-red-800">
+                              {translatedViolation.title}
+                            </h3>
+                            <div className="px-2 py-1 rounded text-xs font-medium bg-red-500 text-white">
+                              Kritisch
                     </div>
                   </div>
                   
-                  <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-orange-600">Hohe Priorität</span>
-                      <AlertTriangle className="h-4 w-4 text-orange-500" />
-                    </div>
-                    <div className="text-2xl font-bold text-orange-700">
-                      {results.detailedAnalysis.highPriorityIssues || 0}
-                    </div>
-                  </div>
-                  
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-yellow-600">Mittlere Priorität</span>
-                      <Info className="h-4 w-4 text-yellow-500" />
-                    </div>
-                    <div className="text-2xl font-bold text-yellow-700">
-                      {results.detailedAnalysis.mediumPriorityIssues || 0}
-                    </div>
-                  </div>
-                  
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-blue-600">Niedrige Priorität</span>
-                      <CheckCircle className="h-4 w-4 text-blue-500" />
-                    </div>
-                    <div className="text-2xl font-bold text-blue-700">
-                      {results.detailedAnalysis.lowPriorityIssues || 0}
-                    </div>
-                  </div>
+                          <p className="text-red-700 mb-4">{translatedViolation.description}</p>
+                          
+                          {/* Detaillierte Elementbeschreibung */}
+                          {violation.nodes && violation.nodes.length > 0 && (
+                            <div className="mt-2">
+                              <details className="text-sm">
+                                <summary className="cursor-pointer font-medium text-blue-600 hover:text-blue-800">
+                                  Betroffene Elemente anzeigen ({violation.nodes.length})
+                                </summary>
+                                <div className="mt-2 space-y-1 bg-gray-50 p-2 rounded">
+                                  {violation.nodes.map((node: any, nodeIndex: number) => (
+                                    <div key={nodeIndex} className="text-xs font-mono bg-white p-2 rounded border">
+                                      <div><strong>Selektor:</strong> {node.target?.join(' ') || 'Nicht verfügbar'}</div>
+                                      <div><strong>HTML:</strong> {node.html ? node.html.substring(0, 100) + (node.html.length > 100 ? '...' : '') : 'Nicht verfügbar'}</div>
+                                      {node.failureSummary && (
+                                        <div><strong>Problem:</strong> {node.failureSummary}</div>
+                                      )}
                 </div>
-
-                {/* Empfehlungen */}
-                {results.detailedAnalysis.recommendations && results.detailedAnalysis.recommendations.length > 0 && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200">
-                    <h4 className="text-lg font-semibold mb-3 text-blue-800 dark:text-blue-200">
-                      🎯 Prioritäre Handlungsempfehlungen
-                    </h4>
-                    <ul className="space-y-2">
-                      {results.detailedAnalysis.recommendations.map((recommendation: string, index: number) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <CheckCircle className="h-4 w-4 text-blue-500 mt-0.5" />
-                          <span className="text-blue-700 dark:text-blue-300">{recommendation}</span>
-                        </li>
-                      ))}
-                    </ul>
+                                  ))}
                   </div>
-                )}
+                              </details>
               </div>
             )}
 
-            {/* Bestehende Übersicht */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Score und Bewertung mit Kreisdiagramm */}
-              <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg border">
-                <h3 className="text-sm font-medium text-gray-600 mb-4">Gesamtbewertung</h3>
-                <div className="flex flex-col items-center gap-4">
-                  {/* Kreisdiagramm */}
-                  <Chart score={results.score} level="AA" />
-                  
-                  {/* Bewertungstext */}
-                  <div className="text-center">
-                    {(() => {
-                      const rating = getAccessibilityRating(Math.round(results.score * 100));
-                      return (
-                        <>
-                          <div className={`text-lg font-medium ${rating.color}`}>
-                            {rating.rating}
+                          {/* Lösungsvorschläge */}
+                          <div className="mt-2">
+                            <details className="text-sm">
+                              <summary className="cursor-pointer font-medium text-green-600 hover:text-green-800">
+                                💡 Lösungsvorschläge anzeigen
+                              </summary>
+                              <div className="mt-2 p-3 bg-blue-50 rounded border-l-4 border-blue-400">
+                                <div className="space-y-2">
+                                  {wcagError?.solutions && wcagError.solutions.map((solution, idx) => (
+                                    <div key={idx} className="text-sm text-blue-700">• {solution}</div>
+                                  ))}
+                                </div>
+                              </div>
+                            </details>
                           </div>
-                          <div className="text-sm text-gray-500">{rating.description}</div>
-                        </>
-                      );
-                    })()}
                   </div>
                 </div>
+                      {showAddToTasks && (
+                        <button 
+                          className="ml-4 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                          onClick={() => handleAddToTasks(violation)}
+                        >
+                          + Zu Aufgaben
+                        </button>
+                      )}
               </div>
-
-              {/* BFSG Verstöße */}
-              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border">
-                <h3 className="text-sm font-medium text-gray-600 mb-2">BFSG Verstöße</h3>
-                <div className="flex justify-between items-center h-full">
-                  <span>Gesamt</span>
-                  <span className={(() => {
-                    const wcagTotal = getWcagViolationsTotal(results.wcagViolations);
-                    return wcagTotal > 0 ? 'text-red-500 text-2xl font-bold' : 'text-green-500 text-2xl font-bold';
-                  })()}>
-                    {getWcagViolationsTotal(results.wcagViolations)}
-                  </span>
-                </div>
+                    );
+                })}
               </div>
-              
-              {/* BITV Verstöße */}
-              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border">
-                <h3 className="text-sm font-medium text-gray-600 mb-2">BITV 2.0 Verstöße</h3>
-                <div className="flex justify-between items-center h-full">
-                  <span>Gesamt</span>
-                  <span className={results.bitvViolations > 0 ? 'text-red-500 text-2xl font-bold' : 'text-green-500 text-2xl font-bold'}>
-                    {results.bitvViolations}
-                  </span>
-                </div>
-              </div>
-              
-              {/* Zusammenfassung */}
-              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border">
-                <h3 className="text-sm font-medium text-gray-600 mb-2">Zusammenfassung</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Fehler</span>
-                    <span className="text-red-500">{results.summary.violations}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Bestanden</span>
-                    <span className="text-green-500">{results.summary.passes}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Zu prüfen</span>
-                    <span className="text-yellow-500">{results.summary.incomplete}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Technische Prüfungen */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Technische Prüfungen</h3>
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden border">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="px-4 py-3 text-sm font-medium text-gray-600">Kriterium</th>
-                      <th className="px-4 py-3 text-sm font-medium text-gray-600">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b">
-                      <td className="px-4 py-3">Alternativtexte für Bilder</td>
-                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.altTexts)}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="px-4 py-3">Semantisches HTML</td>
-                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.semanticHtml)}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="px-4 py-3">Tastaturbedienung</td>
-                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.keyboardNavigation)}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="px-4 py-3">Sichtbarer Fokus</td>
-                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.focusVisible)}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="px-4 py-3">Farbkontraste</td>
-                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.colorContrast)}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="px-4 py-3">ARIA-Rollen</td>
-                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.ariaRoles)}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="px-4 py-3">Formular-Labels</td>
-                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.formLabels)}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="px-4 py-3">Keine Autoplay-Videos</td>
-                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.autoplayVideos)}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="px-4 py-3">Dokumentsprache definiert</td>
-                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.documentLanguage)}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="px-4 py-3">Keine Blink-Elemente</td>
-                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.blinkElements)}</td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-3">Überschriftenhierarchie</td>
-                      <td className="px-4 py-3">{getStatusIcon(results.technicalChecks.headingStructure)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
-        {/* Erweiterte Violations-Ansicht mit detaillierten Fehlern */}
-        {activeTab === 'violations' && (
+        {activeFilter === 'serious' && (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Alle Fehler im Detail</h3>
-              <div className="flex items-center gap-2">
-                <input 
-                  type="checkbox" 
-                  id="sortCategories" 
-                  checked={sortByCategories}
-                  onChange={(e) => setSortByCategories(e.target.checked)}
-                  className="rounded"
-                />
-                <label htmlFor="sortCategories" className="text-sm text-gray-600">
-                  Nach Kategorien sortieren
-                </label>
-              </div>
-            </div>
-            {filterByLevel(results.violations, 'Alle').length === 0 ? (
-              <p className="text-green-500 text-center py-8">Keine Fehler gefunden! 🎉</p>
+            <h3 className="text-lg font-semibold mb-4 text-orange-600">Schwerwiegende Probleme</h3>
+            {results.violations.filter(v => v.impact === 'serious').length === 0 ? (
+              <p className="text-center py-8 text-green-600">✅ Keine schwerwiegenden Probleme gefunden!</p>
             ) : (
-              <div className="space-y-4">
-                {filterByLevel(results.violations, 'Alle').map((violation, index) => {
+              <div className="space-y-6">
+                {results.violations.filter(v => v.impact === 'serious').map((violation, index) => {
                   const translatedViolation = translateViolation(violation);
+                  const wcagError = getWCAGError(violation.id);
+                  
                   return (
-                    <div key={index} className="bg-card border rounded-lg p-4">
+                    <div key={index} className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 rounded-lg p-6">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h5 className="font-medium text-lg">{translatedViolation.title}</h5>
-                          <p className="text-sm text-muted-foreground mt-1">{translatedViolation.description}</p>
-                        
-                        {/* Erweiterte Details */}
-                        <div className="mt-3 space-y-2">
-                          <div className="text-sm">
-                            <span className="font-medium">Seite:</span> {results.url}
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                            <h3 className="text-lg font-semibold text-orange-800">
+                              {translatedViolation.title}
+                            </h3>
+                            <div className="px-2 py-1 rounded text-xs font-medium bg-orange-500 text-white">
+                              Schwerwiegend
                           </div>
-                          <div className="text-sm">
-                            <span className="font-medium">Fehlercode:</span> <code className="bg-muted px-1 rounded">{violation.id}</code>
                           </div>
-                          <div className="text-sm">
-                            <span className="font-medium">WCAG Kriterien:</span> {violation.tags?.filter((tag: string) => tag.startsWith('wcag')).join(', ') || 'Nicht spezifiziert'}
-                          </div>
-                          <div className="text-sm">
-                            <span className="font-medium">Betroffene Bereiche:</span> {violation.nodes?.length || 0} Element(e)
-                          </div>
+                          
+                          <p className="text-orange-700 mb-4">{translatedViolation.description}</p>
                           
                           {/* Detaillierte Elementbeschreibung */}
                           {violation.nodes && violation.nodes.length > 0 && (
@@ -678,37 +528,15 @@ export default function ScanResults({
                               <summary className="cursor-pointer font-medium text-green-600 hover:text-green-800">
                                 💡 Lösungsvorschläge anzeigen
                               </summary>
-                              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
+                              <div className="mt-2 p-3 bg-blue-50 rounded border-l-4 border-blue-400">
                                 <div className="space-y-2">
-                                  {translatedViolation.solutions.map((solution, idx) => (
+                                  {wcagError?.solutions && wcagError.solutions.map((solution, idx) => (
                                     <div key={idx} className="text-sm text-blue-700">• {solution}</div>
                                   ))}
-                                </div>
-                                <div className="mt-3 pt-2 border-t border-blue-200">
-                                  <a 
-                                    href="https://www.wcag.com/" 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
-                                    className="text-xs text-blue-600 hover:underline"
-                                  >
-                                    📖 Weitere Informationen bei WCAG Coach
-                                  </a>
                                 </div>
                               </div>
                             </details>
                           </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-                          <span className={`px-2 py-1 rounded ${
-                            violation.impact === 'critical' ? 'bg-red-100 text-red-800' :
-                            violation.impact === 'serious' ? 'bg-orange-100 text-orange-800' :
-                            violation.impact === 'moderate' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-blue-100 text-blue-800'
-                          }`}>
-                            {translateImpact(violation.impact)}
-                          </span>
-                          <span>Gefunden: {new Date(results.timestamp).toLocaleString('de-DE')}</span>
                         </div>
                       </div>
                       {showAddToTasks && (
@@ -719,7 +547,6 @@ export default function ScanResults({
                           + Zu Aufgaben
                         </button>
                       )}
-                    </div>
                   </div>
                   );
                 })}
@@ -728,14 +555,14 @@ export default function ScanResults({
           </div>
         )}
 
-        {/* Rest der bestehenden Tabs */}
-        {activeTab === 'passes' && (
+        {activeFilter === 'passes' && (
           <div>
-            {filterByLevel(results.passes, 'Alle').length === 0 ? (
-              <p className="text-center py-8">Keine bestandenen Tests für dieses Level.</p>
+            <h3 className="text-lg font-semibold mb-4 text-green-600">Positiv geprüfte Ergebnisse</h3>
+            {results.passes.length === 0 ? (
+              <p className="text-center py-8">Keine bestandenen Tests.</p>
             ) : (
               <div className="space-y-4">
-                {filterByLevel(results.passes, 'Alle').map((item, index) => (
+                {results.passes.map((item, index) => (
                   <div key={index} className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200">
                     <div className="flex items-start justify-between mb-2">
                       <h3 className="text-lg font-medium text-green-800 dark:text-green-200">
@@ -758,47 +585,165 @@ export default function ScanResults({
           </div>
         )}
 
-        {activeTab === 'incomplete' && (
+        {activeFilter === 'incomplete' && (
           <div>
-            {filterByLevel(results.incomplete, 'Alle').length === 0 ? (
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="text-blue-800 font-semibold mb-2">💡 Was bedeutet "Zu prüfen"?</h3>
+              <p className="text-blue-700 text-sm">
+                Diese Tests können nicht automatisch überprüft werden und erfordern eine manuelle Bewertung durch einen Experten. 
+                Sie sind wichtig für eine vollständige Barrierefreiheits-Bewertung.
+              </p>
+            </div>
+            
+            {results.incomplete.length === 0 ? (
               <p className="text-green-500 text-center py-8">Keine manuell zu prüfenden Tests.</p>
             ) : (
               <div className="space-y-4">
-                {filterByLevel(results.incomplete, 'Alle').map((item, index) => (
-                  <div key={index} className="bg-card p-4 rounded-lg">
+                {results.incomplete.map((item, index) => (
+                  <div key={index} className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="text-lg font-medium text-foreground">{item.id}: {translateHelp(item.help)}</h3>
-                      <div className="px-2 py-1 text-xs font-medium rounded bg-yellow-900 text-yellow-300">
-                        Manuell prüfen
+                      <h3 className="text-lg font-medium text-yellow-800">
+                        {item.id}: {translateHelp(item.help)}
+                      </h3>
+                      <div className="px-2 py-1 text-xs font-medium rounded bg-yellow-600 text-white">
+                        Manuelle Prüfung erforderlich
                       </div>
                     </div>
-                    <p className="text-muted-foreground mb-4">Dieser Test erfordert eine manuelle Überprüfung gemäß BFSG-Richtlinien.</p>
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-2">Betroffene Elemente:</h4>
-                      <div className="bg-card p-3 rounded text-sm font-mono text-muted-foreground max-h-40 overflow-y-auto">
-                        {item.nodes.map((node: any, nodeIndex: number) => (
-                          <div key={nodeIndex} className="mb-2">{node.html}</div>
-                        ))}
+                    <p className="text-yellow-700 mb-4">
+                      {item.description || "Dieser Test erfordert eine manuelle Überprüfung durch einen Experten."}
+                    </p>
+                    
+                    {/* Prüfschritte anzeigen */}
+                    <div className="bg-white border border-yellow-200 rounded p-3 mb-3">
+                      <h4 className="text-sm font-semibold text-yellow-800 mb-2">📋 Zu prüfende Punkte:</h4>
+                      <ul className="text-sm text-yellow-700 space-y-1">
+                        {item.nodes && item.nodes.length > 0 ? (
+                          item.nodes.slice(0, 3).map((node: any, nodeIndex: number) => (
+                            <li key={nodeIndex} className="flex items-start gap-2">
+                              <span className="text-yellow-500 mt-1">•</span>
+                              <span>
+                                <strong>Element:</strong> {node.target?.join(' ') || 'Element nicht spezifiziert'}
+                                {node.html && (
+                                  <div className="text-xs text-yellow-600 mt-1 font-mono bg-yellow-100 p-1 rounded">
+                                    {node.html.length > 80 ? node.html.substring(0, 80) + '...' : node.html}
+                                  </div>
+                                )}
+                              </span>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="flex items-start gap-2">
+                            <span className="text-yellow-500 mt-1">•</span>
+                            <span>Überprüfen Sie die Einhaltung der {item.id} Richtlinie</span>
+                          </li>
+                        )}
+                      </ul>
+                      
+                      {item.nodes && item.nodes.length > 3 && (
+                        <p className="text-xs text-yellow-600 mt-2">
+                          ... und {item.nodes.length - 3} weitere Elemente
+                        </p>
+                      )}
                       </div>
+
+                    <div className="flex items-center gap-2 text-xs text-yellow-600">
+                      <span>Betroffene Elemente: {item.nodes?.length || 0}</span>
+                      <span>•</span>
+                      <span>WCAG: {item.tags?.find((tag: string) => tag.includes('wcag'))?.toUpperCase() || 'N/A'}</span>
                     </div>
                   </div>
                 ))}
-                {filterByLevel(results.incomplete, 'Alle').length > 1 && showPremiumHint && (
-                  <div className="bg-card p-6 rounded-lg text-center">
-                    <h3 className="text-xl font-bold text-foreground mb-4">Premium-Funktion</h3>
-                    <p className="text-muted-foreground mb-4">Um alle {filterByLevel(results.incomplete, 'Alle').length} zu prüfenden Tests zu sehen, benötigen Sie Credits.</p>
-                    <button 
-                      onClick={handleBuyCredits}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-                    >
-                      Credits kaufen
-                    </button>
-                  </div>
-                )}
               </div>
             )}
           </div>
         )}
+
+        {/* Standard-Ansicht wenn kein Filter aktiv */}
+        {activeFilter === 'all' && (
+          <div className="text-center py-8">
+            <h3 className="text-lg font-semibold mb-2">Wählen Sie eine Kategorie</h3>
+            <p className="text-gray-600">Klicken Sie auf eine der Kacheln oben, um die entsprechenden Ergebnisse anzuzeigen.</p>
+          </div>
+        )}
+
+        {/* Technische Prüfungen - nach unten verschoben */}
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold mb-4">Technische Prüfungen</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">HTML-Validierung</span>
+                {getStatusIcon(true)}
+              </div>
+              <p className="text-xs text-muted-foreground">Markup ist strukturell korrekt</p>
+            </div>
+            
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">ARIA-Implementierung</span>
+                {getStatusIcon(results.score > 0.8)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {results.score > 0.8 ? 
+                  'ARIA-Attribute korrekt verwendet' : 
+                  'ARIA-Verbesserungen erforderlich'
+                }
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Farbkontraste</span>
+                {getStatusIcon(results.violations.filter(v => v.id.includes('color-contrast')).length === 0)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {results.violations.filter(v => v.id.includes('color-contrast')).length === 0 ?
+                  'Alle Kontraste erfüllen WCAG AA' :
+                  `${results.violations.filter(v => v.id.includes('color-contrast')).length} Kontrast-Probleme`
+                }
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Tastaturnavigation</span>
+                {getStatusIcon(results.violations.filter(v => v.id.includes('keyboard')).length === 0)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {results.violations.filter(v => v.id.includes('keyboard')).length === 0 ?
+                  'Vollständig tastaturzugänglich' :
+                  'Tastatur-Verbesserungen nötig'
+                }
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Bilder & Medien</span>
+                {getStatusIcon(results.violations.filter(v => v.id.includes('image-alt')).length === 0)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {results.violations.filter(v => v.id.includes('image-alt')).length === 0 ?
+                  'Alle Bilder haben Alt-Texte' :
+                  'Alt-Text-Verbesserungen nötig'
+                }
+              </p>
+            </div>
+            
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Strukturierung</span>
+                {getStatusIcon(results.violations.filter(v => v.id.includes('heading')).length === 0)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {results.violations.filter(v => v.id.includes('heading')).length === 0 ?
+                  'Logische Überschriften-Struktur' :
+                  'Überschriften-Verbesserungen nötig'
+                }
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -106,7 +106,7 @@ export default function AufgabenPage() {
   // Neue Aufgabe erstellen
   const handleCreateTask = () => {
     if (!newTask.title || !newTask.description) {
-      alert('Bitte füllen Sie alle Pflichtfelder aus.')
+      toast.error('Bitte füllen Sie alle Pflichtfelder aus.')
       return
     }
 
@@ -219,7 +219,7 @@ export default function AufgabenPage() {
   // Neue Funktion zum Testen einzelner Aufgaben
   const handleTestTask = async (task: Task) => {
     if (!task.wcagCode || !task.url) {
-      alert('Diese Aufgabe kann nicht automatisch getestet werden. WCAG-Code oder URL fehlt.')
+      toast.error('Diese Aufgabe kann nicht automatisch getestet werden. WCAG-Code oder URL fehlt.')
       return
     }
 
@@ -236,13 +236,13 @@ export default function AufgabenPage() {
       if (!response.ok) {
         const errorData = await response.json()
         if (response.status === 402) {
-          alert(`Nicht genügend Credits: ${errorData.message}`)
+          toast.error(`Nicht genügend Credits: ${errorData.message}`)
           return
         }
         throw new Error(errorData.message || 'Fehler beim Credit-Verbrauch')
       }
     } catch (error) {
-      alert('Fehler beim Verbrauch der Credits für den Aufgaben-Test.')
+              toast.error('Fehler beim Verbrauch der Credits für den Aufgaben-Test.')
       return
     }
 
@@ -315,9 +315,9 @@ export default function AufgabenPage() {
       
       // Verbesserte Erfolgsmeldung
       if (testResult === 'passed') {
-        alert(`✅ Test erfolgreich! Für die Aufgabe "${task.title}" wurden keine Violations der Regel "${task.wcagCode}" gefunden.\n\nBitte überprüfen Sie das Ergebnis manuell und markieren Sie die Aufgabe als erledigt, wenn die Behebung korrekt ist.`)
+        toast.success(`✅ Test erfolgreich! Für die Aufgabe "${task.title}" wurden keine Violations der Regel "${task.wcagCode}" gefunden.`)
       } else {
-        alert(`❌ Test fehlgeschlagen. Die Aufgabe "${task.title}" muss noch bearbeitet werden.\n\nGefundene Violations für Regel "${task.wcagCode}": ${specificViolations.length}\n\nBitte beheben Sie die Probleme und testen Sie erneut.`)
+        toast.error(`❌ Test fehlgeschlagen. Die Aufgabe "${task.title}" muss noch bearbeitet werden. Gefundene Violations: ${specificViolations.length}`)
       }
       
     } catch (error) {

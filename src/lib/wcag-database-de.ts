@@ -296,31 +296,34 @@ export function getWCAGErrorsByPriority(priority: string): WCAGError[] {
   return Object.values(wcagErrorsDE).filter(error => error.priority === priority);
 }
 
-// Bewertungsfunktion für Barrierefreiheits-Score
+// EINHEITLICHE Bewertungsfunktion für Barrierefreiheits-Score
 export function getAccessibilityRating(score: number): {
   rating: string;
   description: string;
   color: string;
 } {
-  if (score >= 90) {
+  // Normalisiere Score falls als Dezimalwert (0.88 → 88)
+  const normalizedScore = score <= 1 ? score * 100 : score;
+  
+  if (normalizedScore >= 90) {
     return {
       rating: 'Sehr gut',
-      description: 'Hervorragende BFSG-Konformität',
+      description: 'Hervorragende BF-Konformität',
       color: 'text-green-600'
     };
-  } else if (score >= 75) {
+  } else if (normalizedScore >= 75) {
     return {
       rating: 'Gut',
-      description: 'Gute BFSG-Konformität',
+      description: 'Gute BF-Konformität',
       color: 'text-green-500'
     };
-  } else if (score >= 60) {
+  } else if (normalizedScore >= 60) {
     return {
-      rating: 'Mittel',
+      rating: 'Befriedigend',
       description: 'Verbesserungsbedarf',
       color: 'text-yellow-600'
     };
-  } else if (score >= 40) {
+  } else if (normalizedScore >= 40) {
     return {
       rating: 'Schlecht',
       description: 'Erhebliche Mängel',
@@ -333,6 +336,11 @@ export function getAccessibilityRating(score: number): {
       color: 'text-red-600'
     };
   }
+}
+
+// Hilfsfunktion um Score zu normalisieren
+export function normalizeScore(score: number): number {
+  return score <= 1 ? Math.round(score * 100) : Math.round(score);
 }
 
 // Deutsche Übersetzungen für positive Tests

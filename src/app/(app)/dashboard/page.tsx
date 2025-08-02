@@ -22,6 +22,7 @@ import {
   Clock
 } from "lucide-react"
 import { useWebsites } from "@/hooks/useWebsites"
+import { normalizeScore } from "@/lib/wcag-database-de"
 import { FirstLoginDisclaimer, useFirstLoginDisclaimer } from "@/components/first-login-disclaimer"
 import { getAccessibilityRating } from '@/lib/wcag-database-de'
 
@@ -180,9 +181,9 @@ export default function DashboardPage() {
         const totalWebsites = allWebsites.length;
         const totalScans = allScans.length;
         
-        // WICHTIG: Scores kommen als 0-1 Werte aus der API, müssen * 100 für Prozente
+        // KORRIGIERT: Scores könnten bereits normalisiert sein, verwende einheitliche Funktion
         const avgScore = totalScans > 0 
-          ? (allScans.reduce((sum: number, scan: any) => sum + (scan.score || 0), 0) / totalScans) * 100
+          ? allScans.reduce((sum: number, scan: any) => sum + (normalizeScore(scan.score || 0)), 0) / totalScans
           : 0;
         
         const criticalIssues = allScans.reduce((sum: number, scan: any) => 
@@ -479,42 +480,67 @@ export default function DashboardPage() {
               <CardContent className="relative">
                 {recentActivities.length > 0 ? (
                   <div className="space-y-3">
-                    {recentActivities.map((activity) => (
-                      <div key={activity.id} className="flex items-start space-x-3">
-                        <div className="flex-shrink-0">
-                          {activity.type === "scan" && (
-                            <Eye className="h-4 w-4 text-blue-500 mt-0.5" />
-                          )}
-                          {activity.type === "issue" && (
-                            <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5" />
-                          )}
-                          {activity.type === "improvement" && (
-                            <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">{activity.description}</p>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <p className="text-xs text-muted-foreground">{activity.timestamp}</p>
-                            {activity.score && (
-                              <Badge variant="secondary" className="text-xs">
-                                Score: {Math.round(activity.score * 100)}%
-                              </Badge>
-                            )}
-                            <Badge 
-                              variant={
-                                activity.status === "kritisch" ? "destructive" :
-                                activity.status === "verbessert" ? "default" :
-                                "secondary"
-                              }
-                              className="text-xs"
-                            >
-                              {activity.status}
-                            </Badge>
+                    {recentActivities.map((activity) => {
+                      // Clickable wrapper für Website-Scans
+                      const isClickableActivity = activity.type === "scan"
+                      const Component = isClickableActivity ? "a" : "div"
+                      const linkProps = isClickableActivity ? { 
+                        href: "/website-scans",
+                        className: "cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors"
+                      } : {}
+                      
+                      return (
+                        <Component key={activity.id} {...linkProps}>
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0">
+                              {activity.type === "scan" && (
+                                <Eye className="h-4 w-4 text-blue-500 mt-0.5" />
+                              )}
+                              {activity.type === "issue" && (
+                                <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5" />
+                              )}
+                              {activity.type === "improvement" && (
+                                <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-medium ${isClickableActivity ? 'text-blue-600 hover:text-blue-800' : ''}`}>
+                                {activity.description}
+                                {isClickableActivity && <span className="ml-1">→</span>}
+                              </p>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <p className="text-xs text-muted-foreground">{activity.timestamp}</p>
+                                {activity.score && (
+                                  <Badge 
+                                    variant="secondary" 
+                                    className={`text-xs ${
+                                      activity.score >= 0.9 ? 'bg-green-100 text-green-800' :
+                                      activity.score >= 0.7 ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-red-100 text-red-800'
+                                    }`}
+                                  >
+                                    Score: {normalizeScore(activity.score)}%
+                                  </Badge>
+                                )}
+                                <Badge 
+                                  variant={
+                                    activity.status === "kritisch" ? "destructive" :
+                                    activity.status === "verbessert" ? "default" :
+                                    activity.status === "abgeschlossen" ? "default" :
+                                    "secondary"
+                                  }
+                                  className={`text-xs ${
+                                    activity.status === "abgeschlossen" ? 'bg-green-600 text-white' : ''
+                                  }`}
+                                >
+                                  {activity.status}
+                                </Badge>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    ))}
+                        </Component>
+                      )
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-8">

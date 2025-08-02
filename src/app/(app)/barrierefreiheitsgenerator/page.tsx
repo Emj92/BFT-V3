@@ -196,16 +196,38 @@ export default function BarrierefreiheitsgeneratorPage() {
                 <p>
                   Eine Barrierefreiheitserklärung ist für öffentliche Stellen in Deutschland gesetzlich vorgeschrieben und muss folgende Informationen enthalten:
                 </p>
+                
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <h4 className="font-semibold text-blue-800 mb-2">📋 Gesetzliche Grundlagen</h4>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li><strong>BITV 2.0</strong> - Barrierefreie-Informationstechnik-Verordnung</li>
+                    <li><strong>BGG</strong> - Behindertengleichstellungsgesetz</li>
+                    <li><strong>EU-Richtlinie 2016/2102</strong> - Digitale Barrierefreiheit</li>
+                    <li><strong>WCAG 2.1 Level AA</strong> - Web Content Accessibility Guidelines</li>
+                  </ul>
+                </div>
+
+                <p className="font-medium text-gray-800 mb-3">📝 Pflichtangaben der Barrierefreiheitserklärung:</p>
                 <ul className="list-disc pl-5 space-y-2">
-                  <li>Angaben zur Organisation und zur Website</li>
-                  <li>Konformitätsstatus (vollständig, teilweise oder nicht konform)</li>
-                  <li>Nicht barrierefreie Inhalte mit Begründung</li>
-                  <li>Datum der Erstellung und letzte Aktualisierung</li>
-                  <li>Bewertungsmethode und Ergebnisse</li>
-                  <li>Feedback- und Kontaktmöglichkeiten</li>
-                  <li>Durchsetzungsverfahren</li>
+                  <li><strong>Organisationsangaben:</strong> Name, Anschrift, Kontaktdaten der verantwortlichen Stelle</li>
+                  <li><strong>Konformitätsstatus:</strong> Vollständig, teilweise oder nicht konform mit WCAG 2.1 Level AA</li>
+                  <li><strong>Nicht barrierefreie Inhalte:</strong> Konkrete Beschreibung mit Begründung nach §12a BITV 2.0</li>
+                  <li><strong>Erstellungsdatum:</strong> Datum der Erklärung und letzte Überprüfung</li>
+                  <li><strong>Bewertungsmethode:</strong> Verwendete Prüfverfahren (automatisch/manuell/kombiniert)</li>
+                  <li><strong>Feedback-Mechanismus:</strong> Kontaktmöglichkeiten für Barriere-Meldungen</li>
+                  <li><strong>Durchsetzungsverfahren:</strong> Verweis auf Schlichtungsstelle nach §16 BGG</li>
                 </ul>
-                <p className="mt-4">
+                
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
+                  <h4 className="font-semibold text-amber-800 mb-2">⚖️ Rechtliche Hinweise</h4>
+                  <p className="text-sm text-amber-700">
+                    Seit dem 23. September 2020 sind öffentliche Stellen verpflichtet, eine 
+                    Barrierefreiheitserklärung auf ihrer Website zu veröffentlichen und regelmäßig zu aktualisieren.
+                    Private Unternehmen sollten ab 2025 entsprechende Maßnahmen für digitale Dienste umsetzen.
+                  </p>
+                </div>
+                
+                <p className="mt-4 font-medium">
                   Unser Generator hilft Ihnen, all diese Anforderungen zu erfüllen und eine rechtssichere Erklärung zu erstellen.
                 </p>
               </div>

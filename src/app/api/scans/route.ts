@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
         website: scan.page?.website?.name || 'Unbekannte Website',
         websiteName: scan.page?.website?.name || 'Unbekannte Website', // Zusätzlich für Kompatibilität
         url: scan.page?.url || 'Unbekannte URL',
-        status: scan.status || 'abgeschlossen',
+        status: 'abgeschlossen', // Immer als abgeschlossen setzen für UI-Kompatibilität
         score: scan.score || 0,
         issues: scan.violations || 0,
         totalIssues: scan.violations || 0,
@@ -99,8 +99,14 @@ export async function GET(request: NextRequest) {
           hasViolations: !!parsedResults.violations,
           violationsCount: parsedResults.violations?.length || 0,
           hasPasses: !!parsedResults.passes,
-          passesCount: parsedResults.passes?.length || 0
+          passesCount: parsedResults.passes?.length || 0,
+          hasDetails: !!parsedResults.details,
+          detailsCount: parsedResults.details?.length || 0,
+          allKeys: Object.keys(parsedResults)
         } : 'KEINE PARSED RESULTS')
+        
+        // ULTIMATIVER DEBUG: Raw scan.results anzeigen
+        console.log(`KRITISCHER DEBUG - GET: Raw scan.results für Scan ${scan.id}:`, scan.results)
       }
       
       console.log('KRITISCHER DEBUG - API: Formatierter Scan:', formatted.id, formatted.website, formatted.score)

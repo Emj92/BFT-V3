@@ -165,14 +165,14 @@ export default function EinstellungenPage() {
 
       if (response.ok) {
         console.log("Einstellungen erfolgreich gespeichert")
-        alert("Einstellungen wurden gespeichert!")
+        toast.success("Einstellungen wurden gespeichert!")
       } else {
         console.error("Fehler beim Speichern der Einstellungen")
-        alert("Fehler beim Speichern der Einstellungen.")
+        toast.error("Fehler beim Speichern der Einstellungen.")
       }
     } catch (error) {
       console.error("Fehler beim Speichern der Einstellungen:", error)
-      alert("Netzwerkfehler beim Speichern der Einstellungen.")
+      toast.error("Netzwerkfehler beim Speichern der Einstellungen.")
     }
   }
 
@@ -196,10 +196,10 @@ export default function EinstellungenPage() {
         }
       } else {
         const error = await response.json()
-        alert('Fehler: ' + error.error)
+        toast.error('Fehler: ' + error.error)
       }
     } catch (error) {
-      alert('Fehler beim Erstellen der Zahlung')
+              toast.error('Fehler beim Erstellen der Zahlung')
     }
   }
 
@@ -217,11 +217,11 @@ export default function EinstellungenPage() {
         "1 verwaltbare Website",
         "5 Scans/Monat",
         "30 Tage Speicherdauer",
-        "Accessibility Check",
+        "BF-Scanner",
         "Dashboard (Grundansicht)"
       ],
       limitations: [
-        "Kein BFSG Coach",
+        "Kein BF-Coach",
         "Kein BFE-Generator", 
         "Keine Aufgabenverwaltung",
         "Keine PDF/Excel Exporte",
@@ -241,8 +241,8 @@ export default function EinstellungenPage() {
         "3 verwaltbare Websites",
         "50 Scans/Monat", 
         "6 Monate Speicherdauer",
-        "Accessibility Check",
-        "BFSG Coach (10 Nutzungen/Monat)",
+        "BF-Scanner",
+        "BF-Coach (10 Nutzungen/Monat)",
         "BFE-Generator (1 Nutzung/Monat)",
         "Aufgabenverwaltung",
         "PDF/Excel Export",
@@ -263,7 +263,7 @@ export default function EinstellungenPage() {
         "150 Scans/Monat",
         "12 Monate Speicherdauer", 
         "Alle STARTER Features",
-        "BFSG Coach (50 Nutzungen/Monat)",
+        "BF-Coach (50 Nutzungen/Monat)",
         "BFE-Generator (5 Nutzungen/Monat)",
         "Erweiterte Analysen",
         "Prioritäts-Support",
@@ -284,7 +284,7 @@ export default function EinstellungenPage() {
         "500 Scans/Monat",
         "24 Monate Speicherdauer",
         "Alle PROFESSIONAL Features", 
-        "BFSG Coach (unbegrenzt)",
+        "BF-Coach (unbegrenzt)",
         "BFE-Generator (unbegrenzt)",
         "Team-Funktionen",
         "Multi-User-Support",

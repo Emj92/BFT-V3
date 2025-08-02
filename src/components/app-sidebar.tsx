@@ -319,27 +319,30 @@ export default function AppSidebar() {
       ],
       tools: [
         {
-          title: isGerman ? 'BFSE-Scanner' : 'BFSE Scanner',
+          title: isGerman ? 'BF-Scanner' : 'BF Scanner',
           url: "/accessibility-check",
           icon: Shield,
-          badge: 'Top'
+          badge: 'Top',
+          tooltip: isGerman ? 'Barrierefreiheits-Scanner' : 'Accessibility Scanner'
         },
         {
-          title: isGerman ? 'BFE-Bibliothek' : 'WCAG Library',
+          title: isGerman ? 'BF-Bibliothek' : 'BF Library',
           url: "/wcag-bibliothek",
           icon: BookOpen,
+          tooltip: isGerman ? 'Barrierefreiheits-Bibliothek' : 'Accessibility Library'
         },
         {
-          title: isGerman ? 'BFE-Coach' : 'WCAG Coach',
+          title: isGerman ? 'BF-Coach' : 'BF Coach',
           url: "/wcag-coach",
           icon: MessageSquare,
-          tooltip: hasPremiumSupport ? undefined : (isGerman ? "Nur ab STARTER-Paket verfügbar" : "Only available from STARTER package"),
+          tooltip: hasPremiumSupport ? (isGerman ? 'Barrierefreiheits-Coach' : 'Accessibility Coach') : (isGerman ? "Nur ab STARTER-Paket verfügbar" : "Only available from STARTER package"),
           disabled: !hasPremiumSupport
         },
         {
           title: isGerman ? 'BFE-Generator' : 'BFE Generator',
           url: "/barrierefreiheitsgenerator",
           icon: FileCheck,
+          tooltip: hasPremiumSupport ? (isGerman ? 'Barrierefreiheits-Generator' : 'Accessibility Generator') : (isGerman ? "Nur ab STARTER-Paket verfügbar" : "Only available from STARTER package"),
           disabled: !hasPremiumSupport
         },
       ],
@@ -475,9 +478,9 @@ export default function AppSidebar() {
                                 </div>
                                 <span>{item.title}</span>
                                 {item.badge && (
-                                  <span className="bg-blue-500 text-white font-normal py-0.5 px-1.5 rounded ml-auto" style={{ fontSize: '14px' }}>
+                                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs ml-auto">
                                     {item.badge}
-                                  </span>
+                                  </Badge>
                                 )}
                               </div>
                             ) : (
@@ -485,17 +488,18 @@ export default function AppSidebar() {
                                 <item.icon className="h-4 w-4" />
                                 <span>{item.title}</span>
                                 {item.badge && (
-                                  <span className="bg-blue-500 text-white font-normal py-0.5 px-1.5 rounded ml-auto" style={{ fontSize: '14px' }}>
+                                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs ml-auto">
                                     {item.badge}
-                                  </span>
+                                  </Badge>
                                 )}
                               </a>
                             )}
                           </SidebarMenuButton>
                         </TooltipTrigger>
                         <TooltipContent 
-                          side="right" 
-                          className="bg-background dark:bg-popover border border-border dark:border-border text-foreground dark:text-popover-foreground"
+                          side="top" 
+                          className="bg-blue-600 dark:bg-blue-700 border border-blue-500 dark:border-blue-600 text-blue-100 dark:text-blue-100"
+                          style={{ fontSize: '15px' }}
                         >
                           <p>{item.tooltip}</p>
                         </TooltipContent>

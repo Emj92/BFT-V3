@@ -11,6 +11,7 @@ import { Ticket, MessageSquare, Clock, CheckCircle, AlertCircle, Send, ArrowLeft
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { UnifiedTicketDialog } from "@/components/unified-ticket-dialog"
 import { GlobalNavigation } from "@/components/global-navigation"
+import { toast } from "sonner"
 
 // Dynamischer Import der Animation
 
@@ -108,6 +109,27 @@ export default function TicketsPage() {
     }
   }
 
+  const getCategoryColor = (category: string) => {
+    switch (category.toLowerCase()) {
+      case "billing": return "bg-blue-100 text-blue-800"
+      case "technical": return "bg-purple-100 text-purple-800"
+      case "other": return "bg-gray-100 text-gray-800"
+      case "feature": return "bg-green-100 text-green-800"
+      case "bug": return "bg-red-100 text-red-800"
+      default: return "bg-gray-100 text-gray-800"
+    }
+  }
+
+  const getPriorityNumber = (priority: TicketPriority) => {
+    switch (priority) {
+      case "critical": return "1"
+      case "high": return "2"
+      case "medium": return "3"
+      case "low": return "4"
+      default: return "3"
+    }
+  }
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedTicket) return
 
@@ -133,9 +155,14 @@ export default function TicketsPage() {
         setSelectedTicket(updatedTicket)
         setTickets(tickets.map(t => t.id === selectedTicket.id ? updatedTicket : t))
         setNewMessage("")
+        toast.success('Nachricht erfolgreich gesendet!')
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.error || 'Fehler beim Senden der Nachricht. Bitte versuchen Sie es erneut.')
       }
     } catch (error) {
       console.error('Fehler beim Senden der Nachricht:', error)
+      toast.error('Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung.')
     }
   }
 
@@ -214,13 +241,32 @@ export default function TicketsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="p-4 bg-muted rounded-lg">
-                  <p className="text-sm">{selectedTicket.description}</p>
-                </div>
-
                 {/* Nachrichten */}
                 <div className="space-y-4">
                   <h3 className="font-semibold">Nachrichten</h3>
+                  
+                  {/* Ursprüngliche Ticket-Beschreibung */}
+                  <div className="flex gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>
+                        U
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-sm">{selectedTicket.userName || 'Benutzer'}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          Ursprung
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(selectedTicket.createdAt)}
+                        </span>
+                      </div>
+                      <p className="text-sm bg-muted p-3 rounded-lg">{selectedTicket.description}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Weitere Nachrichten */}
                   {selectedTicket.messages.map((message) => (
                     <div key={message.id} className="flex gap-3">
                       <Avatar className="h-8 w-8">
@@ -348,7 +394,10 @@ export default function TicketsPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold">#{ticket.id} - {ticket.subject}</h3>
+                          <h3 className="font-semibold">P{getPriorityNumber(ticket.priority)} - {ticket.subject}</h3>
+                          <Badge className={getCategoryColor(ticket.category)}>
+                            {ticket.category}
+                          </Badge>
                           <Badge className={getStatusColor(ticket.status)}>
                             {getStatusText(ticket.status)}
                           </Badge>

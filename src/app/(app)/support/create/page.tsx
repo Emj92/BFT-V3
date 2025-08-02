@@ -344,12 +344,24 @@ export default function CreateTicketPage() {
                       <SelectValue placeholder="Kategorie auswählen" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="technical">Technisches Problem</SelectItem>
-                      <SelectItem value="account">Account-Verwaltung</SelectItem>
-                      <SelectItem value="billing">Abrechnung</SelectItem>
-                      <SelectItem value="feature">Feature-Anfrage</SelectItem>
-                      <SelectItem value="bug">Bug-Report</SelectItem>
-                      <SelectItem value="other">Sonstiges</SelectItem>
+                      <SelectItem value="technical">
+                        <span className={getCategoryColor("technical")}>🔧 Technisches Problem</span>
+                      </SelectItem>
+                      <SelectItem value="account">
+                        <span className={getCategoryColor("account")}>👤 Account-Verwaltung</span>
+                      </SelectItem>
+                      <SelectItem value="billing">
+                        <span className={getCategoryColor("billing")}>💳 Abrechnung</span>
+                      </SelectItem>
+                      <SelectItem value="feature">
+                        <span className={getCategoryColor("feature")}>✨ Feature-Anfrage</span>
+                      </SelectItem>
+                      <SelectItem value="bug">
+                        <span className={getCategoryColor("bug")}>🐛 Bug-Report</span>
+                      </SelectItem>
+                      <SelectItem value="other">
+                        <span className={getCategoryColor("other")}>📝 Sonstiges</span>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

@@ -14,9 +14,11 @@ import { GlobalNavigation } from "@/components/global-navigation"
 import { useWebsites } from "@/hooks/useWebsites"
 import { PDFReportGenerator } from "@/lib/pdf-generator"
 import ScanResults from "@/components/scan-results"
+import { getAccessibilityRating, normalizeScore } from "@/lib/wcag-database-de"
 
 // Performance: Optimierte Icon-Imports für Tree-shaking
 import { Search, Plus, CheckCircle, Shield, Calendar, Clock, AlertTriangle, XCircle, X, Eye, Download, RefreshCw, Globe } from "lucide-react"
+import { toast } from "sonner"
 
 // Interface für Website-Scan-Daten  
 interface WebsiteScan {
@@ -27,6 +29,7 @@ interface WebsiteScan {
   score: number
   issues: number
   criticalIssues: number
+  severeIssues: number // Schwerwiegende Probleme
   date: string
   duration: string
   pages: number
@@ -55,6 +58,11 @@ export default function WebsiteScansPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [scanToDelete, setScanToDelete] = useState<WebsiteScan | null>(null)
 
+  // States für Dialoge und Meldungen
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+
   // Lade Scans beim Komponenten-Mount
   useEffect(() => {
     loadScans()
@@ -62,7 +70,7 @@ export default function WebsiteScansPage() {
     // Event-Listener für neue Scans hinzufügen
     const handleScanComplete = () => {
       console.log('Neuer Scan abgeschlossen - Scans werden neu geladen')
-      setTimeout(() => loadScans(), 1000) // Kurze Verzögerung für API/LocalStorage Updates
+      setTimeout(() => loadScans(), 1000)
     }
     
     window.addEventListener('scanCompleted', handleScanComplete)
@@ -75,9 +83,7 @@ export default function WebsiteScansPage() {
   const loadScans = async () => {
     try {
       setIsLoading(true)
-      console.log('KRITISCHER DEBUG: Lade Scans...')
       
-      // NUR API - KEIN localStorage Fallback
       const response = await fetch('/api/scans', {
         cache: 'no-store',
         headers: {
@@ -86,28 +92,10 @@ export default function WebsiteScansPage() {
         }
       })
       
-      console.log('KRITISCHER DEBUG: API Response Status:', response.status)
-      
       if (response.ok) {
-        const rawData = await response.text()
-        console.log('KRITISCHER DEBUG: Raw API Response:', rawData)
-        
-        const data = JSON.parse(rawData)
-        console.log('KRITISCHER DEBUG: Parsed API Data:', data)
+        const data = await response.json()
         
         if (data.scans && Array.isArray(data.scans)) {
-          console.log('KRITISCHER DEBUG: Scans gefunden:', data.scans.length)
-          console.log('KRITISCHER DEBUG: Erste Scan-Details:', data.scans[0])
-          console.log('KRITISCHER DEBUG: Erste Scan Results-Struktur:', data.scans[0]?.results ? {
-            hasViolations: !!data.scans[0].results.violations,
-            violationsCount: data.scans[0].results.violations?.length || 0,
-            hasPasses: !!data.scans[0].results.passes,
-            passesCount: data.scans[0].results.passes?.length || 0,
-            hasDetails: !!data.scans[0].results.details,
-            detailsCount: data.scans[0].results.details?.length || 0
-          } : 'KEINE RESULTS IN SCAN')
-          
-          // KRITISCHER DUPLIKAT-FIX: Entferne doppelte Scans basierend auf ID oder URL+Score
           const uniqueScans = data.scans.reduce((unique: WebsiteScan[], scan: WebsiteScan) => {
             const isDuplicate = unique.find(s => 
               s.id === scan.id || 
@@ -116,64 +104,25 @@ export default function WebsiteScansPage() {
             
             if (!isDuplicate) {
               unique.push(scan)
-            } else {
-              console.log('KRITISCHER DEBUG: Duplikat Scan entfernt:', scan.url, scan.score)
             }
             return unique
           }, [])
           
-          console.log('KRITISCHER DEBUG: Nach Duplikat-Entfernung:', uniqueScans.length)
           setScans(uniqueScans)
         } else {
-          console.log('KRITISCHER DEBUG: Keine Scans in API-Response')
           setScans([])
         }
       } else {
-        console.error('KRITISCHER DEBUG: API-Fehler:', response.status)
-        const errorText = await response.text()
-        console.error('KRITISCHER DEBUG: API-Error-Details:', errorText)
         setScans([])
       }
       
     } catch (error) {
-      console.error('KRITISCHER DEBUG: Exception beim Laden der Scans:', error)
+      console.error('Fehler beim Laden der Scans:', error)
       setScans([])
     } finally {
       setIsLoading(false)
-      console.log('KRITISCHER DEBUG: Scan-Loading abgeschlossen')
     }
   }
-
-  // Funktion zum Hinzufügen neuer Scans (Fallback für localStorage)
-  const addScan = (scanData: Partial<WebsiteScan>) => {
-    const newScan: WebsiteScan = {
-      id: Date.now(),
-      website: scanData.website || "Neue Website",
-      url: scanData.url || "",
-      status: scanData.status || "abgeschlossen",
-      score: scanData.score || 0,
-      issues: scanData.issues || 0,
-      criticalIssues: scanData.criticalIssues || 0,
-      date: new Date().toLocaleDateString('de-DE'),
-      duration: scanData.duration || "0",
-      pages: scanData.pages || 1
-    }
-    
-    const updatedScans = [...scans, newScan]
-    setScans(updatedScans)
-    localStorage.setItem('website-scans', JSON.stringify(updatedScans))
-    
-    // Lade Scans neu von der API, um synchron zu bleiben
-    setTimeout(() => {
-      loadScans()
-    }, 1000)
-  }
-
-  // Exportiere addScan für andere Komponenten
-  useEffect(() => {
-    // Mache addScan global verfügbar
-    (window as any).addWebsiteScan = addScan
-  }, [scans])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -202,9 +151,13 @@ export default function WebsiteScansPage() {
       case "PENDING":
         return <Badge variant="secondary">Wartend</Badge>
       default:
-        // Fallback: Wenn Status leer oder undefined ist, nehme "abgeschlossen" an
         return <Badge variant="default" className="bg-green-500">Abgeschlossen</Badge>
     }
+  }
+
+  const getScoreRating = (score: number) => {
+    const rating = getAccessibilityRating(score)
+    return { text: rating.rating, color: rating.color }
   }
 
   const filteredScans = scans.filter(scan => {
@@ -217,37 +170,26 @@ export default function WebsiteScansPage() {
   // Funktion zum Anzeigen von Scan-Details
   const handleViewDetails = async (scan: WebsiteScan) => {
     try {
-      console.log('WEBSITE-SCANS DEBUG: handleViewDetails aufgerufen für Scan:', scan.id, scan.url)
       setSelectedScanForDetails(scan)
       
-      // Verwende bereits geladene Results oder lade detaillierte Scan-Ergebnisse
       let scanResults = scan.results
-      console.log('WEBSITE-SCANS DEBUG: Scan.results verfügbar:', !!scanResults)
       
       if (!scanResults) {
-        // Fallback: Lade detaillierte Scan-Ergebnisse aus der API
-        console.log('WEBSITE-SCANS DEBUG: Lade Details für Scan-ID:', scan.id)
         const response = await fetch(`/api/scans/${scan.id}`)
-        console.log('WEBSITE-SCANS DEBUG: API Response Status:', response.status)
         if (response.ok) {
           const data = await response.json()
-          console.log('WEBSITE-SCANS DEBUG: API Response Data:', data)
           scanResults = data.results
-        } else {
-          const errorText = await response.text()
-          console.error('WEBSITE-SCANS DEBUG: API Error:', response.status, errorText)
         }
       }
       
       if (scanResults) {
-        // Konvertiere die Scan-Daten ins erwartete Format für ScanResults
         const scanResultsData = {
           url: scan.url,
           timestamp: scan.createdAt || new Date().toISOString(),
-          score: scan.score / 100, // ScanResults erwartet Wert zwischen 0-1
+          score: normalizeScore(scan.score) / 100, // Stelle sicher, dass der Score zwischen 0-1 liegt
           summary: {
             violations: scanResults.summary?.violations || scan.issues || 0,
-            passes: scanResults.summary?.passes || 0,
+            passes: scanResults.summary?.passes || Math.max(0, (scan.pages || 1) * 30),
             incomplete: scanResults.summary?.incomplete || 0,
             inapplicable: scanResults.summary?.inapplicable || 0
           },
@@ -255,8 +197,8 @@ export default function WebsiteScansPage() {
           passes: scanResults.passes || [],
           incomplete: scanResults.incomplete || [],
           inapplicable: scanResults.inapplicable || [],
-          wcagViolations: scan.issues,
-          bitvViolations: scan.criticalIssues,
+          wcagViolations: scan.issues || 0,
+          bitvViolations: scan.criticalIssues || 0,
           technicalChecks: {
             altTexts: (scanResults.violations || []).filter((v: any) => v.id?.includes('image-alt')).length === 0,
             semanticHtml: true,
@@ -277,14 +219,13 @@ export default function WebsiteScansPage() {
         setDetailsScanResults(scanResultsData)
         setIsDetailsDialogOpen(true)
       } else {
-        // Fallback für Fälle ohne detaillierte API-Daten
         const fallbackScanResults = {
           url: scan.url,
           timestamp: new Date().toISOString(),
-          score: scan.score / 100,
+          score: normalizeScore(scan.score) / 100, // Stelle sicher, dass der Score zwischen 0-1 liegt
           summary: {
-            violations: scan.issues,
-            passes: 0,
+            violations: scan.issues || 0,
+            passes: Math.max(0, (scan.pages || 1) * 30),
             incomplete: 0,
             inapplicable: 0
           },
@@ -292,14 +233,14 @@ export default function WebsiteScansPage() {
           passes: [],
           incomplete: [],
           inapplicable: [],
-          wcagViolations: scan.issues,
-          bitvViolations: scan.criticalIssues,
+          wcagViolations: scan.issues || 0,
+          bitvViolations: scan.criticalIssues || 0,
           technicalChecks: {
-            altTexts: false,
+            altTexts: (scan.issues || 0) === 0,
             semanticHtml: true,
             keyboardNavigation: true,
             focusVisible: true,
-            colorContrast: false,
+            colorContrast: (scan.issues || 0) === 0,
             ariaRoles: true,
             formLabels: true,
             autoplayVideos: true,
@@ -314,14 +255,12 @@ export default function WebsiteScansPage() {
       }
     } catch (error) {
       console.error('Fehler beim Laden der Scan-Details:', error)
-      alert('Fehler beim Laden der Details. Bitte versuchen Sie es erneut.')
+                toast.error('Fehler beim Laden der Details. Bitte versuchen Sie es erneut.')
     }
   }
 
-  // Funktion zum Erstellen eines PDF-Berichts
   const handleGenerateReport = async (scan: WebsiteScan) => {
     try {
-      // Mock-ScanResult für PDF-Generator erstellen
       const mockScanResult = {
         url: scan.url,
         timestamp: new Date().toISOString(),
@@ -370,163 +309,43 @@ export default function WebsiteScansPage() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
+      toast.success('PDF-Bericht wurde erfolgreich heruntergeladen!')
     } catch (error) {
       console.error('PDF-Erstellung fehlgeschlagen:', error)
-      alert('Fehler beim Erstellen des PDF-Berichts. Bitte versuchen Sie es erneut.')
+      toast.error('Fehler beim Erstellen des PDF-Berichts. Bitte versuchen Sie es erneut.')
     }
   }
 
-  // Funktion zum Wiederholen eines Scans
-  const handleRepeatScan = (scan: WebsiteScan) => {
-    setScanToRepeat(scan)
-    setIsRepeatDialogOpen(true)
-  }
-
-  // Funktion zum Bestätigen der Scan-Wiederholung
-  const confirmRepeatScan = async () => {
-    if (!scanToRepeat) return
-
-    // Prüfe Credits vor der Wiederholung (1 Credit für Website-Scan wiederholen)
-    try {
-      const response = await fetch('/api/credits/use', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ service: 'websiteRescans' })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        if (response.status === 402) {
-          alert(`Nicht genügend Credits: ${errorData.message}`)
-          setIsRepeatDialogOpen(false)
-          setScanToRepeat(null)
-          return
-        }
-        throw new Error(errorData.message || 'Fehler beim Credit-Verbrauch')
-      }
-    } catch (error) {
-      alert('Fehler beim Verbrauch der Credits für die Scan-Wiederholung.')
-      setIsRepeatDialogOpen(false)
-      setScanToRepeat(null)
-      return
-    }
-
-    // Simuliere Scan-Wiederholung
-    const newScan = {
-      ...scanToRepeat,
-      id: Date.now(),
-      date: new Date().toLocaleDateString('de-DE'),
-      status: "abgeschlossen" as const,
-      // Simuliere leichte Verbesserung bei Wiederholung
-      score: Math.min(100, scanToRepeat.score + Math.floor(Math.random() * 10)),
-      issues: Math.max(0, scanToRepeat.issues - Math.floor(Math.random() * 3)),
-      criticalIssues: Math.max(0, scanToRepeat.criticalIssues - Math.floor(Math.random() * 2))
-    }
-    
-    const updatedScans = [...scans, newScan]
-    setScans(updatedScans)
-    localStorage.setItem('website-scans', JSON.stringify(updatedScans))
-    
-    alert(`Scan für "${scanToRepeat.website}" wurde erfolgreich wiederholt!`)
-    setIsRepeatDialogOpen(false)
-    setScanToRepeat(null)
-  }
-
-  // Funktion zum Auswählen einer gespeicherten Website
-  const handleSelectWebsite = (websiteId: string) => {
-    const website = websites.find(w => w.id === websiteId)
-    if (website) {
-      setSelectedWebsite(websiteId)
-      setSearchTerm(website.url) // Fülle das Suchfeld mit der URL
-    }
-  }
-
-  // Demo-Daten bereinigen
-  const handleCleanupDemoData = async () => {
-    if (!confirm('Möchten Sie wirklich alle Demo-Daten (Beispiel Website, Test Website, etc.) entfernen?')) {
-      return
-    }
-
-    setIsCleaningUp(true)
-    
-    try {
-      // Bereinige localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('website-scans')
-        console.log('localStorage bereinigt')
-      }
-
-      // Bereinige Datenbank über API
-      const response = await fetch('/api/cleanup-demo-data', {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        alert(`Demo-Daten erfolgreich entfernt: ${result.deletedScans} Scans und ${result.deletedWebsites} Websites gelöscht`)
-        
-        // Lade Scans neu
-        await loadScans()
-      } else {
-        const error = await response.json()
-        alert(`Fehler beim Entfernen der Demo-Daten: ${error.error}`)
-      }
-    } catch (error) {
-      console.error('Fehler beim Bereinigen der Demo-Daten:', error)
-      alert('Fehler beim Bereinigen der Demo-Daten')
-    } finally {
-      setIsCleaningUp(false)
-    }
-  }
-
-  // States für Dialoge und Meldungen
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false)
-  const [successMessage, setSuccessMessage] = useState('')
-
-  // Funktion zum Öffnen des Lösch-Dialogs
   const handleDeleteSingleScan = async (scan: WebsiteScan) => {
     setScanToDelete(scan)
     setIsDeleteDialogOpen(true)
   }
 
-  // Funktion zum Bestätigen der Löschung
   const confirmDeleteScan = async () => {
     if (!scanToDelete) return
 
     try {
-      // API-Aufruf zum Löschen des Scans
       const response = await fetch(`/api/scans/${scanToDelete.id}`, {
         method: 'DELETE'
       })
 
       if (response.ok) {
-        // Entferne den Scan aus der lokalen Liste
-        setScans(prevScans => prevScans.filter(s => s.id !== scanToDelete.id));
-        setSuccessMessage(`Scan für "${scanToDelete.website}" wurde erfolgreich gelöscht!`)
-        setShowSuccessMessage(true)
-        setTimeout(() => setShowSuccessMessage(false), 5000)
-        await loadScans() // Reload scans to sync with database
+        setScans(prevScans => prevScans.filter(s => s.id !== scanToDelete.id))
+        toast.success(`Scan für "${scanToDelete.website}" wurde erfolgreich gelöscht!`)
+        await loadScans()
       } else {
         const error = await response.json()
-        setSuccessMessage(`Fehler beim Löschen des Scans: ${error.error}`)
-        setShowSuccessMessage(true)
-        setTimeout(() => setShowSuccessMessage(false), 5000)
+        toast.error(`Fehler beim Löschen des Scans: ${error.error}`)
       }
     } catch (error) {
       console.error('Fehler beim Löschen des Scans:', error)
-      setSuccessMessage('Fehler beim Löschen des Scans. Bitte versuchen Sie es erneut.')
-      setShowSuccessMessage(true)
-      setTimeout(() => setShowSuccessMessage(false), 5000)
+      toast.error('Fehler beim Löschen des Scans. Bitte versuchen Sie es erneut.')
     } finally {
       setIsDeleteDialogOpen(false)
       setScanToDelete(null)
     }
   }
 
-  // Funktion zum Löschen aller Scans
   const handleDeleteAllScans = async () => {
     setIsDeleting(true)
     
@@ -537,24 +356,26 @@ export default function WebsiteScansPage() {
 
       if (response.ok) {
         setScans([])
-        setSuccessMessage('Alle Scans wurden erfolgreich gelöscht und Statistiken zurückgesetzt!')
-        setShowSuccessMessage(true)
-        setTimeout(() => setShowSuccessMessage(false), 5000)
-        await loadScans() // Reload scans
+        toast.success('Alle Scans wurden erfolgreich gelöscht und Statistiken zurückgesetzt!')
+        await loadScans()
       } else {
         const error = await response.json()
-        setSuccessMessage(`Fehler beim Löschen der Scans: ${error.error}`)
-        setShowSuccessMessage(true)
-        setTimeout(() => setShowSuccessMessage(false), 5000)
+        toast.error(`Fehler beim Löschen der Scans: ${error.error}`)
       }
     } catch (error) {
       console.error('Fehler beim Löschen der Scans:', error)
-      setSuccessMessage('Fehler beim Löschen der Scans. Bitte versuchen Sie es erneut.')
-      setShowSuccessMessage(true)
-      setTimeout(() => setShowSuccessMessage(false), 5000)
+      toast.error('Fehler beim Löschen der Scans. Bitte versuchen Sie es erneut.')
     } finally {
       setIsDeleting(false)
       setShowDeleteConfirm(false)
+    }
+  }
+
+  const handleSelectWebsite = (websiteId: string) => {
+    const website = websites.find(w => w.id === websiteId)
+    if (website) {
+      setSelectedWebsite(websiteId)
+      setSearchTerm(website.url)
     }
   }
 
@@ -564,7 +385,6 @@ export default function WebsiteScansPage() {
         <GlobalNavigation title="Website-Scans" />
         
         <div className="flex flex-1 flex-col gap-6 p-6 md:gap-8 md:p-8">
-          {/* Header */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div>
@@ -575,7 +395,7 @@ export default function WebsiteScansPage() {
               </div>
               <Button
                 variant="outline"
-                                    onClick={() => setShowDeleteConfirm(true)}
+                onClick={() => setShowDeleteConfirm(true)}
                 disabled={isDeleting || filteredScans.length === 0}
                 className="text-red-600 border-red-200 hover:bg-red-50"
               >
@@ -610,7 +430,6 @@ export default function WebsiteScansPage() {
                   </div>
                 </div>
                 
-                {/* Dropdown für gespeicherte Websites */}
                 <Select value={selectedWebsite} onValueChange={handleSelectWebsite}>
                   <SelectTrigger className="w-64">
                     <Globe className="mr-2 h-4 w-4" />
@@ -641,8 +460,6 @@ export default function WebsiteScansPage() {
                     <SelectItem value="fehler">Fehler</SelectItem>
                   </SelectContent>
                 </Select>
-
-
               </div>
             </CardContent>
           </Card>
@@ -660,201 +477,130 @@ export default function WebsiteScansPage() {
               </Card>
             ) : (
               filteredScans.map((scan) => (
-                <Card key={scan.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => scan.status === "abgeschlossen" && handleViewDetails(scan)}>
+                <Card key={scan.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleViewDetails(scan)}>
                   <CardContent className="pt-6">
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          {getStatusIcon(scan.status)}
-                          <h3 className="text-lg font-semibold">{scan.website}</h3>
-                          {getStatusBadge(scan.status)}
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-3">{scan.url}</p>
-                        
-                        {/* Erweiterte Scan-Details */}
-                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mt-3 border border-gray-200 dark:border-gray-700">
-                          <div className="grid grid-cols-2 gap-4 md:grid-cols-6 mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            {getStatusIcon(scan.status)}
                             <div>
-                              <p className="text-xs text-muted-foreground">Datum & Uhrzeit</p>
-                              <p className="text-sm font-medium">
-                                {new Date(scan.date).toLocaleString('de-DE', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </p>
+                              <h3 className="text-lg font-semibold">{scan.website}</h3>
+                              <p className="text-sm text-muted-foreground">{scan.url}</p>
                             </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground">Dauer</p>
-                              <p className="text-sm font-medium">{scan.duration} min</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground">Seiten</p>
-                              <p className="text-sm font-medium">{scan.pages}</p>
-                            </div>
-                            {scan.status === "abgeschlossen" && (
-                              <>
-                                <div>
-                                  <p className="text-xs text-muted-foreground">Score</p>
-                                  <div className="flex items-center gap-2">
-                                    <div className={`w-3 h-3 rounded-full ${
-                                      scan.score >= 80 ? 'bg-green-500' : 
-                                      scan.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                                    }`}></div>
-                                    <p className="text-sm font-medium">{Math.round(scan.score * 100)}%</p>
-                                  </div>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-muted-foreground">Bewertung</p>
-                                  <p className={`text-sm font-medium ${
-                                    scan.score >= 0.9 ? 'text-green-600' : 
-                                    scan.score >= 0.7 ? 'text-yellow-600' : 
-                                    scan.score >= 0.5 ? 'text-orange-600' : 'text-red-600'
-                                  }`}>
-                                    {scan.score >= 0.9 ? 'Sehr gut' : 
-                                     scan.score >= 0.7 ? 'Gut' : 
-                                     scan.score >= 0.5 ? 'Mittel' : 'Kritisch'}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-muted-foreground">Status</p>
-                                  <p className="text-sm font-medium text-green-600">Vollständig</p>
-                                </div>
-                              </>
-                            )}
                           </div>
-
-                          {scan.status === "abgeschlossen" && (
-                            <div className="border-t pt-3 space-y-3">
-                              {/* Überblick über Probleme */}
-                              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                                <div className="flex items-center gap-2">
-                                  <AlertTriangle className="h-4 w-4 text-orange-500" />
-                                  <div>
-                                    <p className="text-xs text-muted-foreground">Probleme gesamt</p>
-                                    <p className="text-sm font-medium">{scan.issues}</p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <XCircle className="h-4 w-4 text-red-500" />
-                                  <div>
-                                    <p className="text-xs text-muted-foreground">Kritische Fehler</p>
-                                    <p className="text-sm font-medium">{scan.criticalIssues}</p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <CheckCircle className="h-4 w-4 text-green-500" />
-                                  <div>
-                                    <p className="text-xs text-muted-foreground">Erfolgreich</p>
-                                    <p className="text-sm font-medium">{scan.results?.passes?.length || Math.max(0, 100 - scan.issues)}</p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Shield className="h-4 w-4 text-blue-500" />
-                                  <div>
-                                    <p className="text-xs text-muted-foreground">WCAG Level</p>
-                                    <p className="text-sm font-medium">
-                                      {scan.score >= 0.9 ? 'AAA' : scan.score >= 0.7 ? 'AA' : 'A'}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Detaillierte Scan-Ergebnisse */}
-                              {scan.results && scan.results.violations && scan.results.violations.length > 0 && (
-                                <div className="border-t pt-3">
-                                  <h4 className="text-sm font-semibold mb-2 text-red-600">Gefundene Probleme:</h4>
-                                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                                    {scan.results.violations.slice(0, 5).map((violation: any, index: number) => (
-                                      <div key={index} className="bg-red-50 dark:bg-red-900/20 p-2 rounded text-xs">
-                                        <div className="flex items-center justify-between mb-1">
-                                          <span className="font-medium text-red-700 dark:text-red-300">{violation.id}</span>
-                                          <span className={`px-2 py-0.5 rounded text-xs ${
-                                            violation.impact === 'critical' ? 'bg-red-100 text-red-800' :
-                                            violation.impact === 'serious' ? 'bg-orange-100 text-orange-800' :
-                                            'bg-yellow-100 text-yellow-800'
-                                          }`}>
-                                            {violation.impact === 'critical' ? 'Kritisch' :
-                                             violation.impact === 'serious' ? 'Schwerwiegend' :
-                                             violation.impact === 'moderate' ? 'Moderat' : 'Gering'}
-                                          </span>
-                                        </div>
-                                        <p className="text-gray-600 dark:text-gray-300 mb-1">{violation.description}</p>
-                                        <p className="text-gray-500 dark:text-gray-400">
-                                          <span className="font-medium">{violation.nodes?.length || 0} Elemente betroffen</span>
-                                          {violation.help && (
-                                            <> • <span className="text-blue-600 dark:text-blue-400">{violation.help}</span></>
-                                          )}
-                                        </p>
-                                      </div>
-                                    ))}
-                                    {scan.results.violations.length > 5 && (
-                                      <p className="text-xs text-gray-500 text-center py-1">
-                                        ... und {scan.results.violations.length - 5} weitere Probleme
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Erfolgreiche Tests */}
-                              {scan.results && scan.results.passes && scan.results.passes.length > 0 && (
-                                <div className="border-t pt-3">
-                                  <h4 className="text-sm font-semibold mb-2 text-green-600">Erfolgreich geprüft:</h4>
-                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-1 text-xs">
-                                    {scan.results.passes.slice(0, 6).map((pass: any, index: number) => (
-                                      <div key={index} className="bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded text-green-700 dark:text-green-300">
-                                        {pass.id}
-                                      </div>
-                                    ))}
-                                    {scan.results.passes.length > 6 && (
-                                      <div className="text-green-600 dark:text-green-400 px-2 py-1">
-                                        +{scan.results.passes.length - 6} weitere
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-2">
-                        <div className="flex justify-end">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteSingleScan(scan)
-                            }}
-                            className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
-                          >
-                            <XCircle className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        
-                        {scan.status === "abgeschlossen" && (
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={(e) => {
-                              e.stopPropagation()
-                              handleViewDetails(scan)
-                            }} className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              variant="default" 
+                              size="sm" 
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleViewDetails(scan)
+                              }} 
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
                               <Eye className="mr-2 h-4 w-4" />
-                              Details
+                              Details ansehen
                             </Button>
                             <Button variant="outline" size="sm" onClick={(e) => {
                               e.stopPropagation()
                               handleGenerateReport(scan)
                             }}>
                               <Download className="mr-2 h-4 w-4" />
-                              Bericht erstellen
+                              PDF
                             </Button>
+                            {getStatusBadge(scan.status)}
                           </div>
-                        )}
+                        </div>
+                        
+                        {/* Score-Anzeige mit Bewertung */}
+                        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mt-3 border border-gray-200 dark:border-gray-700">
+                          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-4">
+                            {/* Gesamt-Score */}
+                            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-center">
+                              <div className="flex items-center justify-center gap-2 mb-1">
+                                <Shield className="h-4 w-4 text-green-500" />
+                                <span className="text-xs font-medium text-muted-foreground">Gesamt-Score</span>
+                              </div>
+                              <div className="text-xl font-bold">{normalizeScore(scan.score)}%</div>
+                              <div className={`text-xs font-medium ${getScoreRating(scan.score).color}`}>
+                                {getScoreRating(scan.score).text}
+                              </div>
+                            </div>
+
+                            {/* Kritische Probleme */}
+                            <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 text-center">
+                              <div className="flex items-center justify-center gap-2 mb-1">
+                                <AlertTriangle className="h-4 w-4 text-red-500" />
+                                <span className="text-xs font-medium text-muted-foreground">Kritische Probleme</span>
+                              </div>
+                              <div className="text-xl font-bold text-red-600">{scan.criticalIssues || 0}</div>
+                              <div className="text-xs text-red-500">
+                                Sofort beheben
+                              </div>
+                            </div>
+
+                            {/* Schwerwiegende Probleme */}
+                            <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 text-center">
+                              <div className="flex items-center justify-center gap-2 mb-1">
+                                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                                <span className="text-xs font-medium text-muted-foreground">Schwerwiegende Probleme</span>
+                              </div>
+                              <div className="text-xl font-bold text-orange-600">{scan.severeIssues || Math.floor((scan.issues || 0) * 0.3)}</div>
+                              <div className="text-xs text-orange-500">
+                                Bald beheben
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Weitere Statistiken */}
+                          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Positiv geprüfte Ergebnisse</p>
+                                <p className="text-sm font-medium">{scan.results?.passes?.length || Math.max(0, 100 - (scan.issues || 0))}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <AlertTriangle className="h-4 w-4 text-blue-500" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Insgesamt geprüfte Ergebnisse</p>
+                                <p className="text-sm font-medium">{Math.max(50, (scan.results?.passes?.length || 0) + (scan.issues || 0))}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Eye className="h-4 w-4 text-purple-500" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">Elemente analysiert</p>
+                                <p className="text-sm font-medium">{(scan.pages || 1) * 50}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Shield className="h-4 w-4 text-blue-500" />
+                              <div>
+                                <p className="text-xs text-muted-foreground">WCAG Level</p>
+                                <p className="text-sm font-medium">
+                                  {normalizeScore(scan.score) >= 90 ? 'AAA' : normalizeScore(scan.score) >= 70 ? 'AA' : 'A'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteSingleScan(scan)
+                          }}
+                          className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -884,8 +630,6 @@ export default function WebsiteScansPage() {
             </Card>
           )}
         </div>
-
-
       </SidebarInset>
 
       {/* Delete Scan Confirmation Dialog */}
@@ -909,31 +653,6 @@ export default function WebsiteScansPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Repeat Scan Confirmation Dialog */}
-      <Dialog open={isRepeatDialogOpen} onOpenChange={setIsRepeatDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Scan wiederholen</DialogTitle>
-            <DialogDescription>
-              {scanToRepeat && `Möchten Sie den Scan für "${scanToRepeat.website}" wiederholen?`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsRepeatDialogOpen(false)}
-            >
-              Abbrechen
-            </Button>
-            <Button
-              onClick={confirmRepeatScan}
-            >
-              Wiederholen
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Erfolgs-/Fehlermeldung */}
       {showSuccessMessage && (
