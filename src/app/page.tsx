@@ -398,7 +398,7 @@ export default function HomePage() {
                     </Link>
                   ) : (
                     <Link href="/dashboard">
-                      <Button variant="outline" className="w-full">Dashboard</Button>
+                      <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">Dashboard</Button>
                     </Link>
                   )}
                   {!isRegistered && (
@@ -1491,7 +1491,7 @@ export default function HomePage() {
                           body: JSON.stringify({
                             type: 'bundle',
                             bundle: 'STARTER',
-                            interval: 'monthly'
+                            interval: isYearly ? 'yearly' : 'monthly'
                           })
                         });
                         const data = await response.json();
@@ -1586,7 +1586,7 @@ export default function HomePage() {
                           body: JSON.stringify({
                             type: 'bundle',
                             bundle: 'PRO',
-                            interval: 'monthly'
+                            interval: isYearly ? 'yearly' : 'monthly'
                           })
                         });
                         const data = await response.json();
@@ -1673,7 +1673,7 @@ export default function HomePage() {
                           body: JSON.stringify({
                             type: 'bundle',
                             bundle: 'ENTERPRISE',
-                            interval: 'monthly'
+                            interval: isYearly ? 'yearly' : 'monthly'
                           })
                         });
                         const data = await response.json();

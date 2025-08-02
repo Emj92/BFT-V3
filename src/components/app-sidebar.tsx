@@ -171,8 +171,8 @@ export default function AppSidebar() {
     selectWebsite 
   } = useWebsites()
 
-  // Prüfe ob Benutzer Zugang zu Support-Features hat basierend auf bundleInfo (ab Starter verfügbar)
-  const hasPremiumSupport = bundleInfo && bundleInfo.id !== 'FREE'
+  // Prüfe ob Benutzer Zugang zu Support-Features hat basierend auf bundleInfo (ab STARTER verfügbar)
+  const hasPremiumSupport = bundleInfo && bundleInfo.bundle !== 'FREE'
 
   useEffect(() => {
     const initializeUser = async () => {

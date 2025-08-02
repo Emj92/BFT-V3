@@ -184,23 +184,26 @@ export default function EinstellungenPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          type: 'bundle_upgrade',
+          type: 'bundle',
           bundle: bundleType,
-          returnUrl: window.location.origin + '/einstellungen'
+          interval: isYearly ? 'yearly' : 'monthly'
         })
       })
 
       if (response.ok) {
         const data = await response.json()
-        if (data.paymentUrl) {
+        if (data.success && data.paymentUrl) {
           window.location.href = data.paymentUrl
+        } else {
+          toast.error('Fehler: ' + (data.error || 'Unbekannter Fehler'))
         }
       } else {
         const error = await response.json()
-        toast.error('Fehler: ' + error.error)
+        toast.error('Fehler: ' + (error.error || 'HTTP-Fehler'))
       }
     } catch (error) {
-              toast.error('Fehler beim Erstellen der Zahlung')
+      console.error('Bundle upgrade error:', error)
+      toast.error('Fehler beim Erstellen der Zahlung')
     }
   }
 
