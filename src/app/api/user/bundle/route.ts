@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient, BundleType } from '@prisma/client'
+import { BundleType } from '@prisma/client'
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
+import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
-
-const prisma = new PrismaClient()
 
 export async function GET(request: NextRequest) {
   try {
@@ -82,9 +81,11 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Fehler beim Laden der Bundle-Informationen:', error)
-    return NextResponse.json({ error: 'Interner Serverfehler' }, { status: 500 })
-  } finally {
-    await prisma.$disconnect()
+    console.error('BUNDLE API ERROR DETAILS:', error)
+    console.error('BUNDLE API ERROR STACK:', error instanceof Error ? error.stack : 'No stack')
+    return NextResponse.json({ 
+      error: 'Interner Serverfehler',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }

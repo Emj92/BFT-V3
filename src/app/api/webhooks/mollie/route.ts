@@ -5,7 +5,18 @@ import { BundleType } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
   try {
-    const { id: paymentId } = await request.json()
+    let paymentId: string
+
+    // Mollie sendet form-data, nicht JSON
+    const contentType = request.headers.get('content-type')
+    if (contentType?.includes('application/x-www-form-urlencoded')) {
+      const formData = await request.formData()
+      paymentId = formData.get('id') as string
+    } else {
+      // Fallback für JSON (falls doch mal JSON kommt)
+      const { id } = await request.json()
+      paymentId = id
+    }
     
     if (!paymentId) {
       return NextResponse.json({ error: 'Payment ID erforderlich' }, { status: 400 })
