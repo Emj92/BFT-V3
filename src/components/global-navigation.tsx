@@ -18,16 +18,21 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/co
 interface GlobalNavigationProps {
   title?: string
   subtitle?: string
+  onBack?: () => void
 }
 
-export function GlobalNavigation({ title = "Dashboard", subtitle }: GlobalNavigationProps) {
+export function GlobalNavigation({ title = "Dashboard", subtitle, onBack }: GlobalNavigationProps) {
   const router = useRouter()
   const pathname = usePathname()
   const { user, loading } = useUser()
   const { bundleInfo } = useBundle()
 
   const handleBack = () => {
-    router.back()
+    if (onBack) {
+      onBack()
+    } else {
+      router.back()
+    }
   }
 
 
@@ -151,13 +156,14 @@ export function GlobalNavigation({ title = "Dashboard", subtitle }: GlobalNaviga
           {/* Credits Display */}
           <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-muted rounded-md">
             <span className="text-sm font-medium">{bundleInfo?.credits || user.credits || 0} Credits</span>
-            {user.bundle && (
+            {bundleInfo?.bundle && (
               <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                user.bundle === 'PRO' ? 'bg-blue-500 text-white' :
-                user.bundle === 'ENTERPRISE' ? 'bg-purple-500 text-white' :
+                bundleInfo.bundle === 'PRO' ? 'bg-blue-500 text-white' :
+                bundleInfo.bundle === 'ENTERPRISE' ? 'bg-purple-500 text-white' :
+                bundleInfo.bundle === 'STARTER' ? 'bg-green-500 text-white' :
                 'bg-gray-500 text-white'
               }`}>
-                {user.bundle}
+                {bundleInfo.bundle}
               </span>
             )}
           </div>
@@ -199,13 +205,14 @@ export function GlobalNavigation({ title = "Dashboard", subtitle }: GlobalNaviga
                     <p className="text-xs leading-none text-muted-foreground">
                       {bundleInfo?.credits || user.credits || 0} Credits
                     </p>
-                    {user.bundle && (
+                    {bundleInfo?.bundle && (
                       <span className={`text-xs font-semibold px-1 py-0.5 rounded ${
-                        user.bundle === 'PRO' ? 'bg-blue-500 text-white' :
-                        user.bundle === 'ENTERPRISE' ? 'bg-purple-500 text-white' :
+                        bundleInfo.bundle === 'PRO' ? 'bg-blue-500 text-white' :
+                        bundleInfo.bundle === 'ENTERPRISE' ? 'bg-purple-500 text-white' :
+                        bundleInfo.bundle === 'STARTER' ? 'bg-green-500 text-white' :
                         'bg-gray-500 text-white'
                       }`}>
-                        {user.bundle}
+                        {bundleInfo.bundle}
                       </span>
                     )}
                   </div>

@@ -15,8 +15,8 @@ interface UpgradeDialogProps {
 const BUNDLE_PLANS = {
   'STARTER': {
     name: 'Starter',
-    price: '9.99€',
-    priceMonthly: '9.99€/Monat',
+    price: '9€',
+    priceMonthly: '9€/Monat',
     features: [
       '15 Website-Scans pro Monat',
       '25 WCAG-Coach-Sessions pro Monat',
@@ -29,8 +29,8 @@ const BUNDLE_PLANS = {
   },
   'PRO': {
     name: 'Pro',
-    price: '29.99€',
-    priceMonthly: '29.99€/Monat',
+    price: '29€',
+    priceMonthly: '29€/Monat',
     features: [
       '100 Website-Scans pro Monat',
       '100 WCAG-Coach-Sessions pro Monat',
@@ -61,34 +61,34 @@ const BUNDLE_PLANS = {
 
 const CREDIT_PACKAGES = {
   'small': {
-    name: 'Kleines Paket',
-    price: '4.99€',
-    credits: {
-      scans: 10,
-      wcagSessions: 20,
-      bfeGenerations: 5
-    },
+    name: '10 Credits',
+    price: '15€',
+    credits: 10,
     description: 'Ideal für gelegentliche Nutzung'
   },
   'medium': {
-    name: 'Mittleres Paket',
-    price: '14.99€',
-    credits: {
-      scans: 50,
-      wcagSessions: 100,
-      bfeGenerations: 20
-    },
-    description: 'Perfekt für regelmäßige Nutzung'
+    name: '25 Credits',
+    price: '30€',
+    credits: 25,
+    description: 'Perfekt für regelmäßige Nutzung (20% Rabatt)'
   },
   'large': {
-    name: 'Großes Paket',
-    price: '39.99€',
-    credits: {
-      scans: 200,
-      wcagSessions: 500,
-      bfeGenerations: 100
-    },
-    description: 'Für professionelle Anwender'
+    name: '50 Credits',
+    price: '50€',
+    credits: 50,
+    description: 'Für professionelle Anwender (33% Rabatt)'
+  },
+  'xl': {
+    name: '100 Credits',
+    price: '85€',
+    credits: 100,
+    description: 'Großes Paket (43% Rabatt)'
+  },
+  'xxl': {
+    name: '250 Credits',
+    price: '175€',
+    credits: 250,
+    description: 'Maximales Paket (53% Rabatt)'
   }
 }
 
@@ -263,19 +263,10 @@ export function UpgradeDialog({
                   </div>
                   <p className="text-gray-600 dark:text-gray-400 mb-4">{creditPackage.description}</p>
                   
-                  <div className="grid grid-cols-3 gap-4 mb-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{creditPackage.credits.scans}</div>
-                      <div className="text-sm text-gray-600">Scans</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{creditPackage.credits.wcagSessions}</div>
-                      <div className="text-sm text-gray-600">WCAG-Sessions</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{creditPackage.credits.bfeGenerations}</div>
-                      <div className="text-sm text-gray-600">BFE-Generierungen</div>
-                    </div>
+                  <div className="text-center mb-4">
+                    <div className="text-3xl font-bold text-blue-600">{creditPackage.credits}</div>
+                    <div className="text-sm text-gray-600">Universal Credits</div>
+                    <div className="text-xs text-gray-500 mt-1">Für alle Services verwendbar</div>
                   </div>
                   
                   <button

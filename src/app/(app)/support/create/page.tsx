@@ -36,6 +36,19 @@ export default function CreateTicketPage() {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
   const [createdTicket, setCreatedTicket] = useState<any>(null)
 
+  // Helper-Funktionen für Kategorie-Farben
+  const getCategoryColor = (category: string) => {
+    switch (category.toLowerCase()) {
+      case "billing": return "text-blue-800"
+      case "technical": return "text-purple-800"
+      case "account": return "text-gray-800"
+      case "feature": return "text-green-800"
+      case "bug": return "text-red-800"
+      case "other": return "text-gray-800"
+      default: return "text-gray-800"
+    }
+  }
+
   // Prüfe ob Benutzer berechtigt ist
   const isEligible = bundleInfo && bundleInfo.bundle !== 'FREE'
 

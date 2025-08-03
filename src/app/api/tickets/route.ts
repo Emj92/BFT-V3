@@ -7,7 +7,31 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    // Token aus Cookie auslesen
+    const token = cookies().get('auth-token')?.value
+    
+    if (!token) {
+      return NextResponse.json({ error: 'Nicht authentifiziert' }, { status: 401 })
+    }
+
+    // Token verifizieren
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || 'barrierefrei-secret-key'
+    ) as { id: string }
+
+    // Benutzer abrufen
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id }
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 })
+    }
+
+    // Tickets laden - für normale Benutzer nur ihre eigenen, für Admins alle
     const tickets = await prisma.supportTicket.findMany({
+      where: user.role === 'ADMIN' ? {} : { userId: user.id },
       include: {
         user: {
           select: {

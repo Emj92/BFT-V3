@@ -239,7 +239,7 @@ export default function EinstellungenPage() {
       subtitle: "Für Einzelpersonen",
       icon: "🚀",
       price: 9,
-      yearlyPrice: 92, // 15% Rabatt
+      yearlyPrice: 91.80, // 15% Rabatt
       period: "/ Monat",
       features: [
         "3 verwaltbare Websites",
@@ -260,7 +260,7 @@ export default function EinstellungenPage() {
       subtitle: "Für Unternehmen",
       icon: "⭐",
       price: 29,
-      yearlyPrice: 296, // 15% Rabatt  
+      yearlyPrice: 295.60, // 15% Rabatt  
       period: "/ Monat",
       features: [
         "10 verwaltbare Websites",
@@ -281,7 +281,7 @@ export default function EinstellungenPage() {
       subtitle: "Für Teams & Agenturen",
       icon: "🏢",
       price: 79,
-      yearlyPrice: 805, // 15% Rabatt
+      yearlyPrice: 805.40, // 15% Rabatt
       period: "/ Monat",
       features: [
         "25 verwaltbare Websites",
@@ -700,7 +700,7 @@ export default function EinstellungenPage() {
                         />
                       </button>
                       <span className={`font-medium ${isYearly ? 'text-primary' : 'text-muted-foreground'}`}>
-                        Jährlich <span className="text-green-600 text-sm">(-15%)</span>
+                        Jährlich <span className="text-green-600 text-sm">(15% Rabatt)</span>
                       </span>
                     </div>
                   </div>
@@ -1023,7 +1023,7 @@ export default function EinstellungenPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-5xl mx-auto">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 w-full">
                     <Card className="text-center">
                       <CardContent className="p-4">
                         <div className="text-2xl font-bold">10</div>

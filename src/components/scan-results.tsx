@@ -19,7 +19,7 @@ import {
   Info,
   XCircle
 } from "lucide-react"
-import { getAccessibilityRating, translatePositiveTest } from '@/lib/wcag-database-de'
+import { getAccessibilityRating, normalizeScore, translatePositiveTest } from '@/lib/wcag-database-de'
 import { Chart } from './chart'
 import { ScrollArea } from '@/components/ui/scroll-area'
 

@@ -32,7 +32,7 @@ import {
   Edit
 } from "lucide-react"
 import dynamic from 'next/dynamic'
-import { UnifiedTicketDialog } from "@/components/unified-ticket-dialog"
+import { TicketDialogNew } from "@/components/ticket-dialog-new"
 import { useUser } from "@/hooks/useUser"
 import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -514,8 +514,8 @@ export default function AdminPage() {
       <GlobalNavigation title="Admin Center" />
 
       {showTicketView && selectedTicket ? (
-        <main className="flex-1 p-4">
-          <UnifiedTicketDialog
+        <main className="flex-1">
+          <TicketDialogNew
             ticket={selectedTicket}
             onBack={handleCloseTicketView}
             isAdmin={true}

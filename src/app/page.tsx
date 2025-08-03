@@ -1348,7 +1348,7 @@ export default function HomePage() {
                   />
                 </button>
                 <span className={`font-medium ${isYearly ? 'text-primary' : 'text-muted-foreground'}`}>
-                  Jährlich <span className="text-green-600 text-sm">(-15%)</span>
+                  Jährlich <span className="text-green-600 text-sm">(15% Rabatt)</span>
                 </span>
               </div>
             </div>
