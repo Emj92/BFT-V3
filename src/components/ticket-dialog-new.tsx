@@ -221,8 +221,8 @@ export function TicketDialogNew({
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Nachrichten</h3>
             
-            {/* Initial Description als erste Nachricht */}
-            <div className="flex justify-start">
+            {/* Initial Description - KUNDEN-NACHRICHT: TEST - beim Kunden FEST RECHTS */}
+            <div className="flex justify-end">
               <div className="max-w-[50%] bg-gray-100 p-3 rounded-lg break-words">
                 <div className="flex items-center gap-2 mb-1">
                   <Avatar className="h-6 w-6">
@@ -237,27 +237,33 @@ export function TicketDialogNew({
               </div>
             </div>
 
-            {/* Weitere Nachrichten */}
-            {messages.map((message) => (
-              <div key={message.id} className={`flex ${message.role === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[50%] ${
-                  message.role === 'admin' 
-                    ? 'bg-blue-100' 
-                    : 'bg-gray-100'
-                } p-3 rounded-lg break-words`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className="text-xs">
-                        {message.author.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium">{message.author}</span>
-                    <span className="text-xs text-muted-foreground">{formatDate(message.timestamp)}</span>
+            {/* Weitere Nachrichten - KUNDEN: eigene RECHTS, Admin LINKS */}
+            {messages.map((message) => {
+              // Beim KUNDEN: User-Nachrichten RECHTS, Admin-Nachrichten LINKS
+              // Beim ADMIN: Admin-Nachrichten RECHTS, User-Nachrichten LINKS
+              const isOwnMessage = (isAdmin && message.role === 'admin') || (!isAdmin && message.role === 'user')
+              const alignment = isOwnMessage ? 'justify-end' : 'justify-start'
+              return (
+                <div key={message.id} className={`flex ${alignment}`}>
+                  <div className={`max-w-[50%] ${
+                    message.role === 'admin' 
+                      ? 'bg-blue-100' 
+                      : 'bg-gray-100'
+                  } p-3 rounded-lg break-words`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className="text-xs">
+                          {message.author.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium">{message.author}</span>
+                      <span className="text-xs text-muted-foreground">{formatDate(message.timestamp)}</span>
+                    </div>
+                    <p className="text-sm break-words">{message.content}</p>
                   </div>
-                  <p className="text-sm break-words">{message.content}</p>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* Antworten - nur für offene/in Bearbeitung Tickets */}

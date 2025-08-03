@@ -10,6 +10,15 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { GlobalNavigation } from "@/components/global-navigation"
 import { SidebarInset } from "@/components/ui/sidebar"
 import { getWCAGError, getAccessibilityRating, translatePositiveTest } from '@/lib/wcag-database-de'
+
+// Normalisiert den Score für CircularProgress (0-100)
+const normalizeScore = (score: number): number => {
+  // Annahme: Score kommt als 0-1 oder bereits als 0-100
+  if (score <= 1) {
+    return Math.round(score * 100)
+  }
+  return Math.round(Math.min(100, Math.max(0, score)))
+}
 import { 
   Shield, 
   Globe, 

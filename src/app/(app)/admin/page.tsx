@@ -345,6 +345,9 @@ export default function AdminPage() {
         setTickets(tickets.filter(ticket => ticket.id !== ticketId))
         // Update stats
         setStats(prev => ({ ...prev, totalTickets: prev.totalTickets - 1 }))
+        // Zurück zur Übersicht nach erfolgreichem Löschen
+        setShowTicketView(false)
+        setSelectedTicket(null)
         toast.success('Ticket erfolgreich gelöscht')
       } else {
         toast.error('Fehler beim Löschen des Tickets')
@@ -511,7 +514,10 @@ export default function AdminPage() {
 
   return (
     <SidebarInset>
-      <GlobalNavigation title="Admin Center" />
+      <GlobalNavigation 
+        title={showTicketView && selectedTicket ? `Ticket #${selectedTicket.id.slice(-6).toUpperCase()}` : "Admin Center"}
+        onBack={showTicketView ? handleCloseTicketView : undefined}
+      />
 
       {showTicketView && selectedTicket ? (
         <main className="flex-1">
