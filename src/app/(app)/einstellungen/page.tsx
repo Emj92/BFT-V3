@@ -207,7 +207,7 @@ export default function EinstellungenPage() {
     }
   }
 
-  // Original Website Package-Definitionen - 1:1 von Homepage
+  // Paket-Definitionen - 1:1 von Homepage übernommen mit Credit-System
   const packages = [
     {
       id: "free",
@@ -218,18 +218,20 @@ export default function EinstellungenPage() {
       yearlyPrice: 0,
       period: "kostenlos",
       features: [
+        // Kernlimits
         "10 Credits monatlich",
-        "1 verwaltbare Website",
-        "30 Tage Speicherdauer",
-        "BF-Scanner (1 Credit/Scan)",
+        "1 verwaltbare Website", 
+        "90 Tage Speicherdauer",
+        // Funktionen
+        "BF-Scanner",
         "Dashboard (Grundansicht)"
       ],
       limitations: [
-        "BF-Coach (5 Credits/Nutzung)",
-        "BFE-Generator (10 Credits/Nutzung)", 
+        "Kein BF-Coach",
+        "Kein BFE-Generator",
         "Keine Aufgabenverwaltung",
-        "Keine PDF/Excel Exporte",
-        "Kein Support"
+        "Keine PDF/Excel Exporte", 
+        "Support: FAQ & Community"
       ],
       popular: false
     },
@@ -242,60 +244,73 @@ export default function EinstellungenPage() {
       yearlyPrice: 91.80, // 15% Rabatt
       period: "/ Monat",
       features: [
+        // Kernlimits
         "200 Credits monatlich",
-        "3 verwaltbare Websites", 
+        "3 verwaltbare Websites",
         "6 Monate Speicherdauer",
-        "BF-Scanner (1 Credit/Scan)",
-        "BF-Coach (5 Credits/Nutzung)",
+        // Funktionen
+        "BF-Scanner",
+        "BFSG Coach (5 Credits/Nutzung)",
         "BFE-Generator (10 Credits/Nutzung)",
-        "Aufgabenverwaltung",
-        "PDF/Excel Export",
-        "E-Mail Support"
+        "Aufgabenverwaltung (bis 25 Aufgaben)",
+        // Daten & Export  
+        "PDF Export",
+        "Support: E-Mail"
+      ],
+      limitations: [
+        "Kein Excel Export"
       ],
       popular: true
     },
     {
       id: "professional",
       name: "PROFESSIONAL",
-      subtitle: "Für Unternehmen",
+      subtitle: "Für Unternehmen", 
       icon: "⭐",
       price: 29,
       yearlyPrice: 295.60, // 15% Rabatt  
       period: "/ Monat",
       features: [
+        // Kernlimits
         "1000 Credits monatlich",
         "10 verwaltbare Websites",
-        "12 Monate Speicherdauer", 
-        "Alle STARTER Features",
-        "BF-Coach (5 Credits/Nutzung)",
+        "12 Monate Speicherdauer",
+        // Funktionen
+        "BF-Scanner",
+        "BFSG Coach (5 Credits/Nutzung)",
         "BFE-Generator (10 Credits/Nutzung)",
-        "Erweiterte Analysen",
-        "Prioritäts-Support",
-        "Automatische Berichte"
+        "Aufgabenverwaltung (bis 200 Aufgaben)",
+        // Daten & Export
+        "PDF Export",
+        "Excel Export",
+        "Support: Support Tickets"
       ],
+      limitations: [],
       popular: false
     },
     {
-      id: "enterprise",
+      id: "enterprise", 
       name: "ENTERPRISE",
-      subtitle: "Für Teams & Agenturen",
+      subtitle: "Für Agenturen & Teams",
       icon: "🏢",
       price: 79,
       yearlyPrice: 805.40, // 15% Rabatt
       period: "/ Monat",
       features: [
+        // Kernlimits
         "4000 Credits monatlich",
         "Unbegrenzte Websites",
-        "24 Monate Speicherdauer",
-        "Alle PROFESSIONAL Features", 
-        "BF-Coach (5 Credits/Nutzung)",
-        "BFE-Generator (10 Credits/Nutzung)",
+        "Unbegrenzte Speicherdauer",
+        // Funktionen  
+        "Alle PROFESSIONAL Features",
         "Team-Funktionen",
-        "Multi-User-Support",
-        "White-Label Option",
-        "API-Zugang",
-        "Dedizierter Account-Manager"
+        "BFSG Coach (5 Credits/Nutzung)",
+        "BFE-Generator (10 Credits/Nutzung)",
+        "Aufgabenverwaltung (Unbegrenzt)",
+        // Service & Kollaboration
+        "Support: Persönlicher Ansprechpartner"
       ],
+      limitations: [],
       popular: false
     }
   ]
@@ -707,6 +722,100 @@ export default function EinstellungenPage() {
 
                   {/* Preispakete */}
                   <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto mb-8">
+                    {packages.map((pkg) => (
+                      <Card 
+                        key={pkg.id} 
+                        className={`border h-full flex flex-col ${
+                          pkg.popular ? 'border-2 border-blue-600 relative' : ''
+                        }`}
+                      >
+                        {pkg.popular && (
+                          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                            <Badge className="bg-blue-600 flex items-center gap-1">
+                              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+                              </svg>
+                              Meist gewählt
+                            </Badge>
+                          </div>
+                        )}
+                        <CardHeader className="text-center">
+                          <div className="text-4xl mb-2">{pkg.icon}</div>
+                          <CardTitle className="text-2xl">{pkg.name}</CardTitle>
+                          <div className="text-lg text-muted-foreground">"{pkg.subtitle}"</div>
+                          <div className="text-3xl font-bold">
+                            {isYearly ? `${pkg.yearlyPrice}€` : `${pkg.price}€`}
+                          </div>
+                          <CardDescription>
+                            {isYearly ? 
+                              `/ Jahr (${(pkg.yearlyPrice / 12).toFixed(2)}€/Monat)` : 
+                              pkg.period
+                            }
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3 flex-1 flex flex-col">
+                          {pkg.features.map((feature, idx) => (
+                            <div key={idx} className="flex items-center space-x-3">
+                              <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                              <span className="text-sm">{feature}</span>
+                            </div>
+                          ))}
+                          {pkg.limitations && pkg.limitations.map((limitation, idx) => (
+                            <div key={idx} className="flex items-center space-x-3">
+                              <X className="h-4 w-4 text-red-600 flex-shrink-0" />
+                              <span className="text-sm text-muted-foreground">{limitation}</span>
+                            </div>
+                          ))}
+                          
+                          <div className="flex-1"></div>
+                          
+                          <Button 
+                            className={`w-full ${
+                              pkg.id === 'enterprise' ? 'bg-yellow-600 hover:bg-yellow-700' : ''
+                            }`}
+                            variant={pkg.id === 'free' ? 'outline' : 'default'}
+                            onClick={async () => {
+                              if (pkg.id === 'free') {
+                                window.location.href = "/register"
+                                return
+                              }
+                              
+                              try {
+                                const response = await fetch('/api/payments/create', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    type: 'bundle',
+                                    bundle: pkg.name,
+                                    interval: isYearly ? 'yearly' : 'monthly'
+                                  })
+                                });
+                                const data = await response.json();
+                                if (data.success) {
+                                  window.location.href = data.paymentUrl;
+                                } else {
+                                  toast.error('Fehler: ' + data.error);
+                                }
+                              } catch (error) {
+                                toast.error('Netzwerkfehler beim Erstellen der Zahlung');
+                              }
+                            }}
+                          >
+                            {pkg.id === 'free' ? 'Jetzt starten' : 'Jetzt upgraden'}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Credit-Kostenübersicht */}
+                  <div className="text-center mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-muted-foreground max-w-2xl mx-auto">
+                      <div>🔍 Website-Scan: 1 Credit</div>
+                      <div>🤖 BFSG Coach: 5 Credits</div>
+                      <div>📝 BFE-Generator: 10 Credits</div>
+                    </div>
+                  </div>
                     {/* FREE */}
                     <Card className="border h-full flex flex-col">
                       <CardHeader className="text-center">
@@ -977,9 +1086,9 @@ export default function EinstellungenPage() {
                         </Button>
                       </CardContent>
                     </Card>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
 
               {/* Team-Hinweis für Enterprise */}
               {bundleInfo?.bundle === 'ENTERPRISE' && (
@@ -1294,10 +1403,9 @@ export default function EinstellungenPage() {
                   </Table>
                 </CardContent>
               </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </SidebarInset>
-  )
-} 
+            </TabsContent>
+          </Tabs>
+        </div>
+      </SidebarInset>
+    )
+  } 

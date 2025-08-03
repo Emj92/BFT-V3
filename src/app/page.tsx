@@ -1454,11 +1454,11 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">BFSG Coach (10 Nutzungen/Monat)</span>
+                    <span className="text-base">BFSG Coach (5 Credits/Nutzung)</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">BFE-Generator (10 Nutzungen/Monat)</span>
+                    <span className="text-base">BFE-Generator (10 Credits/Nutzung)</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
