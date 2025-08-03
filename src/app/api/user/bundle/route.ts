@@ -55,14 +55,14 @@ export async function GET(request: NextRequest) {
     }
     
     // Pro Features sind verfügbar für STARTER, PRO, ENTERPRISE Bundles (die nicht abgelaufen sind) oder Admins
-    const hasProFeatures = (effectiveBundle === BundleType.STARTER ||
+    const hasProFeatures = ((effectiveBundle === BundleType.STARTER ||
                           effectiveBundle === BundleType.PRO || 
                           effectiveBundle === BundleType.ENTERPRISE) && 
-                          !bundleExpired || 
+                          !bundleExpired) || 
                           isAdmin
 
     // Pro ist aktiv wenn Bundle nicht abgelaufen ist oder wenn Benutzer Admin ist
-    const isProActive = hasProFeatures && !bundleExpired
+    const isProActive = hasProFeatures || isAdmin
 
     // Für Admins: Setze Bundle auf PRO falls noch kein Bundle gesetzt
     if (isAdmin && !user.bundle) {
