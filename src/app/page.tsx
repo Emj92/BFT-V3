@@ -1368,11 +1368,11 @@ export default function HomePage() {
                   <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">1 verwaltbare Website</span>
+                    <span className="text-base">10 Credits monatlich</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">5 Scans/Monat</span>
+                    <span className="text-base">1 verwaltbare Website</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
@@ -1434,14 +1434,14 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent className="space-y-3 flex-1 flex flex-col">
                   <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
-                                  <div className="flex items-center space-x-3">
-                  <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                  <span className="text-base">3 verwaltbare Websites</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                  <span className="text-base">50 Scans/Monat</span>
-                </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                    <span className="text-base">200 Credits monatlich</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                    <span className="text-base">3 verwaltbare Websites</span>
+                  </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
                     <span className="text-base">6 Monate Speicherdauer</span>
@@ -1531,11 +1531,11 @@ export default function HomePage() {
                   <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">10 verwaltbare Websites</span>
+                    <span className="text-base">1000 Credits monatlich</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">500 Scans/Monat</span>
+                    <span className="text-base">10 verwaltbare Websites</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
@@ -1549,11 +1549,11 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">BFSG Coach (50 Nutzungen/Monat)</span>
+                    <span className="text-base">BFSG Coach (5 Credits/Nutzung)</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">BFE-Generator (50 Nutzungen/Monat)</span>
+                    <span className="text-base">BFE-Generator (10 Credits/Nutzung)</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
@@ -1618,11 +1618,11 @@ export default function HomePage() {
                   <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">Unbegrenzt/Individuell</span>
+                    <span className="text-base">4000 Credits monatlich</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">Unbegrenzte Scans</span>
+                    <span className="text-base">Unbegrenzte Websites</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
@@ -1640,11 +1640,11 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">BFSG Coach (Unbegrenzt)</span>
+                    <span className="text-base">BFSG Coach (5 Credits/Nutzung)</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">BFE-Generator (Unbegrenzt)</span>
+                    <span className="text-base">BFE-Generator (10 Credits/Nutzung)</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
@@ -1898,11 +1898,10 @@ export default function HomePage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   ✅ Credits verfallen nie • ✅ Kombinierbar mit allen Paketen • ✅ Perfekt für Freelancer
                 </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-muted-foreground max-w-2xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-muted-foreground max-w-2xl mx-auto">
                   <div>🔍 Website-Scan: 1 Credit</div>
-                  <div>🤖 BFSG Coach: 1 Credit</div>
-                  <div>📝 BFE-Generator: 3 Credits</div>
-                  <div>📊 Detaillierter Bericht: 1 Credit</div>
+                  <div>🤖 BFSG Coach: 5 Credits</div>
+                  <div>📝 BFE-Generator: 10 Credits</div>
                 </div>
               </div>
             </div>

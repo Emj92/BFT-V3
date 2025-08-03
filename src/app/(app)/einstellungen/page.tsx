@@ -218,15 +218,15 @@ export default function EinstellungenPage() {
       yearlyPrice: 0,
       period: "kostenlos",
       features: [
+        "10 Credits monatlich",
         "1 verwaltbare Website",
-        "5 Scans/Monat",
         "30 Tage Speicherdauer",
-        "BF-Scanner",
+        "BF-Scanner (1 Credit/Scan)",
         "Dashboard (Grundansicht)"
       ],
       limitations: [
-        "Kein BF-Coach",
-        "Kein BFE-Generator", 
+        "BF-Coach (5 Credits/Nutzung)",
+        "BFE-Generator (10 Credits/Nutzung)", 
         "Keine Aufgabenverwaltung",
         "Keine PDF/Excel Exporte",
         "Kein Support"
@@ -242,12 +242,12 @@ export default function EinstellungenPage() {
       yearlyPrice: 91.80, // 15% Rabatt
       period: "/ Monat",
       features: [
-        "3 verwaltbare Websites",
-        "50 Scans/Monat", 
+        "200 Credits monatlich",
+        "3 verwaltbare Websites", 
         "6 Monate Speicherdauer",
-        "BF-Scanner",
-        "BF-Coach (10 Nutzungen/Monat)",
-        "BFE-Generator (1 Nutzung/Monat)",
+        "BF-Scanner (1 Credit/Scan)",
+        "BF-Coach (5 Credits/Nutzung)",
+        "BFE-Generator (10 Credits/Nutzung)",
         "Aufgabenverwaltung",
         "PDF/Excel Export",
         "E-Mail Support"
@@ -263,12 +263,12 @@ export default function EinstellungenPage() {
       yearlyPrice: 295.60, // 15% Rabatt  
       period: "/ Monat",
       features: [
+        "1000 Credits monatlich",
         "10 verwaltbare Websites",
-        "150 Scans/Monat",
         "12 Monate Speicherdauer", 
         "Alle STARTER Features",
-        "BF-Coach (50 Nutzungen/Monat)",
-        "BFE-Generator (5 Nutzungen/Monat)",
+        "BF-Coach (5 Credits/Nutzung)",
+        "BFE-Generator (10 Credits/Nutzung)",
         "Erweiterte Analysen",
         "Prioritäts-Support",
         "Automatische Berichte"
@@ -284,12 +284,12 @@ export default function EinstellungenPage() {
       yearlyPrice: 805.40, // 15% Rabatt
       period: "/ Monat",
       features: [
-        "25 verwaltbare Websites",
-        "500 Scans/Monat",
+        "4000 Credits monatlich",
+        "Unbegrenzte Websites",
         "24 Monate Speicherdauer",
         "Alle PROFESSIONAL Features", 
-        "BF-Coach (unbegrenzt)",
-        "BFE-Generator (unbegrenzt)",
+        "BF-Coach (5 Credits/Nutzung)",
+        "BFE-Generator (10 Credits/Nutzung)",
         "Team-Funktionen",
         "Multi-User-Support",
         "White-Label Option",

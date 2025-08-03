@@ -183,88 +183,90 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // CASCADE DELETE: Alle verknüpften Datensätze löschen
+    // CASCADE DELETE in einer Transaktion für Datenintegrität
     console.log(`Beginne Cascade Delete für User ${id}`)
     
-    // 1. Alle Issues von Scans dieses Users löschen
-    const userScans = await prisma.scan.findMany({
-      where: { userId: id },
-      select: { id: true }
-    })
-    
-    for (const scan of userScans) {
-      await prisma.issue.deleteMany({
-        where: { scanId: scan.id }
+    await prisma.$transaction(async (tx) => {
+      // 1. Alle Issues von Scans dieses Users löschen
+      const userScans = await tx.scan.findMany({
+        where: { userId: id },
+        select: { id: true }
       })
-    }
-
-    // 2. Alle Scans dieses Users löschen
-    await prisma.scan.deleteMany({
-      where: { userId: id }
-    })
-
-    // 3. Alle Projekte dieses Users löschen (mit deren Websites und Pages)
-    const userProjects = await prisma.project.findMany({
-      where: { ownerId: id },
-      include: {
-        websites: {
-          include: {
-            pages: true
-          }
-        }
-      }
-    })
-
-    for (const project of userProjects) {
-      for (const website of project.websites) {
-        // Pages löschen
-        await prisma.page.deleteMany({
-          where: { websiteId: website.id }
+      
+      for (const scan of userScans) {
+        await tx.issue.deleteMany({
+          where: { scanId: scan.id }
         })
       }
-      // Websites löschen
-      await prisma.website.deleteMany({
-        where: { projectId: project.id }
+
+      // 2. Alle Scans dieses Users löschen
+      await tx.scan.deleteMany({
+        where: { userId: id }
       })
-    }
-    
-    // Projekte löschen
-    await prisma.project.deleteMany({
-      where: { ownerId: id }
-    })
 
-    // 4. Alle anderen verknüpften Datensätze löschen
-    await prisma.creditTransaction.deleteMany({
-      where: { userId: id }
-    })
+      // 3. Alle Projekte dieses Users löschen (mit deren Websites und Pages)
+      const userProjects = await tx.project.findMany({
+        where: { ownerId: id },
+        include: {
+          websites: {
+            include: {
+              pages: true
+            }
+          }
+        }
+      })
 
-    await prisma.report.deleteMany({
-      where: { userId: id }
-    })
+      for (const project of userProjects) {
+        for (const website of project.websites) {
+          // Pages löschen
+          await tx.page.deleteMany({
+            where: { websiteId: website.id }
+          })
+        }
+        // Websites löschen
+        await tx.website.deleteMany({
+          where: { projectId: project.id }
+        })
+      }
+      
+      // Projekte löschen
+      await tx.project.deleteMany({
+        where: { ownerId: id }
+      })
 
-    await prisma.notificationRead.deleteMany({
-      where: { userId: id }
-    })
+      // 4. Alle anderen verknüpften Datensätze löschen
+      await tx.creditTransaction.deleteMany({
+        where: { userId: id }
+      })
 
-    await prisma.ticketMessage.deleteMany({
-      where: { userId: id }
-    })
+      await tx.report.deleteMany({
+        where: { userId: id }
+      })
 
-    await prisma.supportTicket.deleteMany({
-      where: { userId: id }
-    })
+      await tx.notificationRead.deleteMany({
+        where: { userId: id }
+      })
 
-    await prisma.wcagSession.deleteMany({
-      where: { userId: id }
-    })
+      await tx.ticketMessage.deleteMany({
+        where: { userId: id }
+      })
 
-    await prisma.bfeGeneration.deleteMany({
-      where: { userId: id }
-    })
+      await tx.supportTicket.deleteMany({
+        where: { userId: id }
+      })
 
-    // 5. Endlich den User löschen
-    await prisma.user.delete({
-      where: { id }
+      await tx.wcagSession.deleteMany({
+        where: { userId: id }
+      })
+
+      await tx.bfeGeneration.deleteMany({
+        where: { userId: id }
+      })
+
+      // 5. Endlich den User löschen
+      await tx.user.delete({
+        where: { id }
+      })
     })
 
     console.log(`Cascade Delete für User ${id} erfolgreich abgeschlossen`)

@@ -13,7 +13,7 @@ const startServer = (port) => {
     createServer((req, res) => {
       const parsedUrl = parse(req.url, true);
       handle(req, res, parsedUrl);
-    }).listen(port, (err) => {
+    }).listen(port, '127.0.0.1', (err) => {
       if (err) throw err;
       console.log(`> Server läuft auf http://localhost:${port}`);
     });

@@ -56,6 +56,7 @@ model User {
   scans         Scan[]
   projects      Project[]
   transactions  CreditTransaction[]
+  invoices      Invoice[]
   reports       Report[]
   notificationsRead NotificationRead[]
   supportTickets SupportTicket[]
@@ -237,15 +238,41 @@ model CreditTransaction {
   amount      Int       // Positive für Kauf, negative für Verbrauch
   type        TransactionType
   description String?
+  paymentId   String?   // Mollie Payment ID
   createdAt   DateTime  @default(now())
 }
 
 // Transaktionstypen
 enum TransactionType {
-  PURCHASE    // Kauf von Credits
-  SCAN        // Verbrauch für Scan (1 Credit)
-  REPORT      // Verbrauch für Bericht (3 Credits)
-  WCAG_COACH  // Verbrauch für WCAG Coach (1 Credit)
+  PURCHASE        // Kauf von Credits
+  BUNDLE_PURCHASE // Bundle-Kauf
+  SCAN            // Verbrauch für Scan (1 Credit)
+  WCAG_COACH      // Verbrauch für WCAG Coach (5 Credits)
+  BFE_GENERATION  // Verbrauch für BFE Generation (10 Credits)
+}
+
+// Rechnungen
+model Invoice {
+  id            String    @id @default(cuid())
+  invoiceNumber String    @unique // Fortlaufende Rechnungsnummer
+  user          User      @relation(fields: [userId], references: [id])
+  userId        String
+  amount        Float     // Rechnungsbetrag in Euro
+  description   String    // Beschreibung der Leistung
+  paymentId     String?   // Mollie Payment ID
+  bundleType    String?   // Falls Bundle-Kauf
+  credits       Int?      // Falls Credit-Kauf
+  status        InvoiceStatus @default(PENDING)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// Rechnungsstatus
+enum InvoiceStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
 }
 
 // Berichte für Barrierefreiheitserklärungen

@@ -42,30 +42,21 @@ export interface CreditUsage {
 export interface BundleInfo {
   type: 'FREE' | 'STARTER' | 'PRO' | 'ENTERPRISE'
   name: string
-  limits: CreditLimits
+  credits: number
+  costs: typeof CREDIT_COSTS
 }
 
-const BUNDLE_LIMITS: Record<string, CreditLimits> = {
-  'FREE': {
-    scans: { monthly: 2, daily: 2, hourly: 1 },
-    wcagSessions: { monthly: 10, daily: 5, hourly: 2 },
-    bfeGenerations: { monthly: 1, daily: 1, hourly: 1 }
-  },
-  'STARTER': {
-    scans: { monthly: 15, daily: 5, hourly: 2 },
-    wcagSessions: { monthly: 25, daily: 10, hourly: 3 },
-    bfeGenerations: { monthly: 3, daily: 2, hourly: 1 }
-  },
-  'PRO': {
-    scans: { monthly: 100, daily: 25, hourly: 10 },
-    wcagSessions: { monthly: 100, daily: 25, hourly: 10 },
-    bfeGenerations: { monthly: 999, daily: 50, hourly: 20 }
-  },
-  'ENTERPRISE': {
-    scans: { monthly: 500, daily: 100, hourly: 25 },
-    wcagSessions: { monthly: 500, daily: 100, hourly: 25 },
-    bfeGenerations: { monthly: 999, daily: 100, hourly: 25 }
-  }
+const BUNDLE_CREDITS: Record<string, number> = {
+  'FREE': 10,
+  'STARTER': 200,
+  'PRO': 1000,
+  'ENTERPRISE': 4000
+}
+
+const CREDIT_COSTS = {
+  scan: 1,
+  wcagSession: 5, // BF Coach
+  bfeGeneration: 10 // BFE Generator
 }
 
 export function useCreditSystem() {
@@ -86,7 +77,8 @@ export function useCreditSystem() {
       setBundleInfo({
         type: bundleType,
         name: data.bundle?.name || 'Kostenlos',
-        limits: BUNDLE_LIMITS[bundleType]
+        credits: BUNDLE_CREDITS[bundleType],
+        costs: CREDIT_COSTS
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unbekannter Fehler')

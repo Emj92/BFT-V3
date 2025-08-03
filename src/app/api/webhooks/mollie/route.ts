@@ -32,6 +32,18 @@ export async function POST(request: NextRequest) {
     if (webhookResult.status === 'paid' && webhookResult.metadata) {
       const metadata = webhookResult.metadata
       
+      // Fortlaufende Rechnungsnummer generieren
+      const latestInvoice = await prisma.invoice.findFirst({
+        orderBy: { invoiceNumber: 'desc' }
+      })
+      
+      let invoiceNumber = 'BFE-2025-0001'
+      if (latestInvoice) {
+        const lastNumber = parseInt(latestInvoice.invoiceNumber.split('-')[2])
+        const nextNumber = (lastNumber + 1).toString().padStart(4, '0')
+        invoiceNumber = `BFE-2025-${nextNumber}`
+      }
+      
       if (metadata.type === 'bundle') {
         // Bundle-Upgrade durchführen
         const purchaseDate = new Date()
@@ -43,12 +55,24 @@ export async function POST(request: NextRequest) {
           expiresAt.setFullYear(expiresAt.getFullYear() + 1)
         }
         
+        // Bundle-Limits definieren für Credit-Vergabe
+        const bundleCredits = {
+          'STARTER': 200,
+          'PRO': 1000,
+          'ENTERPRISE': 4000
+        }
+        
+        const creditsToAdd = bundleCredits[metadata.bundle as keyof typeof bundleCredits] || 0
+        
         await prisma.user.update({
           where: { id: metadata.userId },
           data: {
             bundle: metadata.bundle as BundleType,
             bundlePurchasedAt: purchaseDate,
-            bundleExpiresAt: expiresAt
+            bundleExpiresAt: expiresAt,
+            credits: {
+              increment: creditsToAdd
+            }
           }
         })
 
@@ -56,10 +80,23 @@ export async function POST(request: NextRequest) {
         await prisma.creditTransaction.create({
           data: {
             userId: metadata.userId,
-            type: 'bundle_purchase',
-            amount: 0, // Bei Bundle-Kauf keine Credits, nur Upgrade
-            description: `Bundle-Upgrade zu ${metadata.bundle} - ${metadata.interval}`,
+            type: 'BUNDLE_PURCHASE',
+            amount: creditsToAdd,
+            description: `Bundle-Upgrade zu ${metadata.bundle} - ${metadata.interval} (+${creditsToAdd} Credits)`,
             paymentId: paymentId
+          }
+        })
+
+        // Rechnung erstellen
+        await prisma.invoice.create({
+          data: {
+            invoiceNumber,
+            userId: metadata.userId,
+            amount: webhookResult.amount || 0,
+            description: `${metadata.bundle} Bundle - ${metadata.interval === 'yearly' ? 'Jährliches' : 'Monatliches'} Abonnement`,
+            paymentId: paymentId,
+            bundleType: metadata.bundle,
+            status: 'PAID'
           }
         })
 
@@ -80,10 +117,23 @@ export async function POST(request: NextRequest) {
         await prisma.creditTransaction.create({
           data: {
             userId: metadata.userId,
-            type: 'purchase',
+            type: 'PURCHASE',
             amount: creditAmount,
             description: `${creditAmount} Credits gekauft`,
             paymentId: paymentId
+          }
+        })
+
+        // Rechnung erstellen
+        await prisma.invoice.create({
+          data: {
+            invoiceNumber,
+            userId: metadata.userId,
+            amount: webhookResult.amount || 0,
+            description: `${creditAmount} Credits`,
+            paymentId: paymentId,
+            credits: creditAmount,
+            status: 'PAID'
           }
         })
       }
