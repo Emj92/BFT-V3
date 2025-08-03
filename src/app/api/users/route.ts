@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { id, name, email, role, credits } = body
+    const { id, name, email, role, credits, bundle, enableTeamFeatures, teamRole } = body
 
     if (!id) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
@@ -134,6 +134,14 @@ export async function PUT(request: NextRequest) {
     if (email !== undefined) updateData.email = email
     if (role !== undefined) updateData.role = role
     if (credits !== undefined) updateData.credits = credits
+    if (bundle !== undefined) {
+      updateData.bundle = bundle
+      updateData.bundlePurchasedAt = new Date()
+      // Bei Enterprise: 1 Jahr Laufzeit, andere: unbegrenzt oder nach Bedarf
+      if (bundle === 'ENTERPRISE') {
+        updateData.bundleExpiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+      }
+    }
 
     // Update user
     const updatedUser = await prisma.user.update({
@@ -144,7 +152,10 @@ export async function PUT(request: NextRequest) {
         email: true,
         name: true,
         role: true,
-        credits: true
+        credits: true,
+        bundle: true,
+        bundlePurchasedAt: true,
+        bundleExpiresAt: true
       }
     })
 

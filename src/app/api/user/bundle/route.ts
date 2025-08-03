@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-export const dynamic = 'force-dynamic'
 import { PrismaClient, BundleType } from '@prisma/client'
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
+
+export const dynamic = 'force-dynamic'
 
 const prisma = new PrismaClient()
 
@@ -54,8 +54,9 @@ export async function GET(request: NextRequest) {
       effectiveBundle = BundleType.FREE
     }
     
-    // Pro Features sind verfügbar für PRO, ENTERPRISE Bundles (die nicht abgelaufen sind) oder Admins
-    const hasProFeatures = (effectiveBundle === BundleType.PRO || 
+    // Pro Features sind verfügbar für STARTER, PRO, ENTERPRISE Bundles (die nicht abgelaufen sind) oder Admins
+    const hasProFeatures = (effectiveBundle === BundleType.STARTER ||
+                          effectiveBundle === BundleType.PRO || 
                           effectiveBundle === BundleType.ENTERPRISE) && 
                           !bundleExpired || 
                           isAdmin

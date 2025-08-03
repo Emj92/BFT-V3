@@ -923,7 +923,14 @@ export default function AccessibilityCheckPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="alle">Alle Prüfparameter</SelectItem>
-                    <SelectItem value="wcag21aa">WCAG 2.1 AA</SelectItem>
+                    <SelectItem value="wcag21aa">
+                      <div className="flex items-center justify-between w-full">
+                        <span>WCAG 2.1 AA</span>
+                        <Badge variant="secondary" className="ml-2 text-xs bg-green-100 text-green-800">
+                          BFSG Standard
+                        </Badge>
+                      </div>
+                    </SelectItem>
                     <SelectItem value="wcag21aaa">WCAG 2.1 AAA</SelectItem>
                     <SelectItem value="wcag22aa">WCAG 2.2 AA</SelectItem>
                   </SelectContent>

@@ -110,6 +110,8 @@ export default function AdminPage() {
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
   const [editingCredits, setEditingCredits] = useState<{[userId: string]: boolean}>({})
   const [tempCredits, setTempCredits] = useState<{[userId: string]: number}>({})
+  const [editingBundle, setEditingBundle] = useState<{[userId: string]: boolean}>({})
+  const [tempBundle, setTempBundle] = useState<{[userId: string]: string}>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [searchType, setSearchType] = useState<'users' | 'teams'>('users')
   const [teamData, setTeamData] = useState<any[]>([])
@@ -503,6 +505,65 @@ export default function AdminPage() {
     })
   }
 
+  // Bundle für einen User bearbeiten
+  const handleEditBundle = (userId: string, currentBundle: string) => {
+    setEditingBundle(prev => ({ ...prev, [userId]: true }))
+    setTempBundle(prev => ({ ...prev, [userId]: currentBundle || 'FREE' }))
+  }
+
+  // Bundle-Änderung speichern
+  const handleSaveBundle = async (userId: string) => {
+    const newBundle = tempBundle[userId]
+    const user = users.find(u => u.id === userId)
+    
+    try {
+      const response = await fetch('/api/users', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: userId,
+          bundle: newBundle,
+          // Bei Enterprise: Team-Features aktivieren
+          ...(newBundle === 'ENTERPRISE' && {
+            enableTeamFeatures: true,
+            teamRole: 'owner'
+          })
+        })
+      })
+
+      if (response.ok) {
+        // Update local state
+        setUsers(prev => prev.map(u => 
+          u.id === userId ? { ...u, bundle: newBundle } : u
+        ))
+        setEditingBundle(prev => ({ ...prev, [userId]: false }))
+        
+        if (newBundle === 'ENTERPRISE') {
+          toast.success('Bundle zu ENTERPRISE aktualisiert - Team-Features aktiviert!')
+        } else {
+          toast.success('Bundle erfolgreich aktualisiert')
+        }
+      } else {
+        toast.error('Fehler beim Aktualisieren des Bundles')
+      }
+    } catch (error) {
+      console.error('Error updating bundle:', error)
+      toast.error('Fehler beim Aktualisieren des Bundles')
+    }
+  }
+
+  // Bundle-Bearbeitung abbrechen
+  const handleCancelEditBundle = (userId: string) => {
+    setEditingBundle(prev => ({ ...prev, [userId]: false }))
+    setTempBundle(prev => {
+      const newState = { ...prev }
+      delete newState[userId]
+      return newState
+    })
+  }
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Laden...</div>
   }
@@ -626,24 +687,58 @@ export default function AdminPage() {
                                 </Badge>
                               </td>
                               <td className="px-4 py-2">
-                                <Badge 
-                                  variant={
-                                    user.bundle === 'ENTERPRISE' ? 'default' :
-                                    user.bundle === 'PRO' ? 'default' : 
-                                    'secondary'
-                                  }
-                                  className={
-                                    user.bundle === 'ENTERPRISE' ? 
-                                      'bg-purple-600 text-white hover:bg-purple-700' :
-                                    user.bundle === 'PRO' ? 
-                                      'bg-blue-600 text-white hover:bg-blue-700' :
-                                    user.bundle === 'STARTER' ?
-                                      'bg-green-600 text-white hover:bg-green-700' :
-                                      'bg-gray-500 text-white hover:bg-gray-600'
-                                  }
-                                >
-                                  {user.bundle || 'FREE'}
-                                </Badge>
+                                {editingBundle[user.id] ? (
+                                  <div className="flex items-center gap-2">
+                                    <Select 
+                                      value={tempBundle[user.id] || 'FREE'} 
+                                      onValueChange={(value) => setTempBundle(prev => ({ ...prev, [user.id]: value }))}
+                                    >
+                                      <SelectTrigger className="w-32">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="FREE">FREE</SelectItem>
+                                        <SelectItem value="STARTER">STARTER</SelectItem>
+                                        <SelectItem value="PRO">PRO</SelectItem>
+                                        <SelectItem value="ENTERPRISE">ENTERPRISE</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    <Button variant="outline" size="sm" onClick={() => handleSaveBundle(user.id)}>
+                                      <CheckCircle className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleCancelEditBundle(user.id)}>
+                                      <XCircle className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <Badge 
+                                      variant={
+                                        user.bundle === 'ENTERPRISE' ? 'default' :
+                                        user.bundle === 'PRO' ? 'default' : 
+                                        'secondary'
+                                      }
+                                      className={
+                                        user.bundle === 'ENTERPRISE' ? 
+                                          'bg-purple-600 text-white hover:bg-purple-700' :
+                                        user.bundle === 'PRO' ? 
+                                          'bg-blue-600 text-white hover:bg-blue-700' :
+                                        user.bundle === 'STARTER' ?
+                                          'bg-green-600 text-white hover:bg-green-700' :
+                                          'bg-gray-500 text-white hover:bg-gray-600'
+                                      }
+                                    >
+                                      {user.bundle || 'FREE'}
+                                    </Badge>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      onClick={() => handleEditBundle(user.id, user.bundle || 'FREE')}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                )}
                               </td>
                               <td className="px-4 py-2">
                                 {editingCredits[user.id] ? (
