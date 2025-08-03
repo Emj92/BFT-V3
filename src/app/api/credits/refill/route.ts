@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { TransactionType } from '@prisma/client'
 
 // Bundle-Credits für monatliche Nachfüllung
 const BUNDLE_CREDITS = {
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
           await prisma.creditTransaction.create({
             data: {
               userId: user.id,
-              type: 'BUNDLE_PURCHASE',
+              type: TransactionType.PURCHASE, // TODO: Nach DB-Migration zu BUNDLE_PURCHASE ändern
               amount: creditsToAdd,
               description: `Monatliche Credit-Nachfüllung ${user.bundle} (+${creditsToAdd} Credits)`
             }

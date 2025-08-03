@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { handlePaymentWebhook } from '@/lib/mollie'
 import { prisma } from '@/lib/prisma'
-import { BundleType } from '@prisma/client'
+import { BundleType, TransactionType } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
         await prisma.creditTransaction.create({
           data: {
             userId: metadata.userId,
-            type: 'BUNDLE_PURCHASE',
+            type: TransactionType.PURCHASE, // TODO: Nach DB-Migration zu BUNDLE_PURCHASE ändern
             amount: creditsToAdd,
             description: `Bundle-Upgrade zu ${metadata.bundle} - ${metadata.interval} (+${creditsToAdd} Credits)`,
             paymentId: paymentId
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         await prisma.creditTransaction.create({
           data: {
             userId: metadata.userId,
-            type: 'PURCHASE',
+            type: TransactionType.PURCHASE,
             amount: creditAmount,
             description: `${creditAmount} Credits gekauft`,
             paymentId: paymentId

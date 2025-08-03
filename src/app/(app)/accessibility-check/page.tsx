@@ -79,6 +79,7 @@ interface ScanResultsData {
   issues: ScanIssues;
   checks: ScanChecks;
   details: ScanIssueDetails[];
+  timestamp?: string; // Timestamp für Scan-Zeitpunkt
   passedChecks?: Array<{
     rule: string;
     description: string;
@@ -1461,13 +1462,13 @@ export default function AccessibilityCheckPage() {
                                           }
                                           
                                           // Fallback für generische Daten
-                                          const wcagCode = 'wcagCode' in item ? item.wcagCode : '';
-                                          const elements = ('elements' in item ? item.elements : 0);
+                                          const wcagCode = 'wcagCode' in item ? String(item.wcagCode || '') : '';
+                                          const elements = ('elements' in item ? item.elements : 0) as number;
                                           
                                           if (wcagCode && wcagCode.includes('color-contrast')) {
                                             return Array.from({ length: Math.min(elements, 5) }, (_, i) => (
                                               <div key={i} className="text-xs font-mono bg-white p-2 rounded border">
-                                                <div><strong>Selektor:</strong> .elementor-element-98ee6a > .elementor-widget-container > .premium-button.premium-button-style7.premium-btn-lg > .premium-button-text-icon-wrapper > span</div>
+                                                <div><strong>Selektor:</strong> .elementor-element-98ee6a {'>'} .elementor-widget-container {'>'} .premium-button.premium-button-style7.premium-btn-lg {'>'} .premium-button-text-icon-wrapper {'>'} span</div>
                                                 <div><strong>HTML:</strong> &lt;span&gt;Anfrage &lt;/span&gt;</div>
                                                 <div><strong>Problem:</strong> Farbkontrast von 1.8:1 unterschreitet die WCAG-Anforderung von 4.5:1 (Vordergrund: #ffffff, Hintergrund: #21d5dc, Schriftgröße: 15.0pt, Schriftstärke: normal)</div>
                                                 <div><strong>Schweregrad:</strong> <span className="font-semibold text-red-600">Kritisch</span></div>
@@ -1476,7 +1477,7 @@ export default function AccessibilityCheckPage() {
                                           } else if (wcagCode && wcagCode.includes('image-alt')) {
                                             return Array.from({ length: Math.min(elements, 5) }, (_, i) => (
                                               <div key={i} className="text-xs font-mono bg-white p-2 rounded border">
-                                                <div><strong>Selektor:</strong> .af2_nm_desktop_view > .af2_form > .af2_form_heading_wrapper > .af2_form_heading.desktop</div>
+                                                <div><strong>Selektor:</strong> .af2_nm_desktop_view {'>'} .af2_form {'>'} .af2_form_heading_wrapper {'>'} .af2_form_heading.desktop</div>
                                                 <div><strong>HTML:</strong> &lt;div class="af2_form_heading desktop"&gt;Ein perfektes Webdesign-Angebot&lt;/div&gt;</div>
                                                 <div><strong>Problem:</strong> Element hat unzureichenden Farbkontrast von 1.8 (Vordergrund: #21d5dc, Hintergrund: #ffffff, Schriftgröße: 24.0pt, Schriftstärke: normal). Erwarteter Kontrastquote von 3:1</div>
                                                 <div><strong>Schweregrad:</strong> <span className="font-semibold text-orange-600">Schwerwiegend</span></div>
@@ -1485,7 +1486,7 @@ export default function AccessibilityCheckPage() {
                                           } else {
                                             return Array.from({ length: Math.min(elements, 5) }, (_, i) => (
                                               <div key={i} className="text-xs font-mono bg-white p-2 rounded border">
-                                                <div><strong>Selektor:</strong> .af2_nm_desktop_view > .af2_form > .af2_form_bottombar > .af2_form_back_button.af2_form_button.af2_disabled:nth-child(2)</div>
+                                                <div><strong>Selektor:</strong> .af2_nm_desktop_view {'>'} .af2_form {'>'} .af2_form_bottombar {'>'} .af2_form_back_button.af2_form_button.af2_disabled:nth-child(2)</div>
                                                 <div><strong>HTML:</strong> &lt;button class="af2_form_back_button af2_form_button af2_disabled desktop special"&gt;Zurück&lt;/button&gt;</div>
                                                 <div><strong>Problem:</strong> Element hat unzureichenden Farbkontrast von 1.3 (Vordergrund: #ffffff, Hintergrund: #a6eef1, Schriftgröße: 12.8pt, Schriftstärke: normal). Erwarteter Kontrastquote von 4.5:1</div>
                                                 <div><strong>Schweregrad:</strong> <span className="font-semibold text-red-600">Kritisch</span></div>
@@ -1515,7 +1516,7 @@ export default function AccessibilityCheckPage() {
                                       </DialogHeader>
                                       <div className="space-y-2">
                                         {(() => {
-                                          const wcagCode = 'wcagCode' in item ? item.wcagCode : '';
+                                          const wcagCode = 'wcagCode' in item ? String(item.wcagCode || '') : '';
                                           const wcagError = wcagCode ? getErrorByCode(wcagCode) : null;
                                           
                                           if (wcagError && wcagError.solutions && wcagError.solutions.length > 0) {
@@ -1724,7 +1725,7 @@ export default function AccessibilityCheckPage() {
           onOpenChange={setShowUpgradeDialog}
           currentBundle={bundleInfo?.bundle || 'FREE'}
           service="Unterseiten-Scanning"
-          limitType="feature"
+          limitType="monthly"
           onUpgradeComplete={() => {
             setShowUpgradeDialog(false)
             // Aktualisiere Bundle-Info nach Upgrade
