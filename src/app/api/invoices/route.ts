@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
+    // Prisma verfügbarkeit prüfen
+    if (!prisma) {
+      console.error('🚨 CRITICAL: Prisma client is undefined in invoices route!')
+      return NextResponse.json({ error: 'Database unavailable' }, { status: 500 })
+    }
+
     // Token aus Cookie auslesen
     const token = cookies().get('auth-token')?.value
     
@@ -19,6 +25,7 @@ export async function GET(request: NextRequest) {
     ) as { id: string }
 
     // Rechnungen des Users abrufen
+    console.log('📧 Loading invoices for user:', decoded.id)
     const invoices = await prisma.invoice.findMany({
       where: {
         userId: decoded.id
@@ -39,6 +46,8 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    console.log('📧 Found invoices count:', invoices.length)
+
     // Formatiere die Daten für das Frontend
     const formattedInvoices = invoices.map(invoice => ({
       id: invoice.id,
@@ -52,6 +61,7 @@ export async function GET(request: NextRequest) {
       paymentId: invoice.paymentId
     }))
 
+    console.log('📧 Returning invoices successfully for user:', decoded.id)
     return NextResponse.json({
       success: true,
       invoices: formattedInvoices

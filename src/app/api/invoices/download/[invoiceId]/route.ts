@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { generateInvoicePDF, InvoiceData } from '@/lib/pdf-generator'
 
 export async function GET(
@@ -9,6 +9,12 @@ export async function GET(
   { params }: { params: { invoiceId: string } }
 ) {
   try {
+    // Prisma verfügbarkeit prüfen
+    if (!prisma) {
+      console.error('🚨 CRITICAL: Prisma client is undefined in invoice download route!')
+      return NextResponse.json({ error: 'Database unavailable' }, { status: 500 })
+    }
+
     // Token aus Cookie auslesen
     const token = cookies().get('auth-token')?.value
     

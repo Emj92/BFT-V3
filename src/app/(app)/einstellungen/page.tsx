@@ -180,6 +180,106 @@ export default function EinstellungenPage() {
     }
   }, [user])
 
+  // Erfolgreiche Zahlung prüfen und Toast anzeigen
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const paymentSuccess = urlParams.get('payment') === 'success'
+    const bundle = urlParams.get('bundle')
+    const credits = urlParams.get('credits')
+
+    if (paymentSuccess) {
+      console.log('🎉 Payment success detected:', { bundle, credits })
+      
+      // Erfolgstoast sofort anzeigen
+      if (bundle) {
+        toast.success(`🎉 Bundle-Upgrade erfolgreich! Ihr ${bundle} Bundle wird aktiviert...`, {
+          duration: 5000
+        })
+      } else if (credits) {
+        toast.success(`💰 Credit-Kauf erfolgreich! ${credits} Credits werden gutgeschrieben...`, {
+          duration: 5000
+        })
+      }
+      
+      // Warten bis Webhook verarbeitet wurde, dann User-Daten neu laden
+      const refreshUserData = async () => {
+        try {
+          console.log('⏳ Waiting for webhook to process...')
+          
+          // 3 Sekunden warten damit Webhook verarbeitet wird
+          await new Promise(resolve => setTimeout(resolve, 3000))
+          
+          console.log('🔄 Refreshing user data...')
+          
+          // User-Daten und Bundle-Info neu laden  
+          try {
+            // User neu laden
+            const userResponse = await fetch('/api/auth/me')
+            if (userResponse.ok) {
+              const userData = await userResponse.json()
+              console.log('✅ User data refreshed:', userData)
+            }
+            
+            // Bundle-Info neu laden
+            const bundleResponse = await fetch('/api/user/bundle')
+            if (bundleResponse.ok) {
+              const bundleData = await bundleResponse.json()
+              console.log('✅ Bundle data refreshed:', bundleData)
+            }
+            
+            // Rechnungshistorie neu laden
+            const invoiceResponse = await fetch('/api/invoices')
+            if (invoiceResponse.ok) {
+              const invoiceData = await invoiceResponse.json()
+              setBillingHistory(invoiceData.invoices || [])
+              console.log('✅ Invoice data refreshed')
+            }
+            
+            // Erfolgreiche Aktualisierung anzeigen
+            if (bundle) {
+              toast.success(`✅ ${bundle} Bundle ist jetzt aktiv!`, {
+                duration: 4000
+              })
+            } else if (credits) {
+              toast.success(`✅ ${credits} Credits wurden gutgeschrieben!`, {
+                duration: 4000
+              })
+            }
+            
+          } catch (refreshError) {
+            console.error('❌ Fehler beim Aktualisieren der Daten:', refreshError)
+            // Fallback: Seite neu laden
+            window.location.reload()
+          }
+          
+        } catch (error) {
+          console.error('❌ Fehler beim Neuladen der User-Daten:', error)
+          toast.error('Fehler beim Aktualisieren der Daten. Bitte laden Sie die Seite neu.')
+        }
+      }
+      
+      // Nach 1 Sekunde starten (User kann Toast lesen)
+      setTimeout(refreshUserData, 1000)
+      
+      // Zusätzlich: Manuelle Refresh-Möglichkeit anbieten
+      const showManualRefresh = () => {
+        setTimeout(() => {
+          toast.info('💡 Daten noch nicht aktualisiert? Laden Sie die Seite manuell neu.', {
+            duration: 8000,
+            action: {
+              label: 'Jetzt aktualisieren',
+              onClick: () => window.location.reload()
+            }
+          })
+        }, 10000) // Nach 10 Sekunden anzeigen
+      }
+      showManualRefresh()
+      
+      // URL-Parameter sofort entfernen
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [])
+
   // Download Rechnung
   const downloadInvoice = async (invoiceId: string, invoiceNumber: string) => {
     try {

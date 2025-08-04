@@ -7,6 +7,12 @@ import { sendInvoiceEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔔 🔔 🔔 MOLLIE WEBHOOK RECEIVED! 🔔 🔔 🔔')
+    console.log('⏰ Timestamp:', new Date().toISOString())
+    console.log('📥 Headers:', JSON.stringify(Object.fromEntries(request.headers), null, 2))
+    console.log('🌐 Request URL:', request.url)
+    console.log('📋 Request Method:', request.method)
+    
     // Prisma verfügbarkeit prüfen
     if (!prisma) {
       console.error('🚨 CRITICAL: Prisma client is undefined!')
@@ -17,13 +23,20 @@ export async function POST(request: NextRequest) {
 
     // Mollie sendet form-data, nicht JSON
     const contentType = request.headers.get('content-type')
+    console.log('📋 Content-Type:', contentType)
+    
     if (contentType?.includes('application/x-www-form-urlencoded')) {
+      console.log('📝 Parsing as form data...')
       const formData = await request.formData()
+      console.log('📊 Form data entries:', Object.fromEntries(formData))
       paymentId = formData.get('id') as string
+      console.log('🆔 Extracted payment ID from form:', paymentId)
     } else {
-      // Fallback für JSON (falls doch mal JSON kommt)
-      const { id } = await request.json()
-      paymentId = id
+      console.log('📝 Parsing as JSON...')
+      const jsonData = await request.json()
+      console.log('📊 JSON data:', jsonData)
+      paymentId = jsonData.id
+      console.log('🆔 Extracted payment ID from JSON:', paymentId)
     }
     
     if (!paymentId) {
@@ -262,7 +275,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('🎉 Webhook processing completed successfully!')
+    console.log('🎉 🎉 🎉 WEBHOOK PROCESSING COMPLETED SUCCESSFULLY! 🎉 🎉 🎉')
+    console.log('✅ Payment ID:', paymentId)
+    console.log('✅ Status:', webhookResult.status)
+    console.log('✅ Timestamp:', new Date().toISOString())
     return NextResponse.json({ success: true, status: webhookResult.status })
 
   } catch (error) {

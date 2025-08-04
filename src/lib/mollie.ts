@@ -74,6 +74,8 @@ const CREDIT_PACKAGES = {
 
 export async function createBundlePayment(data: PaymentData & { interval: 'monthly' | 'yearly' }) {
   try {
+    console.log('💳 Creating bundle payment:', data)
+    
     const bundlePrice = BUNDLE_PRICES[data.bundle]
     if (!bundlePrice) {
       throw new Error('Ungültiges Bundle')
@@ -81,6 +83,11 @@ export async function createBundlePayment(data: PaymentData & { interval: 'month
 
     const amount = data.interval === 'yearly' ? bundlePrice.yearly : bundlePrice.monthly
     const description = `${bundlePrice.title} - ${data.interval === 'yearly' ? 'Jährlich' : 'Monatlich'}`
+    
+    const redirectUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/einstellungen?payment=success&bundle=${data.bundle}`
+    const webhookUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/webhooks/mollie`
+    
+    console.log('🔗 Payment URLs:', { redirectUrl, webhookUrl })
 
     const payment = await mollie.payments.create({
       amount: {
@@ -88,8 +95,8 @@ export async function createBundlePayment(data: PaymentData & { interval: 'month
         value: amount.toFixed(2)
       },
       description: description,
-      redirectUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/einstellungen?payment=success&bundle=${data.bundle}`,
-      webhookUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/webhooks/mollie`,
+      redirectUrl,
+      webhookUrl,
       metadata: {
         type: 'bundle',
         bundle: data.bundle,
@@ -99,12 +106,15 @@ export async function createBundlePayment(data: PaymentData & { interval: 'month
       }
     })
 
-    return {
+    const result = {
       success: true,
       paymentUrl: payment.getCheckoutUrl(),
       paymentId: payment.id,
       amount: amount
     }
+    
+    console.log('✅ Bundle payment created:', result)
+    return result
 
   } catch (error) {
     console.error('Mollie Bundle Payment Error:', error)
@@ -117,10 +127,17 @@ export async function createBundlePayment(data: PaymentData & { interval: 'month
 
 export async function createCreditPayment(data: CreditPackageData) {
   try {
+    console.log('💰 Creating credit payment:', data)
+    
     const creditPackage = CREDIT_PACKAGES[data.credits as keyof typeof CREDIT_PACKAGES]
     if (!creditPackage) {
       throw new Error('Ungültiges Credit-Paket')
     }
+    
+    const redirectUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/einstellungen?payment=success&credits=${data.credits}`
+    const webhookUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/webhooks/mollie`
+    
+    console.log('🔗 Credit Payment URLs:', { redirectUrl, webhookUrl })
 
     const payment = await mollie.payments.create({
       amount: {
@@ -128,8 +145,8 @@ export async function createCreditPayment(data: CreditPackageData) {
         value: creditPackage.price.toFixed(2)
       },
       description: creditPackage.title,
-      redirectUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/einstellungen?payment=success&credits=${data.credits}`,
-      webhookUrl: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/webhooks/mollie`,
+      redirectUrl,
+      webhookUrl,
       metadata: {
         type: 'credits',
         credits: data.credits.toString(),
@@ -138,13 +155,16 @@ export async function createCreditPayment(data: CreditPackageData) {
       }
     })
 
-    return {
+    const result = {
       success: true,
       paymentUrl: payment.getCheckoutUrl(),
       paymentId: payment.id,
       amount: creditPackage.price,
       credits: data.credits
     }
+    
+    console.log('✅ Credit payment created:', result)
+    return result
 
   } catch (error) {
     console.error('Mollie Credit Payment Error:', error)
