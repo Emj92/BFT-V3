@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcrypt'
 
+export const dynamic = 'force-dynamic'
+
 // Leere Benutzerliste - wird später durch echte Datenbankabfragen ersetzt
 // const mockUsers: any[] = []
 
@@ -187,86 +189,75 @@ export async function DELETE(request: NextRequest) {
     console.log(`Beginne Cascade Delete für User ${id}`)
     
     await prisma.$transaction(async (tx) => {
-      // 1. Alle Issues von Scans dieses Users löschen
-      const userScans = await tx.scan.findMany({
-        where: { userId: id },
-        select: { id: true }
-      })
-      
-      for (const scan of userScans) {
+      try {
+        // 1. Ticket Messages zuerst löschen (haben FK zu Tickets)
+        await tx.ticketMessage.deleteMany({
+          where: { userId: id }
+        })
+
+        // 2. Support Tickets löschen
+        await tx.supportTicket.deleteMany({
+          where: { userId: id }
+        })
+
+        // 3. Issues von Scans löschen
         await tx.issue.deleteMany({
-          where: { scanId: scan.id }
-        })
-      }
-
-      // 2. Alle Scans dieses Users löschen
-      await tx.scan.deleteMany({
-        where: { userId: id }
-      })
-
-      // 3. Alle Projekte dieses Users löschen (mit deren Websites und Pages)
-      const userProjects = await tx.project.findMany({
-        where: { ownerId: id },
-        include: {
-          websites: {
-            include: {
-              pages: true
-            }
+          where: { 
+            scan: { 
+              userId: id 
+            } 
           }
-        }
-      })
-
-      for (const project of userProjects) {
-        for (const website of project.websites) {
-          // Pages löschen
-          await tx.page.deleteMany({
-            where: { websiteId: website.id }
-          })
-        }
-        // Websites löschen
-        await tx.website.deleteMany({
-          where: { projectId: project.id }
         })
+
+        // 4. Scans löschen
+        await tx.scan.deleteMany({
+          where: { userId: id }
+        })
+
+        // 5. Pages von Websites löschen
+        await tx.page.deleteMany({
+          where: { 
+            website: { 
+              project: { 
+                ownerId: id 
+              } 
+            } 
+          }
+        })
+
+        // 6. Websites löschen
+        await tx.website.deleteMany({
+          where: { 
+            project: { 
+              ownerId: id 
+            } 
+          }
+        })
+
+        // 7. Projekte löschen
+        await tx.project.deleteMany({
+          where: { ownerId: id }
+        })
+
+        // 8. Alle anderen verknüpften Datensätze parallel löschen
+        await Promise.all([
+          tx.creditTransaction.deleteMany({ where: { userId: id } }),
+          tx.report.deleteMany({ where: { userId: id } }),
+          tx.notificationRead.deleteMany({ where: { userId: id } }),
+          tx.wcagSession.deleteMany({ where: { userId: id } }),
+          tx.bfeGeneration.deleteMany({ where: { userId: id } })
+        ])
+
+        // 9. Endlich den User löschen
+        await tx.user.delete({
+          where: { id }
+        })
+
+        console.log(`Cascade Delete für User ${id} erfolgreich abgeschlossen`)
+      } catch (error) {
+        console.error(`Fehler beim Cascade Delete für User ${id}:`, error)
+        throw error // Transaktion rollback
       }
-      
-      // Projekte löschen
-      await tx.project.deleteMany({
-        where: { ownerId: id }
-      })
-
-      // 4. Alle anderen verknüpften Datensätze löschen
-      await tx.creditTransaction.deleteMany({
-        where: { userId: id }
-      })
-
-      await tx.report.deleteMany({
-        where: { userId: id }
-      })
-
-      await tx.notificationRead.deleteMany({
-        where: { userId: id }
-      })
-
-      await tx.ticketMessage.deleteMany({
-        where: { userId: id }
-      })
-
-      await tx.supportTicket.deleteMany({
-        where: { userId: id }
-      })
-
-      await tx.wcagSession.deleteMany({
-        where: { userId: id }
-      })
-
-      await tx.bfeGeneration.deleteMany({
-        where: { userId: id }
-      })
-
-      // 5. Endlich den User löschen
-      await tx.user.delete({
-        where: { id }
-      })
     })
 
     console.log(`Cascade Delete für User ${id} erfolgreich abgeschlossen`)

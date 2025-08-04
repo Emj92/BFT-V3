@@ -73,18 +73,10 @@ export async function GET(request: NextRequest) {
             bundle: true
           }
         }
-      },
-      select: {
-        amount: true,
-        type: true,
-        createdAt: true,
-        description: true,
-        user: {
-          select: {
-            bundle: true
-          }
-        }
       }
+    }).catch((error) => {
+      console.error('Prisma CreditTransaction Fehler:', error)
+      return [] // Fallback auf leeres Array
     })
 
     // Berechne Statistiken

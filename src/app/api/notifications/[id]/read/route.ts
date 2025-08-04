@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
 import { notifyNotificationRead } from '@/lib/sse-broadcaster'
 
+export const dynamic = 'force-dynamic'
+
 // POST /api/notifications/[id]/read - Benachrichtigung als gelesen markieren
 export async function POST(
   request: NextRequest,

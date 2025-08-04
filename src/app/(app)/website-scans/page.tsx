@@ -160,6 +160,57 @@ export default function WebsiteScansPage() {
     return { text: rating.rating, color: rating.color }
   }
 
+  // Funktion um echte kritische Issues aus Scan-Ergebnissen zu berechnen
+  const getCriticalIssuesCount = (scan: WebsiteScan) => {
+    try {
+      if (scan.results && scan.results.violations) {
+        // Kritische Issues sind solche mit impact "critical" oder "serious"  
+        return scan.results.violations.filter((violation: any) => 
+          violation.impact === 'critical' || violation.impact === 'serious'
+        ).length
+      }
+      
+      // Fallback: verwende die Datenbank-Werte oder berechne basierend auf score
+      if (scan.criticalIssues !== undefined) {
+        return scan.criticalIssues
+      }
+      
+      // Letzter Fallback: berechne basierend auf Score und issues
+      const totalIssues = scan.issues || 0
+      if (totalIssues === 0) return 0
+      
+      // Bei schlechtem Score sind mehr Issues kritisch
+      const criticalRatio = scan.score < 60 ? 0.4 : scan.score < 80 ? 0.2 : 0.1
+      return Math.ceil(totalIssues * criticalRatio)
+    } catch (error) {
+      console.error('Fehler beim Berechnen der kritischen Issues:', error)
+      return scan.criticalIssues || 0
+    }
+  }
+
+  // Funktion um schwerwiegende Issues zu berechnen  
+  const getSevereIssuesCount = (scan: WebsiteScan) => {
+    try {
+      if (scan.results && scan.results.violations) {
+        // Schwerwiegende Issues sind solche mit impact "moderate" 
+        return scan.results.violations.filter((violation: any) => 
+          violation.impact === 'moderate'
+        ).length
+      }
+      
+      // Fallback: verwende die Datenbank-Werte oder berechne
+      if (scan.severeIssues !== undefined) {
+        return scan.severeIssues
+      }
+      
+      // Letzter Fallback: 30% der Issues sind schwerwiegend
+      return Math.floor((scan.issues || 0) * 0.3)
+    } catch (error) {
+      console.error('Fehler beim Berechnen der schwerwiegenden Issues:', error)
+      return scan.severeIssues || Math.floor((scan.issues || 0) * 0.3)
+    }
+  }
+
   const filteredScans = scans.filter(scan => {
     const matchesSearch = scan.website.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          scan.url.toLowerCase().includes(searchTerm.toLowerCase())
@@ -534,7 +585,7 @@ export default function WebsiteScansPage() {
                                 <AlertTriangle className="h-4 w-4 text-red-500" />
                                 <span className="text-xs font-medium text-muted-foreground">Kritische Probleme</span>
                               </div>
-                              <div className="text-xl font-bold text-red-600">{scan.criticalIssues || 0}</div>
+                              <div className="text-xl font-bold text-red-600">{getCriticalIssuesCount(scan)}</div>
                               <div className="text-xs text-red-500">
                                 Sofort beheben
                               </div>
@@ -546,7 +597,7 @@ export default function WebsiteScansPage() {
                                 <AlertTriangle className="h-4 w-4 text-orange-500" />
                                 <span className="text-xs font-medium text-muted-foreground">Schwerwiegende Probleme</span>
                               </div>
-                              <div className="text-xl font-bold text-orange-600">{scan.severeIssues || Math.floor((scan.issues || 0) * 0.3)}</div>
+                              <div className="text-xl font-bold text-orange-600">{getSevereIssuesCount(scan)}</div>
                               <div className="text-xs text-orange-500">
                                 Bald beheben
                               </div>

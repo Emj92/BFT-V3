@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken'
 import { prisma } from '@/lib/prisma'
 import { cookies } from 'next/headers'
 
+export const dynamic = 'force-dynamic'
+
 // DELETE - Einzelne Benachrichtigung für einen Benutzer löschen
 export async function DELETE(
   request: NextRequest,

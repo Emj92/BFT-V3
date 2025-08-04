@@ -911,12 +911,13 @@ export default function EinstellungenPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 w-full">
-                    <Card className="text-center">
-                      <CardContent className="p-4">
+                    <Card className="text-center h-full flex flex-col">
+                      <CardContent className="p-4 flex flex-col h-full">
                         <div className="text-2xl font-bold">10</div>
                         <div className="text-sm text-muted-foreground">Credits</div>
                         <div className="text-lg font-semibold mt-2">{formatGermanPrice(1)}</div>
                         <div className="text-xs text-muted-foreground">{formatGermanPrice(0.10)} pro Credit</div>
+                        <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3" 
                           size="sm"
@@ -947,12 +948,13 @@ export default function EinstellungenPage() {
                       </CardContent>
                     </Card>
                     
-                    <Card className="text-center border-blue-200">
-                      <CardContent className="p-4">
+                    <Card className="text-center border-blue-200 h-full flex flex-col">
+                      <CardContent className="p-4 flex flex-col h-full">
                         <div className="text-2xl font-bold">25</div>
                         <div className="text-sm text-muted-foreground">Credits</div>
                         <div className="text-lg font-semibold mt-2">{formatGermanPrice(2)}</div>
                         <div className="text-xs text-green-600">20% Rabatt</div>
+                        <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3" 
                           size="sm"
@@ -983,12 +985,13 @@ export default function EinstellungenPage() {
                       </CardContent>
                     </Card>
                     
-                    <Card className="text-center border-green-200">
-                      <CardContent className="p-4">
+                    <Card className="text-center border-green-200 h-full flex flex-col">
+                      <CardContent className="p-4 flex flex-col h-full">
                         <div className="text-2xl font-bold">50</div>
                         <div className="text-sm text-muted-foreground">Credits</div>
                         <div className="text-lg font-semibold mt-2">{formatGermanPrice(4)}</div>
                         <div className="text-xs text-green-600">20% Rabatt</div>
+                        <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3" 
                           size="sm"
@@ -1019,12 +1022,13 @@ export default function EinstellungenPage() {
                       </CardContent>
                     </Card>
                     
-                    <Card className="text-center border-yellow-200">
-                      <CardContent className="p-4">
+                    <Card className="text-center border-yellow-200 h-full flex flex-col">
+                      <CardContent className="p-4 flex flex-col h-full">
                         <div className="text-2xl font-bold">100</div>
                         <div className="text-sm text-muted-foreground">Credits</div>
                         <div className="text-lg font-semibold mt-2">{formatGermanPrice(8)}</div>
                         <div className="text-xs text-green-600">20% Rabatt</div>
+                        <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3" 
                           size="sm"
@@ -1055,12 +1059,13 @@ export default function EinstellungenPage() {
                       </CardContent>
                     </Card>
                     
-                    <Card className="text-center border-purple-200">
-                      <CardContent className="p-4">
+                    <Card className="text-center border-purple-200 h-full flex flex-col">
+                      <CardContent className="p-4 flex flex-col h-full">
                         <div className="text-2xl font-bold">250</div>
                         <div className="text-sm text-muted-foreground">Credits</div>
                         <div className="text-lg font-semibold mt-2">{formatGermanPrice(20)}</div>
                         <div className="text-xs text-green-600">20% Rabatt</div>
+                        <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3" 
                           size="sm"
@@ -1092,12 +1097,13 @@ export default function EinstellungenPage() {
                     </Card>
                     
                     {/* Weiteres Teammitglied Kachel */}
-                    <Card className="text-center border-2 border-purple-400 bg-purple-50">
-                      <CardContent className="p-4">
+                    <Card className="text-center border-2 border-purple-400 bg-purple-50 h-full flex flex-col">
+                      <CardContent className="p-4 flex flex-col h-full">
                         <div className="text-2xl font-bold text-purple-600">👥</div>
                         <div className="text-sm font-semibold">Weiteres Teammitglied</div>
                         <div className="text-lg font-semibold mt-2 text-purple-600">{formatGermanPrice(5)}</div>
                         <div className="text-xs text-purple-600">/ Monat (Enterprise)</div>
+                        <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3" 
                           size="sm"
