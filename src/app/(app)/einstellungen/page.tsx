@@ -77,6 +77,40 @@ export default function EinstellungenPage() {
   const { user } = useUser()
   const { bundleInfo } = useBundle()
   const [isYearly, setIsYearly] = useState(false)
+  
+  // Erfolgsmeldung nach Payment
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const paymentStatus = urlParams.get('payment')
+    const bundle = urlParams.get('bundle')
+    const credits = urlParams.get('credits')
+    
+    if (paymentStatus === 'success') {
+      if (bundle) {
+        toast.success(`🎉 Bundle-Upgrade erfolgreich! Sie haben jetzt ${bundle.replace('_', ' ')} und alle Features freigeschaltet!`, {
+          duration: 8000,
+          style: {
+            background: '#10b981',
+            color: 'white',
+            fontWeight: 'bold'
+          }
+        })
+      } else if (credits) {
+        toast.success(`💰 Credit-Kauf erfolgreich! ${credits} Credits wurden Ihrem Konto gutgeschrieben!`, {
+          duration: 8000,
+          style: {
+            background: '#10b981',
+            color: 'white',
+            fontWeight: 'bold'
+          }
+        })
+      }
+      
+      // URL Parameter entfernen
+      const newUrl = window.location.pathname
+      window.history.replaceState({}, '', newUrl)
+    }
+  }, [])
   const [settings, setSettings] = useState<Settings>({
     firstName: "",
     lastName: "",

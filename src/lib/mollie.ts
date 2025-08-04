@@ -162,7 +162,7 @@ export async function verifyPayment(paymentId: string) {
     return {
       success: true,
       status: payment.status,
-      isPaid: payment.isPaid(),
+      isPaid: payment.isPaid,
       metadata: payment.metadata
     }
 
@@ -177,9 +177,18 @@ export async function verifyPayment(paymentId: string) {
 
 export async function handlePaymentWebhook(paymentId: string) {
   try {
+    console.log('🔍 Fetching payment from Mollie:', paymentId)
     const payment = await mollie.payments.get(paymentId)
+    console.log('📄 Payment details:', {
+      id: payment.id,
+      status: payment.status,
+      isPaid: payment.isPaid,
+      amount: payment.amount,
+      metadata: payment.metadata
+    })
     
-    if (payment.isPaid()) {
+    if (payment.isPaid) {
+      console.log('✅ Payment confirmed as PAID')
       return {
         success: true,
         status: 'paid',
@@ -188,6 +197,7 @@ export async function handlePaymentWebhook(paymentId: string) {
       }
     }
 
+    console.log('⏳ Payment not yet paid, status:', payment.status)
     return {
       success: true,
       status: payment.status,
@@ -195,7 +205,7 @@ export async function handlePaymentWebhook(paymentId: string) {
     }
 
   } catch (error) {
-    console.error('Mollie Webhook Error:', error)
+    console.error('🚨 Mollie Webhook Error:', error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Webhook-Fehler'

@@ -22,14 +22,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Payment ID erforderlich' }, { status: 400 })
     }
 
+    console.log('🔔 Mollie Webhook received for paymentId:', paymentId)
+    
     const webhookResult = await handlePaymentWebhook(paymentId)
+    console.log('🔔 Webhook result:', webhookResult)
     
     if (!webhookResult.success) {
+      console.error('❌ Webhook failed:', webhookResult.error)
       return NextResponse.json({ error: webhookResult.error }, { status: 400 })
     }
 
     // Nur wenn Zahlung erfolgreich
     if (webhookResult.status === 'paid' && webhookResult.metadata) {
+      console.log('✅ Payment successful, processing metadata:', webhookResult.metadata)
       const metadata = webhookResult.metadata
       
       // Fortlaufende Rechnungsnummer generieren
@@ -45,6 +50,8 @@ export async function POST(request: NextRequest) {
       }
       
       if (metadata.type === 'bundle') {
+        console.log('📦 Processing bundle upgrade:', metadata.bundle, 'for user:', metadata.userId)
+        
         // Bundle-Upgrade durchführen
         const purchaseDate = new Date()
         let expiresAt = null
@@ -68,6 +75,13 @@ export async function POST(request: NextRequest) {
         // Bundle-Mapping: TEST_PRO löst PRO aus
         const actualBundle = metadata.bundle === 'TEST_PRO' ? 'PRO' : metadata.bundle
         
+        console.log('🔄 Updating user bundle:', {
+          userId: metadata.userId,
+          fromBundle: metadata.bundle,
+          toBundle: actualBundle,
+          creditsToAdd
+        })
+        
         await prisma.user.update({
           where: { id: metadata.userId },
           data: {
@@ -79,6 +93,8 @@ export async function POST(request: NextRequest) {
             }
           }
         })
+        
+        console.log('✅ User bundle updated successfully!')
 
         // Credit-Transaktion erstellen
         await prisma.creditTransaction.create({
@@ -96,7 +112,7 @@ export async function POST(request: NextRequest) {
           data: {
             invoiceNumber,
             userId: metadata.userId,
-            amount: webhookResult.amount || 0,
+            amount: parseFloat(webhookResult.amount?.value || '0'),
             description: `${metadata.bundle} Bundle - ${metadata.interval === 'yearly' ? 'Jährliches' : 'Monatliches'} Abonnement`,
             paymentId: paymentId,
             bundleType: metadata.bundle,
@@ -105,6 +121,8 @@ export async function POST(request: NextRequest) {
         })
 
       } else if (metadata.type === 'credits') {
+        console.log('💰 Processing credit purchase:', metadata.credits, 'for user:', metadata.userId)
+        
         // Credits hinzufügen
         const creditAmount = parseInt(metadata.credits)
         
@@ -116,6 +134,8 @@ export async function POST(request: NextRequest) {
             }
           }
         })
+        
+        console.log('✅ Credits added successfully!')
 
         // Credit-Transaktion erstellen
         await prisma.creditTransaction.create({
@@ -133,7 +153,7 @@ export async function POST(request: NextRequest) {
           data: {
             invoiceNumber,
             userId: metadata.userId,
-            amount: webhookResult.amount || 0,
+            amount: parseFloat(webhookResult.amount?.value || '0'),
             description: `${creditAmount} Credits`,
             paymentId: paymentId,
             credits: creditAmount,
@@ -143,10 +163,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    console.log('🎉 Webhook processing completed successfully!')
     return NextResponse.json({ success: true, status: webhookResult.status })
 
   } catch (error) {
-    console.error('Mollie Webhook Handler Error:', error)
+    console.error('🚨 CRITICAL: Mollie Webhook Error:', error)
     return NextResponse.json({ error: 'Webhook-Verarbeitung fehlgeschlagen' }, { status: 500 })
   }
 } 
