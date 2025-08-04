@@ -952,8 +952,8 @@ export default function EinstellungenPage() {
                       <CardContent className="p-4 flex flex-col h-full">
                         <div className="text-2xl font-bold">25</div>
                         <div className="text-sm text-muted-foreground">Credits</div>
-                        <div className="text-lg font-semibold mt-2">{formatGermanPrice(2)}</div>
-                        <div className="text-xs text-green-600">20% Rabatt</div>
+                        <div className="text-lg font-semibold mt-2">{formatGermanPrice(2.25)}</div>
+                        <div className="text-xs text-green-600">10% Rabatt</div>
                         <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3" 
@@ -966,7 +966,7 @@ export default function EinstellungenPage() {
                                 body: JSON.stringify({
                                   type: 'credits',
                                   credits: 25,
-                                  amount: 2
+                                  amount: 2.25
                                 })
                               });
                               const data = await response.json();
@@ -1026,8 +1026,8 @@ export default function EinstellungenPage() {
                       <CardContent className="p-4 flex flex-col h-full">
                         <div className="text-2xl font-bold">100</div>
                         <div className="text-sm text-muted-foreground">Credits</div>
-                        <div className="text-lg font-semibold mt-2">{formatGermanPrice(8)}</div>
-                        <div className="text-xs text-green-600">20% Rabatt</div>
+                        <div className="text-lg font-semibold mt-2">{formatGermanPrice(7.5)}</div>
+                        <div className="text-xs text-green-600">25% Rabatt</div>
                         <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3" 
@@ -1040,7 +1040,7 @@ export default function EinstellungenPage() {
                                 body: JSON.stringify({
                                   type: 'credits',
                                   credits: 100,
-                                  amount: 8
+                                  amount: 7.5
                                 })
                               });
                               const data = await response.json();
@@ -1063,8 +1063,8 @@ export default function EinstellungenPage() {
                       <CardContent className="p-4 flex flex-col h-full">
                         <div className="text-2xl font-bold">250</div>
                         <div className="text-sm text-muted-foreground">Credits</div>
-                        <div className="text-lg font-semibold mt-2">{formatGermanPrice(20)}</div>
-                        <div className="text-xs text-green-600">20% Rabatt</div>
+                        <div className="text-lg font-semibold mt-2">{formatGermanPrice(17.5)}</div>
+                        <div className="text-xs text-green-600">30% Rabatt</div>
                         <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3" 
@@ -1077,7 +1077,7 @@ export default function EinstellungenPage() {
                                 body: JSON.stringify({
                                   type: 'credits',
                                   credits: 250,
-                                  amount: 20
+                                  amount: 17.5
                                 })
                               });
                               const data = await response.json();

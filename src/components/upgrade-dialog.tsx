@@ -71,9 +71,9 @@ const CREDIT_PACKAGES = {
   },
   'medium': {
     name: '25 Credits',
-    price: '2,00€',
+    price: '2,25€',
     credits: 25,
-    description: 'Perfekt für regelmäßige Nutzung (20% Rabatt)'
+    description: 'Perfekt für regelmäßige Nutzung (10% Rabatt)'
   },
   'large': {
     name: '50 Credits',
@@ -83,15 +83,15 @@ const CREDIT_PACKAGES = {
   },
   'xl': {
     name: '100 Credits',
-    price: '8,00€',
+    price: '7,50€',
     credits: 100,
-    description: 'Großes Paket (20% Rabatt)'
+    description: 'Großes Paket (25% Rabatt)'
   },
   'xxl': {
     name: '250 Credits',
-    price: '20,00€',
+    price: '17,50€',
     credits: 250,
-    description: 'Maximales Paket (20% Rabatt)'
+    description: 'Maximales Paket (30% Rabatt)'
   }
 }
 

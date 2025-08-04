@@ -57,13 +57,13 @@ const BUNDLE_PRICES = {
   }
 }
 
-// Credit-Pakete definieren - faire Preise angepasst an Bundle-Verhältnisse
+// Credit-Pakete definieren - steigende Rabatte für besseren Anreiz
 const CREDIT_PACKAGES = {
   10: { price: 1.00, title: '10 Credits Paket' },
-  25: { price: 2.00, title: '25 Credits Paket (20% Rabatt)' },
+  25: { price: 2.25, title: '25 Credits Paket (10% Rabatt)' },
   50: { price: 4.00, title: '50 Credits Paket (20% Rabatt)' },
-  100: { price: 8.00, title: '100 Credits Paket (20% Rabatt)' },
-  250: { price: 20.00, title: '250 Credits Paket (20% Rabatt)' }
+  100: { price: 7.50, title: '100 Credits Paket (25% Rabatt)' },
+  250: { price: 17.50, title: '250 Credits Paket (30% Rabatt)' }
 }
 
 export async function createBundlePayment(data: PaymentData & { interval: 'monthly' | 'yearly' }) {
