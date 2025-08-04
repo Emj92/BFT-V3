@@ -10,6 +10,7 @@ import { GlobalNavigation } from "@/components/global-navigation"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { useState } from "react"
 import { useBfeGenerations } from "@/hooks/useBfeGenerations"
+import { useLiveCredits } from "@/hooks/useLiveCredits"
 import dynamic from 'next/dynamic'
 
 // Dynamischer Import der Animation
@@ -28,6 +29,9 @@ export default function BarrierefreiheitsgeneratorPage() {
     bundleInfo,
     loading: generationsLoading 
   } = useBfeGenerations()
+  
+  // Credit-Management für Live-Updates
+  const { refreshCredits } = useLiveCredits()
 
   const handleGenerateClick = async () => {
     if (!hasGenerationsLeft()) {
@@ -41,6 +45,9 @@ export default function BarrierefreiheitsgeneratorPage() {
       setShowUpgradeDialog(true)
       return
     }
+    
+    // Credits wurden verbraucht - Live-Update der Anzeige
+    await refreshCredits()
     
     // Hier würde die PDF-Generierung starten
     // Für jetzt öffnen wir einfach den Dialog
@@ -155,7 +162,7 @@ export default function BarrierefreiheitsgeneratorPage() {
                       onClick={handleGenerateClick}
                     >
                       <FileText className="h-5 w-5" />
-                      <span>Barrierefreiheitserklärung erstellen</span>
+                      <span>Barrierefreiheitserklärung erstellen (10 Credits)</span>
                     </Button>
                   </AccessibilityStatementGenerator>
                 ) : (

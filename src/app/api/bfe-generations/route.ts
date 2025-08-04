@@ -74,12 +74,12 @@ export async function POST(request: NextRequest) {
     const { action, websiteUrl, content } = await request.json()
 
     if (action === 'use') {
-      // Prüfe Credits (3 Credits für BFE Generator)
-      if (fullUser.credits < 3) {
+      // Prüfe Credits (10 Credits für BFE Generator)
+      if (fullUser.credits < 10) {
         return NextResponse.json({ 
           error: 'Nicht genügend Credits',
-          message: 'Sie benötigen 3 Credits für die BFE-Generierung.',
-          creditsRequired: 3,
+          message: 'Sie benötigen 10 Credits für die BFE-Generierung.',
+          creditsRequired: 10,
           creditsAvailable: fullUser.credits
         }, { status: 402 })
       }
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       await prisma.user.update({
         where: { id: fullUser.id },
         data: {
-          credits: fullUser.credits - 3
+          credits: fullUser.credits - 10
         }
       })
 
@@ -96,8 +96,8 @@ export async function POST(request: NextRequest) {
       await prisma.creditTransaction.create({
         data: {
           userId: fullUser.id,
-          amount: -3,
-          type: 'REPORT',
+          amount: -10,
+          type: 'BFE_GENERATION',
           description: 'BFE-Generator - Barrierefreiheitserklärung erstellt'
         }
       })
@@ -113,8 +113,8 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({ 
         success: true,
-        creditsUsed: 3,
-        creditsRemaining: fullUser.credits - 3,
+        creditsUsed: 10,
+        creditsRemaining: fullUser.credits - 10,
         generations: await prisma.bfeGeneration.count({ where: { userId: fullUser.id } })
       })
     }

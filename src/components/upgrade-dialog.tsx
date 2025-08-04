@@ -59,6 +59,23 @@ const BUNDLE_PLANS = {
       'SLA-Garantie'
     ],
     popular: false
+  },
+  'TEST_PRO': {
+    name: 'Test Pro',
+    price: '1,00€',
+    priceMonthly: '1,00€ einmalig',
+    features: [
+      '150 Credits (einmalig)',
+      'Website-Scan: 1 Credit',
+      'WCAG-Coach: 5 Credits',
+      'BFE-Generator: 10 Credits',
+      'Automatische Scan-Überwachung',
+      'API-Zugang',
+      'Prioritäts-Support',
+      'Erweiterte Berichterstellung',
+      '🧪 Testpaket - Löst PRO aus'
+    ],
+    popular: false
   }
 }
 
@@ -92,6 +109,12 @@ const CREDIT_PACKAGES = {
     price: '17,50€',
     credits: 250,
     description: 'Maximales Paket (30% Rabatt)'
+  },
+  'test': {
+    name: '150 Credits Test',
+    price: '1,00€',
+    credits: 150,
+    description: '🧪 Testpaket - 150 Credits für 1€'
   }
 }
 

@@ -45,7 +45,7 @@ import { getErrorByCode } from "@/lib/wcag-errors"
 import { CircularProgress } from "@/components/ui/circular-progress"
 import { FirstScanDisclaimer, useFirstScanDisclaimer } from "@/components/first-scan-disclaimer"
 import { useWebsites } from "@/hooks/useWebsites"
-import { useBundle } from "@/hooks/useBundle"
+import { useLiveCredits } from "@/hooks/useLiveCredits"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { UpgradeDialog } from "@/components/upgrade-dialog"
 import { toast } from "sonner"
@@ -282,7 +282,7 @@ export default function AccessibilityCheckPage() {
   const [disclaimerOpen, setDisclaimerOpen] = useState(false)
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
   const { websites, selectedWebsite } = useWebsites()
-  const { bundleInfo } = useBundle()
+  const { bundleInfo, refreshCredits } = useLiveCredits()
   const { t } = useLanguage()
   
   // State für ausgewählte Fehler
@@ -543,8 +543,11 @@ export default function AccessibilityCheckPage() {
         }
         throw new Error(errorData.message || 'Fehler beim Credit-Verbrauch')
       }
+
+      // Credits wurden verbraucht - Live-Update der Anzeige
+      await refreshCredits()
     } catch (error) {
-      setError('Fehler beim Verbrauch der Credits für den Accessibility Check.')
+      console.error('Credit-Verbrauch Fehler:', error)
       return
     }
     
@@ -1001,7 +1004,7 @@ export default function AccessibilityCheckPage() {
               ) : (
                 <>
                   <Search className="mr-2 h-4 w-4" />
-                  Barrierefreiheit prüfen
+                  Barrierefreiheit prüfen (1 Credit)
                 </>
               )}
             </Button>
@@ -1698,18 +1701,6 @@ export default function AccessibilityCheckPage() {
               </CardContent>
             </Card>
           </>
-        )}
-
-        {/* Error Display */}
-        {error && (
-          <Card className="border-red-200 bg-red-50">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-red-600">
-                <AlertTriangle className="h-4 w-4" />
-                <p className="text-sm">{error}</p>
-              </div>
-            </CardContent>
-          </Card>
         )}
 
         {/* First Scan Disclaimer */}

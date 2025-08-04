@@ -57,11 +57,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Credits prüfen und verwenden (1 Credit für WCAG Coach)
-    if (user.credits < 1) {
+    if (user.credits < 5) {
       return NextResponse.json({ 
         error: 'Nicht genügend Credits',
-        message: 'Sie benötigen 1 Credit für die WCAG Coach Nutzung.',
-        creditsRequired: 1,
+        message: 'Sie benötigen 5 Credits für die WCAG Coach Nutzung.',
+        creditsRequired: 5,
         creditsAvailable: user.credits
       }, { status: 402 }); // Payment Required
     }
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     await prisma.user.update({
       where: { id: userId },
       data: {
-        credits: user.credits - 1
+        credits: user.credits - 5
       }
     });
 
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     await prisma.creditTransaction.create({
       data: {
         userId,
-        amount: -1,
+        amount: -5,
         type: 'WCAG_COACH',
         description: 'WCAG Coach - KI-Beratung'
       }

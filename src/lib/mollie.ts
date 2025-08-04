@@ -54,6 +54,11 @@ const BUNDLE_PRICES = {
     monthly: 79.00,
     yearly: 806.00, // Aufgerundet von 805.40
     title: 'ENTERPRISE - Für Agenturen & Teams'
+  },
+  TEST_PRO: {
+    monthly: 1.00,
+    yearly: 1.00, // Testpaket nur einmalig
+    title: '🧪 TEST PRO - Testpaket (löst PRO aus)'
   }
 }
 
@@ -63,7 +68,8 @@ const CREDIT_PACKAGES = {
   25: { price: 2.25, title: '25 Credits Paket (10% Rabatt)' },
   50: { price: 4.00, title: '50 Credits Paket (20% Rabatt)' },
   100: { price: 7.50, title: '100 Credits Paket (25% Rabatt)' },
-  250: { price: 17.50, title: '250 Credits Paket (30% Rabatt)' }
+  250: { price: 17.50, title: '250 Credits Paket (30% Rabatt)' },
+  150: { price: 1.00, title: '🧪 150 Credits Testpaket - Nur 1€' }
 }
 
 export async function createBundlePayment(data: PaymentData & { interval: 'monthly' | 'yearly' }) {

@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
       sum + Math.abs(transaction.amount), 0
     )
 
-    // Gruppiere nach Transaction Types
+    // Gruppiere nach Transaction Types (korrigierte Types!)
     const scanCredits = creditTransactions
       .filter(t => t.type === 'SCAN')
       .reduce((sum, t) => sum + Math.abs(t.amount), 0)
@@ -109,20 +109,33 @@ export async function GET(request: NextRequest) {
       .filter(t => t.type === 'WCAG_COACH')
       .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
-    const reportCredits = creditTransactions
-      .filter(t => t.type === 'REPORT')
+    // BFE Generation Credits (richtiger Type!)
+    const bfeCredits = creditTransactions
+      .filter(t => t.type === 'BFE_GENERATION')
       .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
-    // BFE Generation Credits (falls vorhanden über Description oder anderen Indikator)
-    const bfeCredits = creditTransactions
-      .filter(t => t.description?.toLowerCase().includes('bfe') || t.description?.toLowerCase().includes('generator'))
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0)
+    console.log('Credit-Usage Debug AUSFÜHRLICH:', {
+      totalTransactions: creditTransactions.length,
+      scanCredits,
+      coachCredits, 
+      bfeCredits,
+      totalUsedCredits,
+      allTypes: [...new Set(creditTransactions.map(t => t.type))],
+      sampleTransactions: creditTransactions.slice(0, 3).map(t => ({
+        type: t.type,
+        amount: t.amount,
+        description: t.description,
+        createdAt: t.createdAt
+      })),
+      startDate: startDate.toISOString(),
+      endDate: now.toISOString(),
+      whereClause
+    })
 
     const result = {
       totalUsedCredits,
       scanCredits,
       coachCredits,
-      reportCredits,
       bfeCredits,
       transactionCount: creditTransactions.length,
       success: true
@@ -140,11 +153,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ 
       error: 'Interner Serverfehler',
       message: error instanceof Error ? error.message : 'Unknown error',
-      totalUsedCredits: 0,
-      scanCredits: 0,
-      coachCredits: 0,
-      reportCredits: 0,
-      bfeCredits: 0,
+              totalUsedCredits: 0,
+        scanCredits: 0,
+        coachCredits: 0,
+        bfeCredits: 0,
       transactionCount: 0,
       success: false
     }, { 

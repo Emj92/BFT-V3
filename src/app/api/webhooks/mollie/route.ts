@@ -59,15 +59,19 @@ export async function POST(request: NextRequest) {
         const bundleCredits = {
           'STARTER': 200,
           'PRO': 1000,
-          'ENTERPRISE': 4000
+          'ENTERPRISE': 4000,
+          'TEST_PRO': 150
         }
         
         const creditsToAdd = bundleCredits[metadata.bundle as keyof typeof bundleCredits] || 0
         
+        // Bundle-Mapping: TEST_PRO löst PRO aus
+        const actualBundle = metadata.bundle === 'TEST_PRO' ? 'PRO' : metadata.bundle
+        
         await prisma.user.update({
           where: { id: metadata.userId },
           data: {
-            bundle: metadata.bundle as BundleType,
+            bundle: actualBundle as BundleType,
             bundlePurchasedAt: purchaseDate,
             bundleExpiresAt: expiresAt,
             credits: {

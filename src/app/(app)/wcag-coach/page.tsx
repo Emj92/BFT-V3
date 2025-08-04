@@ -23,7 +23,7 @@ import {
 } from "lucide-react"
 import { getErrorByCode } from "@/lib/wcag-errors"
 import { useUser } from "@/hooks/useUser"
-import { useBundle } from "@/hooks/useBundle"
+import { useLiveCredits } from "@/hooks/useLiveCredits"
 import dynamic from 'next/dynamic'
 import { GlobalNavigation } from "@/components/global-navigation"
 
@@ -51,7 +51,7 @@ export default function WCAGCoachPage() {
   
   // User und Credits laden
   const { user, loading: userLoading } = useUser()
-  const { bundleInfo, loading: bundleLoading } = useBundle()
+  const { bundleInfo, refreshCredits, currentCredits } = useLiveCredits()
 
   // Client-Side-Rendering für Hydration-Probleme
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function WCAGCoachPage() {
     if (!chatInput.trim()) return
     
     // Prüfe ob genügend Credits vorhanden sind
-    if (!user || user.credits < 1) {
+    if (currentCredits < 5) {
       setShowUpgradeDialog(true)
       return
     }
@@ -131,9 +131,9 @@ export default function WCAGCoachPage() {
 
       setChatMessages(prev => [...prev, assistantMessage])
       
-      // User Credits aktualisieren
-      if (user && !data.fallback) {
-        user.credits = Math.max(0, user.credits - 1)
+      // Credits wurden verbraucht - Live-Update der Anzeige
+      if (!data.fallback) {
+        await refreshCredits()
       }
       
     } catch (error) {
@@ -231,7 +231,7 @@ export default function WCAGCoachPage() {
     )
   }
 
-  const hasCredits = user && user.credits >= 1
+  const hasCredits = currentCredits >= 5
 
   return (
     <SidebarInset>
@@ -332,8 +332,10 @@ export default function WCAGCoachPage() {
                 <Button 
                   type="submit" 
                   disabled={!chatInput.trim() || isLoading || !hasCredits}
+                  title="Nachricht senden (5 Credits)"
                 >
-                  <Send className="h-4 w-4" />
+                  <Send className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline text-xs">(5 Credits)</span>
                 </Button>
               </form>
               
@@ -358,7 +360,7 @@ export default function WCAGCoachPage() {
               Nicht genügend Credits
             </DialogTitle>
             <DialogDescription className="text-base">
-              Sie benötigen 1 Credits für diese Aktion, haben aber nur {user?.credits || 0} verfügbar.
+              Sie benötigen 5 Credits für diese Aktion, haben aber nur {currentCredits} verfügbar.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 mt-4">

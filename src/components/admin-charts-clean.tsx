@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { TrendingUp, Users, CreditCard, Eye, Target, UserCheck, MessageCircle } from "lucide-react"
-import { CartesianGrid, LabelList, Line, LineChart, XAxis, YAxis } from "recharts"
+import { CartesianGrid, LabelList, Line, LineChart, XAxis } from "recharts"
 import {
   Card,
   CardContent,
@@ -325,24 +325,18 @@ export function AdminCharts() {
       if (response.ok) {
         const contentType = response.headers.get('content-type')
         if (contentType && contentType.includes('application/json')) {
-        const data = await response.json()
-        
-        setStats(prev => ({
-          ...prev,
-          usedCredits: data.totalUsedCredits || 0,
-          scanCredits: data.scanCredits || 0,
-          coachCredits: data.coachCredits || 0,
-          bfeCredits: data.bfeCredits || 0
-        }))
-        
-        console.log('Echte Credit-Daten geladen:', data)
-        console.log('Frontend Credit-Stats nach Update:', {
-          usedCredits: data.totalUsedCredits || 0,
-          scanCredits: data.scanCredits || 0,
-          coachCredits: data.coachCredits || 0,
-          bfeCredits: data.bfeCredits || 0
-        })
-      } else {
+          const data = await response.json()
+          
+          setStats(prev => ({
+            ...prev,
+            usedCredits: data.totalUsedCredits || 0,
+            scanCredits: data.scanCredits || 0,
+            coachCredits: data.coachCredits || 0,
+            bfeCredits: data.bfeCredits || 0
+          }))
+          
+          console.log('Echte Credit-Daten geladen:', data)
+        } else {
           console.error('Credit-Usage API gibt kein JSON zurück:', contentType)
           setStats(prev => ({
             ...prev,
@@ -397,8 +391,8 @@ export function AdminCharts() {
         if (usersResponse.ok) {
           const contentType = usersResponse.headers.get('content-type')
           if (contentType && contentType.includes('application/json')) {
-          const usersData = await usersResponse.json()
-          const users = Array.isArray(usersData) ? usersData : (usersData.users || [])
+            const usersData = await usersResponse.json()
+            const users = Array.isArray(usersData) ? usersData : (usersData.users || [])
           
           // Berechne neue Nutzer diesen Monat
           const thisMonth = new Date()
@@ -439,7 +433,7 @@ export function AdminCharts() {
               loadSupportTicketsStats(),
               loadPackageSalesStats()
             ])
-          setRegistrationData(registrationChartData)
+            setRegistrationData(registrationChartData)
             
             // Starte Live-Updates für Online-User
             startLiveUpdates()
@@ -594,46 +588,46 @@ export function AdminCharts() {
 
           {/* 2. Neue Registrierungen */}
           <Card className="border-blue-200 bg-blue-50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Neue Registrierungen</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Neue Registrierungen</CardTitle>
               <Users className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
+            </CardHeader>
+            <CardContent>
               <div className="text-2xl font-bold text-blue-700">{stats.newUsersThisMonth}</div>
               <p className="text-xs text-blue-600">
-              Diesen Monat • Gesamt: {stats.totalUsers}
-            </p>
-          </CardContent>
-        </Card>
+                Diesen Monat • Gesamt: {stats.totalUsers}
+              </p>
+            </CardContent>
+          </Card>
 
           {/* 3. Support Tickets */}
           <Card className="border-orange-200 bg-orange-50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Support Tickets</CardTitle>
               <MessageCircle className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
+            </CardHeader>
+            <CardContent>
               <div className="text-2xl font-bold text-orange-700">{stats.totalTickets}</div>
               <div className="text-xs text-orange-600 flex justify-between">
                 <span>Offen: {stats.openTickets}</span>
                 <span>Gelöst: {stats.solvedTickets}</span>
               </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
           {/* 4. Gekaufte Credits */}
           <Card className="border-purple-200 bg-purple-50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Gekaufte Pakete</CardTitle>
               <CreditCard className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
+            </CardHeader>
+            <CardContent>
               <div className="text-2xl font-bold text-purple-700">{stats.packagesSoldThisMonth}</div>
               <p className="text-xs text-purple-600">
                 Diesen Monat • Gesamt: {stats.totalPackagesSold}
-            </p>
-          </CardContent>
-        </Card>
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Großes Online-User Chart rechts */}
@@ -651,33 +645,33 @@ export function AdminCharts() {
                     Echtzeitüberwachung der aktiven Benutzer
                   </CardDescription>
                 </div>
-              <div className="flex gap-2">
+                <div className="flex gap-2">
                   <Select value={onlineBundle} onValueChange={setOnlineBundle}>
                     <SelectTrigger className="w-24 h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="alle">Alle</SelectItem>
-                    <SelectItem value="FREE">Free</SelectItem>
-                    <SelectItem value="STARTER">Starter</SelectItem>
-                    <SelectItem value="PRO">Pro</SelectItem>
-                    <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
-                  </SelectContent>
-                </Select>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="alle">Alle</SelectItem>
+                      <SelectItem value="FREE">Free</SelectItem>
+                      <SelectItem value="STARTER">Starter</SelectItem>
+                      <SelectItem value="PRO">Pro</SelectItem>
+                      <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Select value={onlinePeriod} onValueChange={setOnlinePeriod}>
                     <SelectTrigger className="w-20 h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="day">Tag</SelectItem>
-                    <SelectItem value="week">Woche</SelectItem>
-                    <SelectItem value="month">Monat</SelectItem>
-                  </SelectContent>
-                </Select>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="day">Tag</SelectItem>
+                      <SelectItem value="week">Woche</SelectItem>
+                      <SelectItem value="month">Monat</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent>
+            </CardHeader>
+            <CardContent>
               <div className="h-[300px] w-full">
                 <ChartContainer config={chartConfig}>
                   <LineChart
@@ -699,31 +693,25 @@ export function AdminCharts() {
                       tickMargin={8}
                       tickFormatter={(value) => value.slice(0, 10)}
                     />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                      allowDecimals={false}
-                    />
                     <ChartTooltip cursor={false}>
                       <ChartTooltipContent indicator="line" />
                     </ChartTooltip>
                     <Line
                       dataKey="count"
                       type="natural"
-                      stroke="#2563eb"
-                      strokeWidth={2}
-                      dot={{ fill: "#2563eb", strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6, stroke: "#2563eb", strokeWidth: 2 }}
+                      stroke="#16a34a"
+                      strokeWidth={3}
+                      dot={{ fill: "#16a34a", strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, stroke: "#16a34a", strokeWidth: 2 }}
                     />
                   </LineChart>
                 </ChartContainer>
-            </div>
-          </CardContent>
+              </div>
+            </CardContent>
             <CardFooter className="text-xs text-muted-foreground">
               Updates alle 30 Sekunden • Bundle: {onlineBundle} • Zeitraum: {onlinePeriod}
             </CardFooter>
-        </Card>
+          </Card>
         </div>
       </div>
 
@@ -734,17 +722,17 @@ export function AdminCharts() {
         <h2 className="text-2xl font-bold text-gray-800 border-b border-gray-200 pb-2">
           👥 User Statistiken
         </h2>
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Registrierungen Chart */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Benutzer-Registrierungen</CardTitle>
-                <CardDescription>
-                  Verlauf der Neuregistrierungen über Zeit
-                </CardDescription>
-              </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Registrierungen Chart */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Benutzer-Registrierungen</CardTitle>
+                  <CardDescription>
+                    Verlauf der Neuregistrierungen über Zeit
+                  </CardDescription>
+                </div>
                 <div className="flex gap-2">
                   <Select value={registrationBundle} onValueChange={setRegistrationBundle}>
                     <SelectTrigger className="w-24 h-8 text-xs">
@@ -758,57 +746,51 @@ export function AdminCharts() {
                       <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
                     </SelectContent>
                   </Select>
-              <Select value={registrationPeriod} onValueChange={setRegistrationPeriod}>
+                  <Select value={registrationPeriod} onValueChange={setRegistrationPeriod}>
                     <SelectTrigger className="w-24 h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="day">Täglich</SelectItem>
-                  <SelectItem value="week">Wöchentlich</SelectItem>
-                  <SelectItem value="month">Monatlich</SelectItem>
-                  <SelectItem value="year">Jährlich</SelectItem>
-                </SelectContent>
-              </Select>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="day">Täglich</SelectItem>
+                      <SelectItem value="week">Wöchentlich</SelectItem>
+                      <SelectItem value="month">Monatlich</SelectItem>
+                      <SelectItem value="year">Jährlich</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-            </div>
-          </CardHeader>
-          <CardContent>
+              </div>
+            </CardHeader>
+            <CardContent>
               <div className="h-[300px] w-full">
-              <ChartContainer config={chartConfig}>
-                <LineChart
-                  accessibilityLayer
-                  data={registrationData}
-                  margin={{
-                    top: 20,
-                    left: 12,
-                    right: 12,
-                  }}
-                  width={500}
+                <ChartContainer config={chartConfig}>
+                  <LineChart
+                    accessibilityLayer
+                    data={registrationData}
+                    margin={{
+                      top: 20,
+                      left: 12,
+                      right: 12,
+                    }}
+                    width={500}
                     height={280}
-                >
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="period"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    tickFormatter={(value) => value.slice(0, 10)}
-                  />
-                    <YAxis
+                  >
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="period"
                       tickLine={false}
                       axisLine={false}
                       tickMargin={8}
-                      allowDecimals={false}
+                      tickFormatter={(value) => value.slice(0, 10)}
                     />
                     <ChartTooltip cursor={false}>
-                    <ChartTooltipContent indicator="line" />
-                  </ChartTooltip>
-                  <Line
-                    dataKey="count"
-                    type="natural"
-                      stroke="#2563eb"
-                    strokeWidth={2}
-                      dot={{ fill: "#2563eb" }}
+                      <ChartTooltipContent indicator="line" />
+                    </ChartTooltip>
+                    <Line
+                      dataKey="count"
+                      type="natural"
+                      stroke="var(--color-count)"
+                      strokeWidth={2}
+                      dot={{ fill: "var(--color-count)" }}
                       activeDot={{ r: 6 }}
                     />
                   </LineChart>
@@ -875,36 +857,30 @@ export function AdminCharts() {
                       tickMargin={8}
                       tickFormatter={(value) => value.slice(0, 10)}
                     />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                      allowDecimals={false}
-                    />
                     <ChartTooltip cursor={false}>
                       <ChartTooltipContent indicator="line" />
                     </ChartTooltip>
                     <Line
                       dataKey="count"
                       type="natural"
-                      stroke="#2563eb"
+                      stroke="#8b5cf6"
                       strokeWidth={2}
-                      dot={{ fill: "#2563eb" }}
+                      dot={{ fill: "#8b5cf6" }}
                       activeDot={{ r: 6 }}
                     />
-                </LineChart>
-              </ChartContainer>
-            </div>
-          </CardContent>
+                  </LineChart>
+                </ChartContainer>
+              </div>
+            </CardContent>
             <CardFooter className="text-xs text-muted-foreground">
               Paket-Typ: {packageType} • Zeitraum: {packagePeriod}
               <div className="ml-auto flex gap-4">
                 <span>Starter: {stats.packageBreakdown.STARTER}</span>
                 <span>Pro: {stats.packageBreakdown.PRO}</span>
                 <span>Enterprise: {stats.packageBreakdown.ENTERPRISE}</span>
-            </div>
-          </CardFooter>
-        </Card>
+              </div>
+            </CardFooter>
+          </Card>
         </div>
       </div>
 
@@ -915,12 +891,12 @@ export function AdminCharts() {
         </h2>
         <div className="grid gap-6 md:grid-cols-2">
           {/* Credit-Verbrauch Chart */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
                   <CardTitle>Credit-Verbrauch</CardTitle>
-                <CardDescription>
+                  <CardDescription>
                     Ausgegebene Credits nach Kategorien
                   </CardDescription>
                 </div>
@@ -980,64 +956,58 @@ export function AdminCharts() {
                   <CardTitle>Gekaufte Credits</CardTitle>
                   <CardDescription>
                     Credit-Verkäufe über Zeit
-                </CardDescription>
+                  </CardDescription>
+                </div>
+                <Select value={creditPeriod} onValueChange={setCreditPeriod}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">Täglich</SelectItem>
+                    <SelectItem value="week">Wöchentlich</SelectItem>
+                    <SelectItem value="month">Monatlich</SelectItem>
+                    <SelectItem value="year">Jährlich</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Select value={creditPeriod} onValueChange={setCreditPeriod}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="day">Täglich</SelectItem>
-                  <SelectItem value="week">Wöchentlich</SelectItem>
-                  <SelectItem value="month">Monatlich</SelectItem>
-                  <SelectItem value="year">Jährlich</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-          <CardContent>
+            </CardHeader>
+            <CardContent>
               <div className="h-[300px] w-full">
-              <ChartContainer config={chartConfig}>
-                <LineChart
-                  accessibilityLayer
-                  data={creditData}
-                  margin={{
-                    top: 20,
-                    left: 12,
-                    right: 12,
-                  }}
-                  width={500}
+                <ChartContainer config={chartConfig}>
+                  <LineChart
+                    accessibilityLayer
+                    data={creditData}
+                    margin={{
+                      top: 20,
+                      left: 12,
+                      right: 12,
+                    }}
+                    width={500}
                     height={280}
-                >
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="period"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    tickFormatter={(value) => value.slice(0, 10)}
-                  />
-                    <YAxis
+                  >
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="period"
                       tickLine={false}
                       axisLine={false}
                       tickMargin={8}
-                      allowDecimals={false}
+                      tickFormatter={(value) => value.slice(0, 10)}
                     />
                     <ChartTooltip cursor={false}>
-                    <ChartTooltipContent indicator="line" />
-                  </ChartTooltip>
-                  <Line
-                    dataKey="credits"
-                    type="natural"
-                      stroke="#2563eb"
-                    strokeWidth={2}
-                      dot={{ fill: "#2563eb" }}
+                      <ChartTooltipContent indicator="line" />
+                    </ChartTooltip>
+                    <Line
+                      dataKey="credits"
+                      type="natural"
+                      stroke="var(--color-credits)"
+                      strokeWidth={2}
+                      dot={{ fill: "var(--color-credits)" }}
                       activeDot={{ r: 6 }}
                     />
-                </LineChart>
-              </ChartContainer>
-            </div>
-          </CardContent>
+                  </LineChart>
+                </ChartContainer>
+              </div>
+            </CardContent>
           </Card>
         </div>
       </div>
@@ -1108,12 +1078,12 @@ export function AdminCharts() {
                   <div className="text-2xl font-bold text-red-700">{stats.openTickets}</div>
                   <div className="text-sm text-red-600">Offen</div>
                 </div>
-            </div>
+              </div>
               <div className="text-xs text-muted-foreground">
                 Filter: {ticketsBundle} • {ticketsPeriod} • {ticketsCategory}
-            </div>
+              </div>
             </CardContent>
-        </Card>
+          </Card>
         </div>
       </div>
     </div>

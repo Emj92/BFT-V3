@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ArrowLeft, LogOut } from "lucide-react"
 import { useUser } from "@/hooks/useUser"
-import { useBundle } from "@/hooks/useBundle"
+import { useLiveCredits } from "@/hooks/useLiveCredits"
 import { NotificationBell } from "@/components/notifications/notification-bell"
 import { TeamInvitationBell } from "@/components/notifications/team-invitation-bell"
 import { Separator } from "@/components/ui/separator"
@@ -25,7 +25,7 @@ export function GlobalNavigation({ title = "Dashboard", subtitle, onBack }: Glob
   const router = useRouter()
   const pathname = usePathname()
   const { user, loading } = useUser()
-  const { bundleInfo } = useBundle()
+  const { currentCredits, bundleInfo } = useLiveCredits()
 
   const handleBack = () => {
     if (onBack) {
@@ -155,7 +155,7 @@ export function GlobalNavigation({ title = "Dashboard", subtitle, onBack }: Glob
         <div className="flex items-center gap-2">
           {/* Credits Display */}
           <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-muted rounded-md">
-            <span className="text-sm font-medium">{bundleInfo?.credits || user.credits || 0} Credits</span>
+            <span className="text-sm font-medium">{currentCredits} Credits</span>
             {bundleInfo?.bundle && (
               <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
                 bundleInfo.bundle === 'PRO' ? 'bg-blue-500 text-white' :
@@ -203,7 +203,7 @@ export function GlobalNavigation({ title = "Dashboard", subtitle, onBack }: Glob
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-xs leading-none text-muted-foreground">
-                      {bundleInfo?.credits || user.credits || 0} Credits
+                      {currentCredits} Credits
                     </p>
                     {bundleInfo?.bundle && (
                       <span className={`text-xs font-semibold px-1 py-0.5 rounded ${

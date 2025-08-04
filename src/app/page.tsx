@@ -1382,7 +1382,7 @@ export default function HomePage() {
                   <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">BF-Scanner</span>
+                    <span className="text-base">BF-Scanner (1 Credit/Nutzung)</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <X className="h-4 w-4 text-red-600 flex-shrink-0" />
@@ -1450,7 +1450,7 @@ export default function HomePage() {
                   <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">BF-Scanner</span>
+                    <span className="text-base">BF-Scanner (1 Credit/Nutzung)</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
@@ -1545,7 +1545,7 @@ export default function HomePage() {
                   <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-base">BF-Scanner</span>
+                    <span className="text-base">BF-Scanner (1 Credit/Nutzung)</span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />

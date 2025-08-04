@@ -1,6 +1,3 @@
-// Prisma Schema für das Barrierefreitool
-// Erweitertes Schema mit zusätzlichen Modellen und Beziehungen
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,149 +7,331 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Benutzermodell mit erweiterten Funktionen
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  firstName     String?
-  lastName      String?
-  street        String?
-  houseNumber   String?
-  city          String?
-  country       String?
-  phone         String?
-  avatarUrl     String?
-  password      String    // Gehashtes Passwort
-  role          Role      @default(USER)
-  
-  // E-Mail-Bestätigung
-  emailVerified Boolean   @default(false)
-  emailVerificationToken String?
-  emailTokenExpiry DateTime?
-  
-  // Password Reset
-  resetToken String?
-  resetTokenExpiry DateTime?
-  
-  // Credit System
-  credits       Int       @default(5) // Free User bekommen 5 Credits zum Start
-  bundle        BundleType   
-  bundlePurchasedAt DateTime?
-  bundleExpiresAt DateTime? // Für jährliche Pakete - NULL bedeutet unbegrenzt/monatlich
-  
-  // Team-System für Enterprise
-  teamId        String?   // Verweis auf Team (nur für Enterprise)
-  isTeamOwner   Boolean   @default(false) // Ist der Hauptbenutzer des Teams
-  team          Team?     @relation(fields: [teamId], references: [id])
-  sentTeamInvitations TeamInvitation[] @relation("InvitationSender")
-  receivedTeamInvitations TeamInvitation[] @relation("InvitationReceiver")
-  teamChatMessages TeamChatMessage[]
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  organization  Organization? @relation(fields: [organizationId], references: [id])
-  organizationId String?
-  scans         Scan[]
-  projects      Project[]
-  transactions  CreditTransaction[]
-  invoices      Invoice[]
-  reports       Report[]
-  notificationsRead NotificationRead[]
-  supportTickets SupportTicket[]
-  ticketMessages TicketMessage[]
-  wcagSessions  WcagSession[]
-  bfeGenerations BfeGeneration[]
-  globalNotifications GlobalNotification[]
+  id                      String               @id @default(cuid())
+  email                   String               @unique
+  name                    String?
+  password                String
+  role                    Role                 @default(USER)
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  organizationId          String?
+  avatarUrl               String?
+  bundle                  BundleType
+  bundlePurchasedAt       DateTime?
+  city                    String?
+  country                 String?
+  credits                 Int                  @default(5)
+  firstName               String?
+  houseNumber             String?
+  lastName                String?
+  phone                   String?
+  street                  String?
+  emailTokenExpiry        DateTime?
+  emailVerificationToken  String?
+  emailVerified           Boolean              @default(false)
+  isTeamOwner             Boolean              @default(false)
+  resetToken              String?
+  resetTokenExpiry        DateTime?
+  teamId                  String?
+  bundleExpiresAt         DateTime?
+  bfeGenerations          BfeGeneration[]
+  transactions            CreditTransaction[]
+  globalNotifications     GlobalNotification[]
+  notificationsRead       NotificationRead[]
+  projects                Project[]
+  reports                 Report[]
+  scans                   Scan[]
+  supportTickets          SupportTicket[]
+  teamChatMessages        TeamChatMessage[]
+  receivedTeamInvitations TeamInvitation[]     @relation("InvitationReceiver")
+  sentTeamInvitations     TeamInvitation[]     @relation("InvitationSender")
+  ticketMessages          TicketMessage[]
+  organization            Organization?        @relation(fields: [organizationId], references: [id])
+  team                    Team?                @relation(fields: [teamId], references: [id])
+  wcagSessions            WcagSession[]
 }
 
-// Rollen für Benutzer
-enum Role {
-  USER
-  ADMIN
-  AUDITOR
-}
-
-// Bundle-Typen
-enum BundleType {
-  FREE
-  STARTER
-  PRO
-  ENTERPRISE
-}
-
-// Organisationsmodell für Teams
 model Organization {
   id          String    @id @default(cuid())
   name        String
   description String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  users       User[]
   projects    Project[]
+  users       User[]
 }
 
-// Projektmodell für gruppierte Scans
 model Project {
-  id            String    @id @default(cuid())
-  name          String
-  description   String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  organization  Organization? @relation(fields: [organizationId], references: [id])
+  id             String        @id @default(cuid())
+  name           String
+  description    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   organizationId String?
-  owner         User      @relation(fields: [ownerId], references: [id])
-  ownerId       String
-  websites      Website[]
+  ownerId        String
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  owner          User          @relation(fields: [ownerId], references: [id])
+  websites       Website[]
 }
 
-// Website-Modell für mehrere URLs
 model Website {
-  id          String    @id @default(cuid())
-  name        String
-  baseUrl     String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  project     Project   @relation(fields: [projectId], references: [id])
-  projectId   String
-  pages       Page[]
+  id        String   @id @default(cuid())
+  name      String
+  baseUrl   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  projectId String
+  pages     Page[]
+  project   Project  @relation(fields: [projectId], references: [id])
 }
 
-// Seitenmodell für einzelne URLs
 model Page {
-  id          String    @id @default(cuid())
-  url         String
-  title       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  website     Website   @relation(fields: [websiteId], references: [id])
-  websiteId   String
-  scans       Scan[]
+  id        String   @id @default(cuid())
+  url       String
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  websiteId String
+  website   Website  @relation(fields: [websiteId], references: [id])
+  scans     Scan[]
 }
 
-// Erweitertes Scan-Modell mit Beziehungen
 model Scan {
-  id          String    @id @default(cuid())
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id          String         @id @default(cuid())
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
   startedAt   DateTime?
   completedAt DateTime?
-  status      ScanStatus @default(PENDING)
+  status      ScanStatus     @default(PENDING)
   results     Json?
   score       Float?
   violations  Int?
   warnings    Int?
   passes      Int?
   incomplete  Int?
-  user        User      @relation(fields: [userId], references: [id])
   userId      String
-  page        Page      @relation(fields: [pageId], references: [id])
   pageId      String
   issues      Issue[]
+  page        Page           @relation(fields: [pageId], references: [id])
+  user        User           @relation(fields: [userId], references: [id])
   standards   ScanStandard[]
 }
 
-// Status eines Scans
+model Standard {
+  id          String         @id @default(cuid())
+  name        String         @unique
+  description String?
+  version     String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  rules       Rule[]
+  scans       ScanStandard[]
+}
+
+model ScanStandard {
+  scanId     String
+  standardId String
+  createdAt  DateTime @default(now())
+  scan       Scan     @relation(fields: [scanId], references: [id])
+  standard   Standard @relation(fields: [standardId], references: [id])
+
+  @@id([scanId, standardId])
+}
+
+model Rule {
+  id          String   @id @default(cuid())
+  code        String
+  name        String
+  description String?
+  impact      String?
+  standardId  String
+  issues      Issue[]
+  standard    Standard @relation(fields: [standardId], references: [id])
+
+  @@unique([standardId, code])
+}
+
+model Issue {
+  id        String      @id @default(cuid())
+  type      IssueType
+  selector  String?
+  html      String?
+  message   String
+  impact    Float?
+  scanId    String
+  ruleId    String
+  status    IssueStatus @default(OPEN)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  rule      Rule        @relation(fields: [ruleId], references: [id])
+  scan      Scan        @relation(fields: [scanId], references: [id])
+}
+
+model CreditTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Int
+  description String?
+  createdAt   DateTime @default(now())
+  type        String?  @default("CREDIT_PURCHASE")
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model Report {
+  id        String     @id @default(cuid())
+  userId    String
+  title     String
+  content   Json
+  type      ReportType
+  scanId    String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        String             @id @default(cuid())
+  title     String
+  message   String
+  type      NotificationType   @default(INFO)
+  isGlobal  Boolean            @default(true)
+  createdBy String?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  readBy    NotificationRead[]
+}
+
+model NotificationRead {
+  id             String       @id @default(cuid())
+  userId         String
+  notificationId String
+  readAt         DateTime     @default(now())
+  notification   Notification @relation(fields: [notificationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@unique([userId, notificationId])
+}
+
+model SupportTicket {
+  id           String          @id @default(cuid())
+  subject      String
+  description  String
+  priority     TicketPriority  @default(MEDIUM)
+  status       TicketStatus    @default(OPEN)
+  category     TicketCategory  @default(OTHER)
+  userId       String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  ticketNumber String?
+  user         User            @relation(fields: [userId], references: [id])
+  messages     TicketMessage[]
+}
+
+model TicketMessage {
+  id        String        @id @default(cuid())
+  content   String
+  ticketId  String
+  userId    String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id])
+  user      User          @relation(fields: [userId], references: [id])
+}
+
+model WcagSession {
+  id                String   @id @default(cuid())
+  userId            String
+  userMessage       String
+  assistantResponse String
+  sessionsUsed      Int      @default(1)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id])
+}
+
+model GlobalNotification {
+  id              String   @id @default(cuid())
+  message         String
+  link            String?
+  linkText        String?
+  backgroundColor String   @default("#3b82f6")
+  textColor       String   @default("#ffffff")
+  targetPackages  String[]
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdBy       String
+  dismissible     Boolean  @default(true)
+  specificUsers   String[]
+  createdByUser   User     @relation(fields: [createdBy], references: [id])
+}
+
+model BfeGeneration {
+  id         String   @id @default(cuid())
+  userId     String
+  websiteUrl String
+  content    Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model Team {
+  id             String            @id @default(cuid())
+  name           String
+  description    String?
+  maxMembers     Int               @default(3)
+  currentMembers Int               @default(1)
+  sharedCredits  Int               @default(0)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  chatMessages   TeamChatMessage[]
+  invitations    TeamInvitation[]
+  members        User[]
+}
+
+model TeamInvitation {
+  id         String           @id @default(cuid())
+  email      String
+  message    String?
+  status     InvitationStatus @default(PENDING)
+  teamId     String
+  senderId   String
+  receiverId String?
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  receiver   User?            @relation("InvitationReceiver", fields: [receiverId], references: [id])
+  sender     User             @relation("InvitationSender", fields: [senderId], references: [id])
+  team       Team             @relation(fields: [teamId], references: [id])
+}
+
+model TeamChatMessage {
+  id        String   @id @default(cuid())
+  message   String
+  senderId  String
+  teamId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sender    User     @relation(fields: [senderId], references: [id])
+  team      Team     @relation(fields: [teamId], references: [id])
+}
+
+enum Role {
+  USER
+  ADMIN
+  AUDITOR
+}
+
+enum BundleType {
+  STARTER
+  PRO
+  ENTERPRISE
+  FREE
+}
+
 enum ScanStatus {
   PENDING
   RUNNING
@@ -160,61 +339,6 @@ enum ScanStatus {
   FAILED
 }
 
-// Barrierefreiheitsstandards
-model Standard {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  description String?
-  version     String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  scans       ScanStandard[]
-  rules       Rule[]
-}
-
-// Verknüpfungstabelle zwischen Scan und Standard
-model ScanStandard {
-  scan        Scan      @relation(fields: [scanId], references: [id])
-  scanId      String
-  standard    Standard  @relation(fields: [standardId], references: [id])
-  standardId  String
-  createdAt   DateTime  @default(now())
-
-  @@id([scanId, standardId])
-}
-
-// Regeln für Standards
-model Rule {
-  id          String    @id @default(cuid())
-  code        String
-  name        String
-  description String?
-  impact      String?
-  standard    Standard  @relation(fields: [standardId], references: [id])
-  standardId  String
-  issues      Issue[]
-
-  @@unique([standardId, code])
-}
-
-// Gefundene Probleme
-model Issue {
-  id          String    @id @default(cuid())
-  type        IssueType
-  selector    String?
-  html        String?
-  message     String
-  impact      Float?
-  scan        Scan      @relation(fields: [scanId], references: [id])
-  scanId      String
-  rule        Rule      @relation(fields: [ruleId], references: [id])
-  ruleId      String
-  status      IssueStatus @default(OPEN)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-// Typ eines Problems
 enum IssueType {
   VIOLATION
   WARNING
@@ -222,7 +346,6 @@ enum IssueType {
   INCOMPLETE
 }
 
-// Status eines Problems
 enum IssueStatus {
   OPEN
   FIXED
@@ -230,44 +353,6 @@ enum IssueStatus {
   FALSE_POSITIVE
 }
 
-// Credit-Transaktionen für Käufe und Verbrauch
-model CreditTransaction {
-  id          String    @id @default(cuid())
-  user        User      @relation(fields: [userId], references: [id])
-  userId      String
-  amount      Int       // Positive für Kauf, negative für Verbrauch
-  type        TransactionType
-  description String?
-  paymentId   String?   // Mollie Payment ID
-  createdAt   DateTime  @default(now())
-}
-
-// Transaktionstypen
-enum TransactionType {
-  PURCHASE        // Kauf von Credits
-  BUNDLE_PURCHASE // Bundle-Kauf
-  SCAN            // Verbrauch für Scan (1 Credit)
-  WCAG_COACH      // Verbrauch für WCAG Coach (5 Credits)
-  BFE_GENERATION  // Verbrauch für BFE Generation (10 Credits)
-}
-
-// Rechnungen
-model Invoice {
-  id            String    @id @default(cuid())
-  invoiceNumber String    @unique // Fortlaufende Rechnungsnummer
-  user          User      @relation(fields: [userId], references: [id])
-  userId        String
-  amount        Float     // Rechnungsbetrag in Euro
-  description   String    // Beschreibung der Leistung
-  paymentId     String?   // Mollie Payment ID
-  bundleType    String?   // Falls Bundle-Kauf
-  credits       Int?      // Falls Credit-Kauf
-  status        InvoiceStatus @default(PENDING)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-}
-
-// Rechnungsstatus
 enum InvoiceStatus {
   PENDING
   PAID
@@ -275,54 +360,12 @@ enum InvoiceStatus {
   CANCELLED
 }
 
-// Berichte für Barrierefreiheitserklärungen
-model Report {
-  id          String    @id @default(cuid())
-  user        User      @relation(fields: [userId], references: [id])
-  userId      String
-  title       String
-  content     Json      // Strukturierte Berichtsdaten
-  type        ReportType
-  scanId      String?   // Optional: Verknüpfung zu Scan
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-// Berichtstypen
 enum ReportType {
   ACCESSIBILITY_DECLARATION
   SCAN_REPORT
   WCAG_ANALYSIS
 }
 
-// Benachrichtigungen für alle Benutzer
-model Notification {
-  id          String    @id @default(cuid())
-  title       String
-  message     String
-  type        NotificationType @default(INFO)
-  isGlobal    Boolean   @default(true) // Für alle Benutzer sichtbar
-  createdBy   String?   // Admin der die Nachricht erstellt hat
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  // Beziehung zu gelesenen Nachrichten
-  readBy      NotificationRead[]
-}
-
-// Tracking welche Benutzer welche Nachrichten gelesen haben
-model NotificationRead {
-  id             String       @id @default(cuid())
-  user           User         @relation(fields: [userId], references: [id])
-  userId         String
-  notification   Notification @relation(fields: [notificationId], references: [id])
-  notificationId String
-  readAt         DateTime     @default(now())
-  
-  @@unique([userId, notificationId])
-}
-
-// Benachrichtigungstypen
 enum NotificationType {
   INFO
   WARNING
@@ -331,41 +374,6 @@ enum NotificationType {
   UPDATE
 }
 
-// Support-Ticket-System
-model SupportTicket {
-  id           String            @id @default(cuid())
-  ticketNumber String?           // Ticket-Nummer (z.B. "HP-ABC12345")
-  subject      String
-  description  String
-  priority     TicketPriority    @default(MEDIUM)
-  status       TicketStatus      @default(OPEN)
-  category     TicketCategory    @default(OTHER)
-  
-  // Beziehungen
-  user         User              @relation(fields: [userId], references: [id])
-  userId       String
-  messages     TicketMessage[]
-  
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-}
-
-// Ticket-Nachrichten für Kommunikation zwischen User und Admin
-model TicketMessage {
-  id        String        @id @default(cuid())
-  content   String
-  
-  // Beziehungen
-  ticket    SupportTicket @relation(fields: [ticketId], references: [id])
-  ticketId  String
-  user      User          @relation(fields: [userId], references: [id])
-  userId    String
-  
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-}
-
-// Ticket-Prioritäten
 enum TicketPriority {
   LOW
   MEDIUM
@@ -373,7 +381,6 @@ enum TicketPriority {
   URGENT
 }
 
-// Ticket-Status
 enum TicketStatus {
   OPEN
   IN_PROGRESS
@@ -381,7 +388,6 @@ enum TicketStatus {
   CLOSED
 }
 
-// Ticket-Kategorien
 enum TicketCategory {
   TECHNICAL
   CONSULTATION
@@ -389,116 +395,10 @@ enum TicketCategory {
   OTHER
 }
 
-// WCAG Coach Sessions für KI-Beratung
-model WcagSession {
-  id                String    @id @default(cuid())
-  user              User      @relation(fields: [userId], references: [id])
-  userId            String
-  userMessage       String
-  assistantResponse String
-  sessionsUsed      Int       @default(1)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-}
-
-// BFE-Generierungen für Barrierefreiheitserklärungen
-// Globale Benachrichtigungen für Admin
-model GlobalNotification {
-  id              String    @id @default(cuid())
-  message         String
-  link            String?
-  linkText        String?
-  backgroundColor String    @default("#3b82f6")
-  textColor       String    @default("#ffffff")
-  targetPackages  String[]  // ["ALL", "FREE", "STARTER", "PRO", "ENTERPRISE", "SPECIFIC"]
-  specificUsers   String[]  // Array von User-IDs für spezifische Benutzer-Zielgruppe
-  isActive        Boolean   @default(true)
-  dismissible     Boolean   @default(true) // Kann wegklickt werden
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  createdBy       String
-  createdByUser   User      @relation(fields: [createdBy], references: [id])
-}
-
-model BfeGeneration {
-  id          String    @id @default(cuid())
-  user        User      @relation(fields: [userId], references: [id])
-  userId      String
-  websiteUrl  String
-  content     Json      // Generierte Inhalte
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-// Team-Modell für Enterprise-Nutzer
-model Team {
-  id          String    @id @default(cuid())
-  name        String    // Team-Name
-  description String?   // Optional: Team-Beschreibung
-  
-  // Team-Limits
-  maxMembers  Int       @default(3) // Standard: Hauptnutzer + 2 zusätzliche
-  currentMembers Int    @default(1) // Aktuell: nur Hauptnutzer
-  
-  // Geteilte Ressourcen
-  sharedCredits Int     @default(0) // Credits die das ganze Team nutzen kann
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  // Beziehungen
-  members     User[]
-  invitations TeamInvitation[]
-  chatMessages TeamChatMessage[]
-}
-
-// Team-Einladungen
-model TeamInvitation {
-  id          String    @id @default(cuid())
-  
-  // Einladungsdetails
-  email       String    // E-Mail des eingeladenen Benutzers
-  message     String?   // Optional: Persönliche Nachricht
-  status      InvitationStatus @default(PENDING)
-  
-  // Beziehungen
-  team        Team      @relation(fields: [teamId], references: [id])
-  teamId      String
-  sender      User      @relation(fields: [senderId], references: [id], name: "InvitationSender")
-  senderId    String
-  receiver    User?     @relation(fields: [receiverId], references: [id], name: "InvitationReceiver")
-  receiverId  String?   // Null wenn Benutzer noch nicht registriert
-  
-  // Metadaten
-  expiresAt   DateTime  // Einladung läuft ab
-  acceptedAt  DateTime? // Wann wurde die Einladung angenommen
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-// Status für Team-Einladungen
 enum InvitationStatus {
-  PENDING    // Wartet auf Antwort
-  ACCEPTED   // Angenommen
-  DECLINED   // Abgelehnt
-  EXPIRED    // Abgelaufen
-  CANCELLED  // Vom Sender storniert
-}
-
-// Team-Chat Nachrichten
-model TeamChatMessage {
-  id          String    @id @default(cuid())
-  
-  // Nachrichteninhalt
-  message     String    // Die Chat-Nachricht
-  
-  // Beziehungen
-  sender      User      @relation(fields: [senderId], references: [id])
-  senderId    String
-  team        Team      @relation(fields: [teamId], references: [id])
-  teamId      String
-  
-  // Metadaten
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  CANCELLED
 }

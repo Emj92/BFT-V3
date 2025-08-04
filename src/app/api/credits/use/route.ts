@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       data: {
         userId,
         amount: -creditCost,
-        type: 'SCAN', // Anpassbar je nach Service
+        type: service === 'scan' ? 'SCAN' : service === 'coach' ? 'WCAG_COACH' : service === 'bfe' ? 'BFE_GENERATION' : 'SCAN',
         description: `${service} - Credit-Verbrauch`
       }
     });

@@ -592,7 +592,7 @@ export default function AdminPage() {
           />
         </main>
       ) : (
-        <div className="flex-1 p-4 relative">
+        <div className="flex-1 p-8 relative">
     
           <div className="flex items-center gap-2 mb-6 bg-background p-4 rounded-lg border shadow-sm">
             <Shield className="h-5 w-5 text-red-500" />

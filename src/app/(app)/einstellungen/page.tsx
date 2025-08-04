@@ -239,7 +239,7 @@ export default function EinstellungenPage() {
         "1 verwaltbare Website", 
         "90 Tage Speicherdauer",
         // Funktionen
-        "BF-Scanner"
+        "BF-Scanner (1 Credit/Nutzung)"
       ],
       limitations: [
         "Kein BF-Coach",
@@ -264,7 +264,7 @@ export default function EinstellungenPage() {
         "3 verwaltbare Websites",
         "6 Monate Speicherdauer",
         // Funktionen
-        "BF-Scanner",
+                        "BF-Scanner (1 Credit/Nutzung)",
         "BFSG Coach (5 Credits/Nutzung)",
         "BFE-Generator (10 Credits/Nutzung)",
         "Aufgabenverwaltung (bis 25 Aufgaben)",
@@ -291,7 +291,7 @@ export default function EinstellungenPage() {
         "10 verwaltbare Websites",
         "12 Monate Speicherdauer",
         // Funktionen
-        "BF-Scanner",
+                        "BF-Scanner (1 Credit/Nutzung)",
         "BFSG Coach (5 Credits/Nutzung)",
         "BFE-Generator (10 Credits/Nutzung)",
         "Aufgabenverwaltung (bis 200 Aufgaben)",
@@ -317,16 +317,49 @@ export default function EinstellungenPage() {
         "Unbegrenzte Websites",
         "Unbegrenzte Speicherdauer",
         // Funktionen   
-        "Alle PROFESSIONAL Features",
-        "Team-Funktionen",
+        "BF-Scanner (1 Credit/Nutzung)",
         "BFSG Coach (5 Credits/Nutzung)",
         "BFE-Generator (10 Credits/Nutzung)",
         "Aufgabenverwaltung (Unbegrenzt)",
+        // Daten & Export
+        "PDF Export",
+        "Excel Export",
         // Service & Kollaboration
-        "Team-Funktionen"
+        "Team-Funktionen",
+        "Alle PROFESSIONAL Features"
       ],
       limitations: [],
       support: "Persönlicher Ansprechpartner",
+      popular: false
+    },
+    {
+      id: "test_pro",
+      name: "TEST PRO",
+      subtitle: "🧪 Testpaket",
+      icon: "🔬",
+      price: 1,
+      yearlyPrice: 1,
+      period: "/ einmalig",
+      features: [
+        // Kernlimits
+        "150 Credits einmalig",
+        "Alle PRO Features", 
+        "Nur zu Testzwecken",
+        // Funktionen
+        "BF-Scanner (1 Credit/Nutzung)",
+        "BFSG Coach (5 Credits/Nutzung)",
+        "BFE-Generator (10 Credits/Nutzung)",
+        "Automatische Scan-Überwachung",
+        "API-Zugang",
+        "Aufgabenverwaltung (bis 200 Aufgaben)",
+        // Daten & Export
+        "PDF Export",
+        "Excel Export"
+      ],
+      limitations: [
+        "⚠️ Testpaket - löst PRO Bundle aus"
+      ],
+      support: "E-Mail Support",
       popular: false
     }
   ]
@@ -830,12 +863,20 @@ export default function EinstellungenPage() {
                               }
                               
                               try {
+                                // Bundle-Mapping für API
+                                const bundleMapping: Record<string, string> = {
+                                  'STARTER': 'STARTER',
+                                  'PROFESSIONAL': 'PRO', 
+                                  'ENTERPRISE': 'ENTERPRISE',
+                                  'TEST PRO': 'TEST_PRO'
+                                }
+                                
                                 const response = await fetch('/api/payments/create', {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
                                   body: JSON.stringify({
                                     type: 'bundle',
-                                    bundle: pkg.name,
+                                    bundle: bundleMapping[pkg.name] || pkg.name,
                                     interval: isYearly ? 'yearly' : 'monthly'
                                   })
                                 });
@@ -1092,6 +1133,44 @@ export default function EinstellungenPage() {
                           }}
                         >
                           Kaufen
+                        </Button>
+                      </CardContent>
+                    </Card>
+                    
+                    {/* Test Credit Paket */}
+                    <Card className="text-center border-2 border-orange-400 bg-orange-50 h-full flex flex-col">
+                      <CardContent className="p-4 flex flex-col h-full">
+                        <div className="text-2xl font-bold text-orange-600">🧪</div>
+                        <div className="text-sm font-semibold">150 Credits Test</div>
+                        <div className="text-lg font-semibold mt-2 text-orange-600">{formatGermanPrice(1)}</div>
+                        <div className="text-xs text-orange-600">Testpaket - Nur 1€</div>
+                        <div className="flex-1"></div>
+                        <Button 
+                          className="w-full mt-3 bg-orange-600 hover:bg-orange-700" 
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const response = await fetch('/api/payments/create', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  type: 'credits',
+                                  credits: 150,
+                                  amount: 1
+                                })
+                              });
+                              const data = await response.json();
+                              if (data.success) {
+                                window.location.href = data.paymentUrl;
+                              } else {
+                                toast.error('Fehler: ' + data.error);
+                              }
+                            } catch (error) {
+                              toast.error('Netzwerkfehler beim Erstellen der Zahlung');
+                            }
+                          }}
+                        >
+                          🧪 Test kaufen
                         </Button>
                       </CardContent>
                     </Card>
