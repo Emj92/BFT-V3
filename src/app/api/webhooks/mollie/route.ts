@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { handlePaymentWebhook } from '@/lib/mollie'
-import { prisma } from '@/lib/prisma'
+import prisma from '@/lib/prisma'
 import { BundleType, TransactionType } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
   try {
+    // Prisma verfügbarkeit prüfen
+    if (!prisma) {
+      console.error('🚨 CRITICAL: Prisma client is undefined!')
+      return NextResponse.json({ error: 'Database unavailable' }, { status: 500 })
+    }
+    
     let paymentId: string
 
     // Mollie sendet form-data, nicht JSON
