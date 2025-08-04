@@ -397,8 +397,8 @@ export default function EinstellungenPage() {
       name: "TEST PRO",
       subtitle: "🧪 Testpaket",
       icon: "🔬",
-      price: 1,
-      yearlyPrice: 1,
+      price: 0.5,
+      yearlyPrice: 0.5,
       period: "/ einmalig",
       features: [
         // Kernlimits
@@ -1202,8 +1202,8 @@ export default function EinstellungenPage() {
                       <CardContent className="p-4 flex flex-col h-full">
                         <div className="text-2xl font-bold text-orange-600">🧪</div>
                         <div className="text-sm font-semibold">150 Credits Test</div>
-                        <div className="text-lg font-semibold mt-2 text-orange-600">{formatGermanPrice(1)}</div>
-                        <div className="text-xs text-orange-600">Testpaket - Nur 1€</div>
+                        <div className="text-lg font-semibold mt-2 text-orange-600">{formatGermanPrice(0.5)}</div>
+                        <div className="text-xs text-orange-600">Testpaket - Nur 50 Cent</div>
                         <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3 bg-orange-600 hover:bg-orange-700" 
@@ -1216,7 +1216,7 @@ export default function EinstellungenPage() {
                                 body: JSON.stringify({
                                   type: 'credits',
                                   credits: 150,
-                                  amount: 1
+                                  amount: 0.5
                                 })
                               });
                               const data = await response.json();

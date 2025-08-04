@@ -62,8 +62,8 @@ const BUNDLE_PLANS = {
   },
   'TEST_PRO': {
     name: 'Test Pro',
-    price: '1,00€',
-    priceMonthly: '1,00€ einmalig',
+    price: '0,50€',
+    priceMonthly: '0,50€ einmalig',
     features: [
       '150 Credits (einmalig)',
       'Website-Scan: 1 Credit',
@@ -112,9 +112,9 @@ const CREDIT_PACKAGES = {
   },
   'test': {
     name: '150 Credits Test',
-    price: '1,00€',
+    price: '0,50€',
     credits: 150,
-    description: '🧪 Testpaket - 150 Credits für 1€'
+    description: '🧪 Testpaket - 150 Credits für 50 Cent'
   }
 }
 
