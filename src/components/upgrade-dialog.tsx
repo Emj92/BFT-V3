@@ -15,8 +15,8 @@ interface UpgradeDialogProps {
 const BUNDLE_PLANS = {
   'STARTER': {
     name: 'Starter',
-    price: '9€',
-    priceMonthly: '9€/Monat',
+    price: '9,00€',
+    priceMonthly: '9,00€/Monat',
     features: [
       '200 Credits monatlich',
       'Website-Scan: 1 Credit',
@@ -30,8 +30,8 @@ const BUNDLE_PLANS = {
   },
   'PRO': {
     name: 'Pro',
-    price: '29€',
-    priceMonthly: '29€/Monat',
+    price: '29,00€',
+    priceMonthly: '29,00€/Monat',
     features: [
       '1000 Credits monatlich',
       'Website-Scan: 1 Credit',
@@ -46,8 +46,8 @@ const BUNDLE_PLANS = {
   },
   'ENTERPRISE': {
     name: 'Enterprise',
-    price: '79€',
-    priceMonthly: '79€/Monat',
+    price: '79,00€',
+    priceMonthly: '79,00€/Monat',
     features: [
       '4000 Credits monatlich',
       'Website-Scan: 1 Credit',
@@ -65,33 +65,33 @@ const BUNDLE_PLANS = {
 const CREDIT_PACKAGES = {
   'small': {
     name: '10 Credits',
-    price: '15€',
+    price: '1,00€',
     credits: 10,
     description: 'Ideal für gelegentliche Nutzung'
   },
   'medium': {
     name: '25 Credits',
-    price: '30€',
+    price: '2,00€',
     credits: 25,
     description: 'Perfekt für regelmäßige Nutzung (20% Rabatt)'
   },
   'large': {
     name: '50 Credits',
-    price: '50€',
+    price: '4,00€',
     credits: 50,
-    description: 'Für professionelle Anwender (33% Rabatt)'
+    description: 'Für professionelle Anwender (20% Rabatt)'
   },
   'xl': {
     name: '100 Credits',
-    price: '85€',
+    price: '8,00€',
     credits: 100,
-    description: 'Großes Paket (43% Rabatt)'
+    description: 'Großes Paket (20% Rabatt)'
   },
   'xxl': {
     name: '250 Credits',
-    price: '175€',
+    price: '20,00€',
     credits: 250,
-    description: 'Maximales Paket (53% Rabatt)'
+    description: 'Maximales Paket (20% Rabatt)'
   }
 }
 

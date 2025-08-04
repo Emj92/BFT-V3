@@ -70,3 +70,26 @@ export function isValidUrl(url: string): boolean {
     return false;
   }
 }
+
+/**
+ * Formatiert Preise im deutschen Format
+ * - Rundet auf volle Zahlen auf
+ * - Verwendet Kommas als Dezimaltrennzeichen
+ * - Zeigt immer zwei Dezimalstellen an
+ * @param price Preis als Zahl
+ * @returns Formatierter Preis (z.B. "92,00€")
+ */
+export function formatGermanPrice(price: number): string {
+  // Auf volle Zahlen aufrunden
+  const roundedPrice = Math.ceil(price);
+  
+  // Deutsche Formatierung mit Komma als Dezimaltrennzeichen
+  const formatted = roundedPrice.toLocaleString('de-DE', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+  
+  return formatted;
+}

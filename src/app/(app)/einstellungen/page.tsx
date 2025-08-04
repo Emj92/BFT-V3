@@ -15,13 +15,14 @@ import { GlobalNavigation } from "@/components/global-navigation"
 import { useUser } from "@/hooks/useUser"
 import { useBundle } from "@/hooks/useBundle"
 import { toast } from "sonner"
+import { formatGermanPrice } from "@/lib/utils"
 import { 
   User, 
   Mail, 
   Shield, 
   CreditCard, 
   Crown, 
-  Package,
+  Package, // Der Icon-Import bleibt unverändert
   Settings,
   Bell,
   Eye,
@@ -55,6 +56,21 @@ interface Settings {
     timezone: string
     dateFormat: string
   }
+}
+
+// *** KORREKTUR: Interface umbenannt, um Konflikt zu vermeiden ***
+interface PricingPackage {
+  id: string
+  name: string
+  subtitle: string
+  icon: string
+  price: number
+  yearlyPrice: number
+  period: string
+  features: string[]
+  limitations: string[]
+  support: string
+  popular: boolean
 }
 
 export default function EinstellungenPage() {
@@ -207,8 +223,8 @@ export default function EinstellungenPage() {
     }
   }
 
-  // Paket-Definitionen - 1:1 von Homepage übernommen mit Credit-System
-  const packages = [
+  // *** KORREKTUR: Typ-Annotation auf das umbenannte Interface geändert ***
+  const packages: PricingPackage[] = [
     {
       id: "free",
       name: "FREE",
@@ -223,16 +239,15 @@ export default function EinstellungenPage() {
         "1 verwaltbare Website", 
         "90 Tage Speicherdauer",
         // Funktionen
-        "BF-Scanner",
-        "Dashboard (Grundansicht)"
+        "BF-Scanner"
       ],
       limitations: [
         "Kein BF-Coach",
         "Kein BFE-Generator",
         "Keine Aufgabenverwaltung",
-        "Keine PDF/Excel Exporte", 
-        "Support: FAQ & Community"
+        "Keine PDF/Excel Exporte"
       ],
+      support: "FAQ & Community",
       popular: false
     },
     {
@@ -241,7 +256,7 @@ export default function EinstellungenPage() {
       subtitle: "Für Einzelpersonen",
       icon: "🚀",
       price: 9,
-      yearlyPrice: 91.80, // 15% Rabatt
+      yearlyPrice: 92, // Aufgerundet von 91.80 
       period: "/ Monat",
       features: [
         // Kernlimits
@@ -253,14 +268,14 @@ export default function EinstellungenPage() {
         "BFSG Coach (5 Credits/Nutzung)",
         "BFE-Generator (10 Credits/Nutzung)",
         "Aufgabenverwaltung (bis 25 Aufgaben)",
-        // Daten & Export  
-        "PDF Export",
-        "Support: E-Mail"
+        // Daten & Export   
+        "PDF Export"
       ],
       limitations: [
         "Kein Excel Export"
       ],
-      popular: true
+      support: "E-Mail",
+      popular: false
     },
     {
       id: "professional",
@@ -268,7 +283,7 @@ export default function EinstellungenPage() {
       subtitle: "Für Unternehmen", 
       icon: "⭐",
       price: 29,
-      yearlyPrice: 295.60, // 15% Rabatt  
+      yearlyPrice: 296, // Aufgerundet von 295.60   
       period: "/ Monat",
       features: [
         // Kernlimits
@@ -282,11 +297,11 @@ export default function EinstellungenPage() {
         "Aufgabenverwaltung (bis 200 Aufgaben)",
         // Daten & Export
         "PDF Export",
-        "Excel Export",
-        "Support: Support Tickets"
+        "Excel Export"
       ],
       limitations: [],
-      popular: false
+      support: "Support Tickets",
+      popular: true
     },
     {
       id: "enterprise", 
@@ -294,23 +309,24 @@ export default function EinstellungenPage() {
       subtitle: "Für Agenturen & Teams",
       icon: "🏢",
       price: 79,
-      yearlyPrice: 805.40, // 15% Rabatt
+      yearlyPrice: 806, // Aufgerundet von 805.40
       period: "/ Monat",
       features: [
         // Kernlimits
         "4000 Credits monatlich",
         "Unbegrenzte Websites",
         "Unbegrenzte Speicherdauer",
-        // Funktionen  
+        // Funktionen   
         "Alle PROFESSIONAL Features",
         "Team-Funktionen",
         "BFSG Coach (5 Credits/Nutzung)",
         "BFE-Generator (10 Credits/Nutzung)",
         "Aufgabenverwaltung (Unbegrenzt)",
         // Service & Kollaboration
-        "Support: Persönlicher Ansprechpartner"
+        "Team-Funktionen"
       ],
       limitations: [],
+      support: "Persönlicher Ansprechpartner",
       popular: false
     }
   ]
@@ -744,28 +760,61 @@ export default function EinstellungenPage() {
                           <CardTitle className="text-2xl">{pkg.name}</CardTitle>
                           <div className="text-lg text-muted-foreground">"{pkg.subtitle}"</div>
                           <div className="text-3xl font-bold">
-                            {isYearly ? `${pkg.yearlyPrice}€` : `${pkg.price}€`}
+                            {isYearly ? formatGermanPrice(pkg.yearlyPrice) : formatGermanPrice(pkg.price)}
                           </div>
                           <CardDescription>
                             {isYearly ? 
-                              `/ Jahr (${(pkg.yearlyPrice / 12).toFixed(2)}€/Monat)` : 
+                              `/ Jahr (${formatGermanPrice(pkg.yearlyPrice / 12)}/Monat)` : 
                               pkg.period
                             }
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3 flex-1 flex flex-col">
-                          {pkg.features.map((feature, idx) => (
+                          {/* Kernlimits */}
+                          <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
+                          {pkg.features.slice(0, 3).map((feature, idx) => (
                             <div key={idx} className="flex items-center space-x-3">
                               <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                              <span className="text-sm">{feature}</span>
+                              <span className="text-base">{feature}</span>
                             </div>
+                          ))}
+                          
+                          {/* Funktionen */}
+                          <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
+                          {pkg.features.slice(3).map((feature, idx) => (
+                            feature.includes('PDF') || feature.includes('Excel') ? null : (
+                              <div key={idx} className="flex items-center space-x-3">
+                                <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                                <span className="text-base">{feature}</span>
+                              </div>
+                            )
                           ))}
                           {pkg.limitations && pkg.limitations.map((limitation, idx) => (
                             <div key={idx} className="flex items-center space-x-3">
                               <X className="h-4 w-4 text-red-600 flex-shrink-0" />
-                              <span className="text-sm text-muted-foreground">{limitation}</span>
+                              <span className="text-base">{limitation}</span>
                             </div>
                           ))}
+                          
+                          {/* Daten & Export */}
+                          {pkg.features.some(f => f.includes('PDF') || f.includes('Excel')) && (
+                            <>
+                              <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Daten & Export:</div>
+                              {pkg.features.filter(f => f.includes('PDF') || f.includes('Excel')).map((feature, idx) => (
+                                <div key={idx} className="flex items-center space-x-3">
+                                  <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                                  <span className="text-base">{feature}</span>
+                                </div>
+                              ))}
+                            </>
+                          )}
+                          
+                          {/* Support */}
+                          {pkg.support && (
+                            <div className="text-xs text-muted-foreground mt-2">
+                              📞 Support: {pkg.support}
+                            </div>
+                          )}
                           
                           <div className="flex-1"></div>
                           
@@ -816,280 +865,9 @@ export default function EinstellungenPage() {
                       <div>📝 BFE-Generator: 10 Credits</div>
                     </div>
                   </div>
-                    {/* FREE */}
-                    <Card className="border h-full flex flex-col">
-                      <CardHeader className="text-center">
-                        <div className="text-4xl mb-2">🆓</div>
-                        <CardTitle className="text-2xl">FREE</CardTitle>
-                        <div className="text-lg text-muted-foreground">"Test & Kennenlernen"</div>
-                        <div className="text-3xl font-bold">0€</div>
-                        <CardDescription>/ Monat</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-3 flex-1 flex flex-col">
-                        <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">1 verwaltbare Website</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">5 Scans/Monat</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">90 Tage Speicherdauer</span>
-                        </div>
-                        
-                        <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">Accessibility Check</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <X className="h-4 w-4 text-red-600 flex-shrink-0" />
-                          <span className="text-base">BFSG Coach</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <X className="h-4 w-4 text-red-600 flex-shrink-0" />
-                          <span className="text-base">BFE-Generator</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <X className="h-4 w-4 text-red-600 flex-shrink-0" />
-                          <span className="text-base">Aufgabenverwaltung</span>
-                        </div>
-                        
-                        <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Daten & Export:</div>
-                        <div className="flex items-center space-x-3">
-                          <X className="h-4 w-4 text-red-600 flex-shrink-0" />
-                          <span className="text-base">PDF Export</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <X className="h-4 w-4 text-red-600 flex-shrink-0" />
-                          <span className="text-base">Excel Export</span>
-                        </div>
-                        
-                        <div className="text-xs text-muted-foreground mt-2">
-                          📞 Support: FAQ & Community
-                        </div>
-                        
-                        <div className="flex-1"></div>
-                        
-                        <Button 
-                          className="w-full"
-                          variant="outline"
-                          onClick={() => window.location.href = "/register"}
-                        >
-                          Jetzt starten
-                        </Button>
-                      </CardContent>
-                    </Card>
-
-                    {/* STARTER */}
-                    <Card className="border h-full flex flex-col">
-                      <CardHeader className="text-center">
-                        <div className="text-4xl mb-2">🚀</div>
-                        <CardTitle className="text-2xl">STARTER</CardTitle>
-                        <div className="text-lg text-muted-foreground">"Für Einzelpersonen"</div>
-                        <div className="text-3xl font-bold">{isYearly ? '91,80€' : '9€'}</div>
-                        <CardDescription>{isYearly ? '/ Jahr (7,65€/Monat)' : '/ Monat'}</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-3 flex-1 flex flex-col">
-                        <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">3 verwaltbare Websites</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">50 Scans/Monat</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">6 Monate Speicherdauer</span>
-                        </div>
-                        
-                        <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">Accessibility Check</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">BFSG Coach (10 Nutzungen/Monat)</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">BFE-Generator (10 Nutzungen/Monat)</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">Aufgabenverwaltung (bis 25 Aufgaben)</span>
-                        </div>
-                        
-                        <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Daten & Export:</div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">PDF Export</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <X className="h-4 w-4 text-red-600 flex-shrink-0" />
-                          <span className="text-base">Excel Export</span>
-                        </div>
-                        
-                        <div className="text-xs text-muted-foreground mt-2">
-                          📞 Support: E-Mail
-                        </div>
-                        
-                        <div className="flex-1"></div>
-                        
-                        <Button 
-                          className="w-full"
-                          onClick={() => handleBundleUpgrade('STARTER')}
-                        >
-                          Jetzt starten
-                        </Button>
-                      </CardContent>
-                    </Card>
-
-                    {/* PROFESSIONAL */}
-                    <Card className="border-2 border-blue-600 relative h-full flex flex-col">
-                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <Badge className="bg-blue-600 flex items-center gap-1">
-                          <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
-                          </svg>
-                          Meist gewählt
-                        </Badge>
-                      </div>
-                      <CardHeader className="text-center">
-                        <div className="text-4xl mb-2">⭐</div>
-                        <CardTitle className="text-2xl">PROFESSIONAL</CardTitle>
-                        <div className="text-lg text-muted-foreground">"Für Unternehmen"</div>
-                        <div className="text-3xl font-bold">{isYearly ? '295,60€' : '29€'}</div>
-                        <CardDescription>{isYearly ? '/ Jahr (24,63€/Monat)' : '/ Monat'}</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-3 flex-1 flex flex-col">
-                        <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">10 verwaltbare Websites</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">500 Scans/Monat</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">12 Monate Speicherdauer</span>
-                        </div>
-                        
-                        <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">Accessibility Check</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">BFSG Coach (50 Nutzungen/Monat)</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">BFE-Generator (50 Nutzungen/Monat)</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">Aufgabenverwaltung (bis 200 Aufgaben)</span>
-                        </div>
-                        
-                        <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Daten & Export:</div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">PDF Export</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">Excel Export</span>
-                        </div>
-                        
-                        <div className="text-xs text-muted-foreground mt-2">
-                          📞 Support: Support Tickets
-                        </div>
-                        
-                        <div className="flex-1"></div>
-                        
-                        <Button 
-                          className="w-full"
-                          onClick={() => handleBundleUpgrade('PROFESSIONAL')}
-                        >
-                          Jetzt starten
-                        </Button>
-                      </CardContent>
-                    </Card>
-
-                    {/* ENTERPRISE */}
-                    <Card className="border-2 border-yellow-500 hover:border-yellow-400 transition-colors h-full flex flex-col">
-                      <CardHeader className="text-center">
-                        <div className="text-4xl mb-2">🏢</div>
-                        <CardTitle className="text-2xl">ENTERPRISE</CardTitle>
-                        <div className="text-lg text-muted-foreground">"Für Agenturen & Teams"</div>
-                        <div className="text-3xl font-bold">{isYearly ? 'Ab 805,40€' : 'Ab 79€'}</div>
-                        <CardDescription>{isYearly ? '/ Jahr (67,12€/Monat)' : '/ Monat'}</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-3 flex-1 flex flex-col">
-                        <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">Unbegrenzt/Individuell</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">Unbegrenzte Scans</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">Unbegrenzte Speicherdauer</span>
-                        </div>
-                        
-                        <div className="text-sm font-semibold text-muted-foreground mb-2 mt-4">Funktionen:</div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">Alle PROFESSIONAL Features</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">Team-Funktionen</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">BFSG Coach (Unbegrenzt)</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">BFE-Generator (Unbegrenzt)</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="text-base">Aufgabenverwaltung (Unbegrenzt)</span>
-                        </div>
-                        
-                        <div className="text-xs text-muted-foreground mt-2">
-                          📞 Support: Persönlicher Account Manager
-                        </div>
-                        
-                        <div className="flex-1"></div>
-                        
-                        <Button 
-                          className="w-full"
-                          onClick={() => handleBundleUpgrade('ENTERPRISE')}
-                        >
-                          Jetzt starten
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </CardContent>
-                </Card>
-              </div>
-
+                </CardContent>
+              </Card>
+              
               {/* Team-Hinweis für Enterprise */}
               {bundleInfo?.bundle === 'ENTERPRISE' && (
                 <Card className="border-blue-200 bg-blue-50">
@@ -1125,7 +903,7 @@ export default function EinstellungenPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <CreditCard className="h-5 w-5" />
-                    💳 Pay-per-Use Credits
+                    Pay-per-Use Credits
                   </CardTitle>
                   <CardDescription>
                     Alternative zu Abonnements - Ideal für gelegentliche Nutzung
@@ -1137,8 +915,8 @@ export default function EinstellungenPage() {
                       <CardContent className="p-4">
                         <div className="text-2xl font-bold">10</div>
                         <div className="text-sm text-muted-foreground">Credits</div>
-                        <div className="text-lg font-semibold mt-2">15€</div>
-                        <div className="text-xs text-muted-foreground">1,50€ pro Credit</div>
+                        <div className="text-lg font-semibold mt-2">{formatGermanPrice(1)}</div>
+                        <div className="text-xs text-muted-foreground">{formatGermanPrice(0.10)} pro Credit</div>
                         <Button 
                           className="w-full mt-3" 
                           size="sm"
@@ -1150,7 +928,7 @@ export default function EinstellungenPage() {
                                 body: JSON.stringify({
                                   type: 'credits',
                                   credits: 10,
-                                  amount: 15
+                                  amount: 1
                                 })
                               });
                               const data = await response.json();
@@ -1173,7 +951,7 @@ export default function EinstellungenPage() {
                       <CardContent className="p-4">
                         <div className="text-2xl font-bold">25</div>
                         <div className="text-sm text-muted-foreground">Credits</div>
-                        <div className="text-lg font-semibold mt-2">30€</div>
+                        <div className="text-lg font-semibold mt-2">{formatGermanPrice(2)}</div>
                         <div className="text-xs text-green-600">20% Rabatt</div>
                         <Button 
                           className="w-full mt-3" 
@@ -1186,7 +964,7 @@ export default function EinstellungenPage() {
                                 body: JSON.stringify({
                                   type: 'credits',
                                   credits: 25,
-                                  amount: 30
+                                  amount: 2
                                 })
                               });
                               const data = await response.json();
@@ -1209,8 +987,8 @@ export default function EinstellungenPage() {
                       <CardContent className="p-4">
                         <div className="text-2xl font-bold">50</div>
                         <div className="text-sm text-muted-foreground">Credits</div>
-                        <div className="text-lg font-semibold mt-2">50€</div>
-                        <div className="text-xs text-green-600">33% Rabatt</div>
+                        <div className="text-lg font-semibold mt-2">{formatGermanPrice(4)}</div>
+                        <div className="text-xs text-green-600">20% Rabatt</div>
                         <Button 
                           className="w-full mt-3" 
                           size="sm"
@@ -1222,7 +1000,7 @@ export default function EinstellungenPage() {
                                 body: JSON.stringify({
                                   type: 'credits',
                                   credits: 50,
-                                  amount: 50
+                                  amount: 4
                                 })
                               });
                               const data = await response.json();
@@ -1245,8 +1023,8 @@ export default function EinstellungenPage() {
                       <CardContent className="p-4">
                         <div className="text-2xl font-bold">100</div>
                         <div className="text-sm text-muted-foreground">Credits</div>
-                        <div className="text-lg font-semibold mt-2">85€</div>
-                        <div className="text-xs text-green-600">43% Rabatt</div>
+                        <div className="text-lg font-semibold mt-2">{formatGermanPrice(8)}</div>
+                        <div className="text-xs text-green-600">20% Rabatt</div>
                         <Button 
                           className="w-full mt-3" 
                           size="sm"
@@ -1258,7 +1036,7 @@ export default function EinstellungenPage() {
                                 body: JSON.stringify({
                                   type: 'credits',
                                   credits: 100,
-                                  amount: 85
+                                  amount: 8
                                 })
                               });
                               const data = await response.json();
@@ -1281,8 +1059,8 @@ export default function EinstellungenPage() {
                       <CardContent className="p-4">
                         <div className="text-2xl font-bold">250</div>
                         <div className="text-sm text-muted-foreground">Credits</div>
-                        <div className="text-lg font-semibold mt-2">175€</div>
-                        <div className="text-xs text-green-600">53% Rabatt</div>
+                        <div className="text-lg font-semibold mt-2">{formatGermanPrice(20)}</div>
+                        <div className="text-xs text-green-600">20% Rabatt</div>
                         <Button 
                           className="w-full mt-3" 
                           size="sm"
@@ -1294,7 +1072,7 @@ export default function EinstellungenPage() {
                                 body: JSON.stringify({
                                   type: 'credits',
                                   credits: 250,
-                                  amount: 175
+                                  amount: 20
                                 })
                               });
                               const data = await response.json();
@@ -1318,7 +1096,7 @@ export default function EinstellungenPage() {
                       <CardContent className="p-4">
                         <div className="text-2xl font-bold text-purple-600">👥</div>
                         <div className="text-sm font-semibold">Weiteres Teammitglied</div>
-                        <div className="text-lg font-semibold mt-2 text-purple-600">5€</div>
+                        <div className="text-lg font-semibold mt-2 text-purple-600">{formatGermanPrice(5)}</div>
                         <div className="text-xs text-purple-600">/ Monat (Enterprise)</div>
                         <Button 
                           className="w-full mt-3" 
@@ -1403,9 +1181,10 @@ export default function EinstellungenPage() {
                   </Table>
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </SidebarInset>
-    )
-  } 
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </SidebarInset>
+  )
+}

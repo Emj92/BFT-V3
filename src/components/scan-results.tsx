@@ -235,6 +235,23 @@ export default function ScanResults({
     }
   }
 
+  // Funktion für konsistente Kreis-Farben basierend auf getAccessibilityRating
+  const getCircleStrokeColor = (score: number) => {
+    const normalizedScore = score <= 1 ? score * 100 : score;
+    
+    if (normalizedScore >= 90) {
+      return '#16a34a'; // text-green-600 entspricht
+    } else if (normalizedScore >= 75) {
+      return '#22c55e'; // text-green-500 entspricht  
+    } else if (normalizedScore >= 60) {
+      return '#ca8a04'; // text-yellow-600 entspricht
+    } else if (normalizedScore >= 40) {
+      return '#ea580c'; // text-orange-600 entspricht
+    } else {
+      return '#dc2626'; // text-red-600 entspricht
+    }
+  }
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
       <div className="p-6">
@@ -271,7 +288,7 @@ export default function ScanResults({
                     cx="60"
                     cy="60"
                     r="50"
-                    stroke={results.score >= 0.9 ? "#10b981" : results.score >= 0.7 ? "#f59e0b" : "#ef4444"}
+                    stroke={getCircleStrokeColor(results.score)}
                     strokeWidth="8"
                     fill="transparent"
                     strokeDasharray={`${2 * Math.PI * 50}`}

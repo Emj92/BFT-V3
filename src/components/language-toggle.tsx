@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Check } from "lucide-react"
-import Image from "next/image"
+// import Image from "next/image" - Entfernt da wir normale img tags verwenden
 
 export function LanguageToggle() {
   const { language, setLanguage, t } = useLanguage()
@@ -24,7 +24,7 @@ export function LanguageToggle() {
           aria-label={t('language.switch')}
           title={t('language.switch')}
         >
-          <Image
+          <img
             src={language === 'de' ? '/deutschland.png' : '/america.png'}
             alt={language === 'de' ? 'Deutsch' : 'English'}
             width={32}
@@ -40,7 +40,7 @@ export function LanguageToggle() {
           style={{ fontSize: '17px' }}
         >
           <div className="flex items-center gap-2">
-            <Image
+            <img
               src="/deutschland.png"
               alt="Deutsch"
               width={20}
@@ -57,7 +57,7 @@ export function LanguageToggle() {
           style={{ fontSize: '17px' }}
         >
           <div className="flex items-center gap-2">
-            <Image
+            <img
               src="/america.png"
               alt="English"
               width={20}

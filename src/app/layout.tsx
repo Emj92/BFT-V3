@@ -15,6 +15,11 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'barriere-frei24.de - Barrierefreiheits-Prüftool',
   description: 'Prüfen Sie Ihre Website auf Barrierefreiheit nach WCAG 2.1 und BITV 2.0 Standards',
+  icons: {
+    icon: '/favicon2.png',
+    shortcut: '/favicon2.png',
+    apple: '/favicon2.png',
+  },
 };
 
 export default function RootLayout({

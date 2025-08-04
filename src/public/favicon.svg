@@ -1,1 +1,26 @@
- 
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Hintergrund -->
+  <rect width="64" height="64" rx="12" fill="#2563eb"/>
+  
+  <!-- Barrierefreiheits-Symbol: stilisierte Person mit ausgebreiteten Armen -->
+  <g fill="white">
+    <!-- Kopf -->
+    <circle cx="32" cy="20" r="6"/>
+    
+    <!-- Körper -->
+    <rect x="28" y="26" width="8" height="16" rx="2"/>
+    
+    <!-- Arme (ausgebreitet für Barrierefreiheit) -->
+    <rect x="18" y="28" width="10" height="4" rx="2"/>
+    <rect x="36" y="28" width="10" height="4" rx="2"/>
+    
+    <!-- Beine -->
+    <rect x="26" y="42" width="4" height="12" rx="2"/>
+    <rect x="34" y="42" width="4" height="12" rx="2"/>
+    
+    <!-- Kleine Akzente für "Barrierefreiheit" -->
+    <circle cx="16" cy="48" r="2" opacity="0.7"/>
+    <circle cx="48" cy="48" r="2" opacity="0.7"/>
+    <circle cx="32" cy="56" r="2" opacity="0.7"/>
+  </g>
+</svg>

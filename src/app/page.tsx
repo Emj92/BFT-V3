@@ -1141,8 +1141,8 @@ export default function HomePage() {
                 </div>
                 <div className="bg-green-100 dark:bg-green-900/30 p-6 rounded-lg">
                   <h3 className="text-2xl font-bold text-green-600 mb-4">✅ Barrierefreiheit24.de</h3>
-                  <div className="text-4xl font-bold text-green-600 mb-2">ab 108€</div>
-                  <div className="text-sm text-muted-foreground">pro Jahr (9€/Monat)</div>
+                  <div className="text-4xl font-bold text-green-600 mb-2">ab 108,00€</div>
+                  <div className="text-sm text-muted-foreground">pro Jahr (9,00€/Monat)</div>
                 </div>
               </div>
               <div className="bg-yellow-100 dark:bg-yellow-900/30 p-6 rounded-lg">
@@ -1361,7 +1361,7 @@ export default function HomePage() {
                   <div className="text-4xl mb-2">🆓</div>
                   <CardTitle className="text-2xl">FREE</CardTitle>
                   <div className="text-lg text-muted-foreground">"Test & Kennenlernen"</div>
-                  <div className="text-3xl font-bold">0€</div>
+                  <div className="text-3xl font-bold">0,00€</div>
                   <CardDescription>/ Monat</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 flex-1 flex flex-col">
@@ -1429,8 +1429,8 @@ export default function HomePage() {
                   <div className="text-4xl mb-2">🚀</div>
                   <CardTitle className="text-2xl">STARTER</CardTitle>
                   <div className="text-lg text-muted-foreground">"Für Einzelpersonen"</div>
-                  <div className="text-3xl font-bold">{isYearly ? '91,80€' : '9€'}</div>
-                  <CardDescription>{isYearly ? '/ Jahr (7,65€/Monat)' : '/ Monat'}</CardDescription>
+                  <div className="text-3xl font-bold">{isYearly ? '92,00€' : '9,00€'}</div>
+                  <CardDescription>{isYearly ? '/ Jahr (7,67€/Monat)' : '/ Monat'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 flex-1 flex flex-col">
                   <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
@@ -1524,8 +1524,8 @@ export default function HomePage() {
                   <div className="text-4xl mb-2">⭐</div>
                   <CardTitle className="text-2xl">PROFESSIONAL</CardTitle>
                   <div className="text-lg text-muted-foreground">"Für Unternehmen"</div>
-                  <div className="text-3xl font-bold">{isYearly ? '295,60€' : '29€'}</div>
-                  <CardDescription>{isYearly ? '/ Jahr (24,63€/Monat)' : '/ Monat'}</CardDescription>
+                  <div className="text-3xl font-bold">{isYearly ? '296,00€' : '29,00€'}</div>
+                  <CardDescription>{isYearly ? '/ Jahr (24,67€/Monat)' : '/ Monat'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 flex-1 flex flex-col">
                   <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
@@ -1611,8 +1611,8 @@ export default function HomePage() {
                   <div className="text-4xl mb-2">🏢</div>
                   <CardTitle className="text-2xl">ENTERPRISE</CardTitle>
                   <div className="text-lg text-muted-foreground">"Für Agenturen & Teams"</div>
-                  <div className="text-3xl font-bold">{isYearly ? 'Ab 805,40€' : 'Ab 79€'}</div>
-                  <CardDescription>{isYearly ? '/ Jahr (67,12€/Monat)' : '/ Monat'}</CardDescription>
+                  <div className="text-3xl font-bold">{isYearly ? 'Ab 806,00€' : 'Ab 79,00€'}</div>
+                  <CardDescription>{isYearly ? '/ Jahr (67,17€/Monat)' : '/ Monat'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 flex-1 flex flex-col">
                   <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>

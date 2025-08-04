@@ -33,37 +33,37 @@ export interface CreditPackageData {
   userEmail: string
 }
 
-// Bundle-Preise definieren - aktualisiert mit 15% Jahresrabatt
+// Bundle-Preise definieren - aufgerundet auf volle Zahlen
 const BUNDLE_PRICES = {
   STARTER: {
     monthly: 9.00,
-    yearly: 91.80, // 9€ * 12 * 0.85 (15% Rabatt)
+    yearly: 92.00, // Aufgerundet von 91.80
     title: 'STARTER - Für Einzelpersonen'
   },
   PRO: {
     monthly: 29.00,
-    yearly: 295.60, // 29€ * 12 * 0.85 (15% Rabatt)
+    yearly: 296.00, // Aufgerundet von 295.60
     title: 'PROFESSIONAL - Für Unternehmen'
   },
   PROFESSIONAL: {
     monthly: 29.00,
-    yearly: 295.60, // 29€ * 12 * 0.85 (15% Rabatt)
+    yearly: 296.00, // Aufgerundet von 295.60
     title: 'PROFESSIONAL - Für Unternehmen'
   },
   ENTERPRISE: {
     monthly: 79.00,
-    yearly: 805.40, // 79€ * 12 * 0.85 (15% Rabatt)
+    yearly: 806.00, // Aufgerundet von 805.40
     title: 'ENTERPRISE - Für Agenturen & Teams'
   }
 }
 
-// Credit-Pakete definieren
+// Credit-Pakete definieren - faire Preise angepasst an Bundle-Verhältnisse
 const CREDIT_PACKAGES = {
-  10: { price: 15.00, title: '10 Credits Paket' },
-  25: { price: 30.00, title: '25 Credits Paket (20% Rabatt)' },
-  50: { price: 50.00, title: '50 Credits Paket (33% Rabatt)' },
-  100: { price: 85.00, title: '100 Credits Paket (43% Rabatt)' },
-  250: { price: 175.00, title: '250 Credits Paket (53% Rabatt)' }
+  10: { price: 1.00, title: '10 Credits Paket' },
+  25: { price: 2.00, title: '25 Credits Paket (20% Rabatt)' },
+  50: { price: 4.00, title: '50 Credits Paket (20% Rabatt)' },
+  100: { price: 8.00, title: '100 Credits Paket (20% Rabatt)' },
+  250: { price: 20.00, title: '250 Credits Paket (20% Rabatt)' }
 }
 
 export async function createBundlePayment(data: PaymentData & { interval: 'monthly' | 'yearly' }) {
