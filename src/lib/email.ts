@@ -160,4 +160,123 @@ export async function sendPasswordResetEmail(email: string, token: string, name:
     console.error('Fehler beim E-Mail-Versand:', error)
     return { success: false, message: 'Fehler beim E-Mail-Versand' }
   }
+}
+
+export async function sendInvoiceEmail(
+  email: string, 
+  name: string, 
+  invoiceNumber: string, 
+  amount: number,
+  pdfBuffer: Buffer,
+  bundleType?: string,
+  credits?: number
+) {
+  // SMTP-Konfiguration prüfen
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER) {
+    throw new Error('SMTP-Konfiguration fehlt. Bitte SMTP_HOST, SMTP_USER und SMTP_PASS in .env setzen.')
+  }
+
+  try {
+    const transporter = createTransporter()
+    
+    const mailOptions = {
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: email,
+      subject: `📧 Ihre Rechnung ${invoiceNumber} von barriere-frei24`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Rechnung ${invoiceNumber}</title>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f4f4f4; }
+            .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+            .header { text-align: center; margin-bottom: 30px; }
+            .logo { font-size: 24px; font-weight: bold; color: #2563eb; margin-bottom: 10px; }
+            .highlight { background: #f0f9ff; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 5px; }
+            .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center; }
+            .success-box { background: #10b981; color: white; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="logo">🛡️ barriere-frei24</div>
+              <h1>📧 Ihre Rechnung ist da!</h1>
+            </div>
+            
+            <div class="success-box">
+              <h2 style="margin: 0; font-size: 18px;">✅ Zahlung erfolgreich verarbeitet!</h2>
+            </div>
+            
+            <p>Hallo <strong>${name}</strong>,</p>
+            
+            <p>vielen Dank für Ihren Kauf bei barriere-frei24! 🎉</p>
+            
+            <div class="highlight">
+              <p><strong>📋 Rechnungsdetails:</strong></p>
+              <ul>
+                <li><strong>Rechnungsnummer:</strong> ${invoiceNumber}</li>
+                <li><strong>Betrag:</strong> ${amount.toFixed(2)} € (inkl. MwSt.)</li>
+                <li><strong>Datum:</strong> ${new Date().toLocaleDateString('de-DE')}</li>
+                ${bundleType ? `<li><strong>Bundle:</strong> ${bundleType}</li>` : ''}
+                ${credits ? `<li><strong>Credits erhalten:</strong> +${credits} Credits</li>` : ''}
+              </ul>
+            </div>
+            
+            <p>🔗 Ihre Rechnung finden Sie als PDF im Anhang dieser E-Mail.</p>
+            
+            <p>Sie können Ihre Rechnungen auch jederzeit in Ihrem Dashboard unter "Einstellungen > Rechnungen & Pakete" einsehen und herunterladen.</p>
+            
+            ${bundleType ? `
+              <div style="background: #10b981; color: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0;"><strong>🚀 Ihr ${bundleType} Bundle ist jetzt aktiv!</strong></p>
+                <p style="margin: 5px 0 0 0;">Alle Features sind sofort verfügbar. Loggen Sie sich ein und nutzen Sie Ihre neuen Möglichkeiten!</p>
+              </div>
+            ` : ''}
+            
+            ${credits ? `
+              <div style="background: #2563eb; color: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0;"><strong>💰 ${credits} Credits wurden gutgeschrieben!</strong></p>
+                <p style="margin: 5px 0 0 0;">Ihre Credits sind sofort einsatzbereit für Scans, Coach und BFE-Generator.</p>
+              </div>
+            ` : ''}
+            
+            <p><strong>Bei Fragen stehen wir Ihnen gerne zur Verfügung:</strong></p>
+            <ul>
+              <li>📧 E-Mail: support@barriere-frei24.de</li>
+              <li>🌐 Dashboard: <a href="${process.env.NEXTAUTH_URL || 'https://app.barriere-frei24.de'}/dashboard">Jetzt einloggen</a></li>
+            </ul>
+            
+            <p>Vielen Dank für Ihr Vertrauen! 😊</p>
+            
+            <p>Mit freundlichen Grüßen,<br>
+            <strong>Ihr barriere-frei24 Team</strong></p>
+            
+            <div class="footer">
+              <p>Diese E-Mail wurde automatisch generiert.</p>
+              <p><strong>barriere-frei24</strong> | Ihre Experten für digitale Barrierefreiheit 🌟</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      attachments: [
+        {
+          filename: `Rechnung_${invoiceNumber}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        }
+      ]
+    }
+    
+    await transporter.sendMail(mailOptions)
+    return { success: true, message: 'Rechnung per E-Mail versendet' }
+    
+  } catch (error) {
+    console.error('Fehler beim Rechnungs-E-Mail-Versand:', error)
+    return { success: false, message: 'Fehler beim Rechnungs-E-Mail-Versand' }
+  }
 } 

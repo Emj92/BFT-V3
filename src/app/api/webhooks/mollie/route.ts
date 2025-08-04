@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { handlePaymentWebhook } from '@/lib/mollie'
 import prisma from '@/lib/prisma'
 import { BundleType, TransactionType } from '@prisma/client'
+import { generateInvoicePDF, InvoiceData } from '@/lib/pdf-generator'
+import { sendInvoiceEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -114,7 +116,7 @@ export async function POST(request: NextRequest) {
         })
 
         // Rechnung erstellen
-        await prisma.invoice.create({
+        const invoice = await prisma.invoice.create({
           data: {
             invoiceNumber,
             userId: metadata.userId,
@@ -125,6 +127,52 @@ export async function POST(request: NextRequest) {
             status: 'PAID'
           }
         })
+
+        // User-Daten für PDF und E-Mail abrufen
+        const user = await prisma.user.findUnique({
+          where: { id: metadata.userId },
+          select: { name: true, email: true }
+        })
+
+        if (user) {
+          console.log('📧 Sending invoice email to:', user.email)
+          
+          // PDF-Rechnung generieren
+          const invoiceData: InvoiceData = {
+            invoiceNumber,
+            date: new Date().toLocaleDateString('de-DE'),
+            customerName: user.name || 'Kunde',
+            customerEmail: user.email,
+            description: `${metadata.bundle} Bundle - ${metadata.interval === 'yearly' ? 'Jährliches' : 'Monatliches'} Abonnement`,
+            amount: parseFloat(webhookResult.amount?.value || '0'),
+            bundleType: actualBundle,
+            credits: creditsToAdd,
+            paymentId: paymentId
+          }
+          
+          try {
+            const pdfBuffer = await generateInvoicePDF(invoiceData)
+            
+            // E-Mail mit PDF-Anhang versenden
+            const emailResult = await sendInvoiceEmail(
+              user.email,
+              user.name || 'Kunde',
+              invoiceNumber,
+              parseFloat(webhookResult.amount?.value || '0'),
+              Buffer.from(pdfBuffer),
+              actualBundle,
+              creditsToAdd
+            )
+            
+            if (emailResult.success) {
+              console.log('✅ Invoice email sent successfully!')
+            } else {
+              console.error('❌ Failed to send invoice email:', emailResult.message)
+            }
+          } catch (emailError) {
+            console.error('❌ Error generating PDF or sending email:', emailError)
+          }
+        }
 
       } else if (metadata.type === 'credits') {
         console.log('💰 Processing credit purchase:', metadata.credits, 'for user:', metadata.userId)
@@ -155,7 +203,7 @@ export async function POST(request: NextRequest) {
         })
 
         // Rechnung erstellen
-        await prisma.invoice.create({
+        const creditInvoice = await prisma.invoice.create({
           data: {
             invoiceNumber,
             userId: metadata.userId,
@@ -166,6 +214,51 @@ export async function POST(request: NextRequest) {
             status: 'PAID'
           }
         })
+
+        // User-Daten für PDF und E-Mail abrufen
+        const creditUser = await prisma.user.findUnique({
+          where: { id: metadata.userId },
+          select: { name: true, email: true }
+        })
+
+        if (creditUser) {
+          console.log('📧 Sending credit invoice email to:', creditUser.email)
+          
+          // PDF-Rechnung für Credits generieren
+          const creditInvoiceData: InvoiceData = {
+            invoiceNumber,
+            date: new Date().toLocaleDateString('de-DE'),
+            customerName: creditUser.name || 'Kunde',
+            customerEmail: creditUser.email,
+            description: `${creditAmount} Credits gekauft`,
+            amount: parseFloat(webhookResult.amount?.value || '0'),
+            credits: creditAmount,
+            paymentId: paymentId
+          }
+          
+          try {
+            const creditPdfBuffer = await generateInvoicePDF(creditInvoiceData)
+            
+            // E-Mail mit PDF-Anhang versenden
+            const creditEmailResult = await sendInvoiceEmail(
+              creditUser.email,
+              creditUser.name || 'Kunde',
+              invoiceNumber,
+              parseFloat(webhookResult.amount?.value || '0'),
+              Buffer.from(creditPdfBuffer),
+              undefined,
+              creditAmount
+            )
+            
+            if (creditEmailResult.success) {
+              console.log('✅ Credit invoice email sent successfully!')
+            } else {
+              console.error('❌ Failed to send credit invoice email:', creditEmailResult.message)
+            }
+          } catch (creditEmailError) {
+            console.error('❌ Error generating credit PDF or sending email:', creditEmailError)
+          }
+        }
       }
     }
 

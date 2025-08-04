@@ -636,3 +636,183 @@ export async function generateAccessibilityReport(
   const generator = new PDFReportGenerator();
   return await generator.generateReport(scanResult, options);
 }
+
+// Interface für Rechnungsdaten
+export interface InvoiceData {
+  invoiceNumber: string
+  date: string
+  customerName: string
+  customerEmail: string
+  customerAddress?: string
+  description: string
+  amount: number
+  bundleType?: string
+  credits?: number
+  paymentId: string
+}
+
+// Rechnungs-PDF Generator
+export class InvoicePDFGenerator {
+  private pdf: jsPDF;
+  private margin = 20;
+  private currentY = 20;
+  private lineHeight = 6;
+
+  constructor() {
+    this.pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+  }
+
+  public async generateInvoice(invoiceData: InvoiceData): Promise<Uint8Array> {
+    // Header mit Logo und Firmeninfo
+    this.addCompanyHeader();
+    
+    // Rechnungsinfo
+    this.addInvoiceInfo(invoiceData);
+    
+    // Kundeninfo
+    this.addCustomerInfo(invoiceData);
+    
+    // Rechnungsposten
+    this.addInvoiceItems(invoiceData);
+    
+    // Summe
+    this.addInvoiceTotal(invoiceData);
+    
+    // Footer
+    this.addInvoiceFooter();
+    
+    return this.pdf.output('arraybuffer');
+  }
+
+  private addCompanyHeader(): void {
+    // Firmenlogo und Info
+    this.pdf.setFontSize(20);
+    this.pdf.setTextColor(37, 99, 235); // Blue color
+    this.pdf.text('🛡️ barriere-frei24', this.margin, this.currentY);
+    
+    this.currentY += 10;
+    this.pdf.setFontSize(10);
+    this.pdf.setTextColor(100, 100, 100);
+    this.pdf.text('Ihre Experten für digitale Barrierefreiheit', this.margin, this.currentY);
+    
+    // Firmenadresse (rechts)
+    this.pdf.setTextColor(60, 60, 60);
+    const rightX = 130;
+    this.pdf.text('barriere-frei24 GmbH', rightX, this.currentY - 10);
+    this.pdf.text('Musterstraße 123', rightX, this.currentY - 5);
+    this.pdf.text('12345 Musterstadt', rightX, this.currentY);
+    this.pdf.text('Deutschland', rightX, this.currentY + 5);
+    
+    this.currentY += 20;
+  }
+
+  private addInvoiceInfo(invoiceData: InvoiceData): void {
+    // Rechnungstitel
+    this.pdf.setFontSize(16);
+    this.pdf.setTextColor(0, 0, 0);
+    this.pdf.text('RECHNUNG', this.margin, this.currentY);
+    
+    this.currentY += 15;
+    
+    // Rechnungsdaten
+    this.pdf.setFontSize(10);
+    this.pdf.setTextColor(60, 60, 60);
+    
+    this.pdf.text(`Rechnungsnummer: ${invoiceData.invoiceNumber}`, this.margin, this.currentY);
+    this.pdf.text(`Rechnungsdatum: ${invoiceData.date}`, this.margin, this.currentY + 5);
+    this.pdf.text(`Payment ID: ${invoiceData.paymentId}`, this.margin, this.currentY + 10);
+    
+    this.currentY += 25;
+  }
+
+  private addCustomerInfo(invoiceData: InvoiceData): void {
+    this.pdf.setFontSize(12);
+    this.pdf.setTextColor(0, 0, 0);
+    this.pdf.text('Rechnungsempfänger:', this.margin, this.currentY);
+    
+    this.currentY += 8;
+    this.pdf.setFontSize(10);
+    this.pdf.text(invoiceData.customerName, this.margin, this.currentY);
+    this.pdf.text(invoiceData.customerEmail, this.margin, this.currentY + 5);
+    
+    if (invoiceData.customerAddress) {
+      this.pdf.text(invoiceData.customerAddress, this.margin, this.currentY + 10);
+      this.currentY += 15;
+    } else {
+      this.currentY += 10;
+    }
+    
+    this.currentY += 15;
+  }
+
+  private addInvoiceItems(invoiceData: InvoiceData): void {
+    // Tabellenkopf
+    this.pdf.setFillColor(240, 240, 240);
+    this.pdf.rect(this.margin, this.currentY, 170, 8, 'F');
+    
+    this.pdf.setFontSize(10);
+    this.pdf.setTextColor(0, 0, 0);
+    this.pdf.text('Beschreibung', this.margin + 2, this.currentY + 5);
+    this.pdf.text('Betrag', 160, this.currentY + 5);
+    
+    this.currentY += 12;
+    
+    // Rechnungsposition
+    this.pdf.text(invoiceData.description, this.margin + 2, this.currentY);
+    this.pdf.text(`${invoiceData.amount.toFixed(2)} €`, 160, this.currentY);
+    
+    if (invoiceData.bundleType) {
+      this.currentY += 5;
+      this.pdf.setTextColor(100, 100, 100);
+      this.pdf.setFontSize(9);
+      this.pdf.text(`Bundle: ${invoiceData.bundleType}`, this.margin + 2, this.currentY);
+      
+      if (invoiceData.credits) {
+        this.pdf.text(`Credits: +${invoiceData.credits}`, this.margin + 50, this.currentY);
+      }
+    }
+    
+    this.currentY += 15;
+  }
+
+  private addInvoiceTotal(invoiceData: InvoiceData): void {
+    // Linie
+    this.pdf.setDrawColor(200, 200, 200);
+    this.pdf.line(this.margin, this.currentY, this.margin + 170, this.currentY);
+    
+    this.currentY += 10;
+    
+    // Gesamtsumme
+    this.pdf.setFontSize(12);
+    this.pdf.setTextColor(0, 0, 0);
+    this.pdf.text('Gesamtbetrag:', 120, this.currentY);
+    this.pdf.text(`${invoiceData.amount.toFixed(2)} € (inkl. MwSt.)`, 160, this.currentY);
+    
+    this.currentY += 20;
+  }
+
+  private addInvoiceFooter(): void {
+    const footerY = 260;
+    
+    this.pdf.setFontSize(8);
+    this.pdf.setTextColor(100, 100, 100);
+    
+    this.pdf.text('Zahlungsweise: Online-Zahlung über Mollie', this.margin, footerY);
+    this.pdf.text('Status: Bezahlt', this.margin, footerY + 5);
+    this.pdf.text('Vielen Dank für Ihr Vertrauen in barriere-frei24!', this.margin, footerY + 15);
+    
+    // Rechtlicher Footer
+    this.pdf.text('barriere-frei24 GmbH | Geschäftsführer: Max Mustermann', this.margin, footerY + 25);
+    this.pdf.text('USt-IdNr.: DE123456789 | Handelsregister: HRB 12345 München', this.margin, footerY + 30);
+  }
+}
+
+// Export-Funktion für Rechnungs-PDF
+export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Uint8Array> {
+  const generator = new InvoicePDFGenerator();
+  return await generator.generateInvoice(invoiceData);
+}

@@ -32,7 +32,8 @@ import {
   Clock,
   Calendar,
   CheckCircle,
-  X
+  X,
+  Download
 } from "lucide-react"
 
 interface Settings {
@@ -158,10 +159,10 @@ export default function EinstellungenPage() {
     const loadBillingHistory = async () => {
       try {
         setBillingLoading(true)
-        const response = await fetch('/api/billing/history')
+        const response = await fetch('/api/invoices')
         if (response.ok) {
           const data = await response.json()
-          setBillingHistory(data.history || [])
+          setBillingHistory(data.invoices || [])
         } else {
           console.warn('Rechnungshistorie konnte nicht geladen werden')
           setBillingHistory([])
@@ -178,6 +179,31 @@ export default function EinstellungenPage() {
       loadBillingHistory()
     }
   }, [user])
+
+  // Download Rechnung
+  const downloadInvoice = async (invoiceId: string, invoiceNumber: string) => {
+    try {
+      const response = await fetch(`/api/invoices/download/${invoiceId}`)
+      
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `Rechnung_${invoiceNumber}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        toast.success('Rechnung wurde heruntergeladen!')
+      } else {
+        toast.error('Fehler beim Download der Rechnung')
+      }
+    } catch (error) {
+      console.error('Download-Fehler:', error)
+      toast.error('Fehler beim Download der Rechnung')
+    }
+  }
 
   const handleSettingChange = (key: string, value: any) => {
     setSettings(prev => ({
@@ -1266,9 +1292,11 @@ export default function EinstellungenPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Datum</TableHead>
+                        <TableHead>Rechnung</TableHead>
                         <TableHead>Beschreibung</TableHead>
                         <TableHead>Betrag</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Aktionen</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1276,18 +1304,34 @@ export default function EinstellungenPage() {
                         billingHistory.map((item, index) => (
                           <TableRow key={index}>
                             <TableCell>{item.date}</TableCell>
+                            <TableCell>
+                              <div className="font-mono text-sm">{item.invoiceNumber}</div>
+                              {item.bundleType && <div className="text-xs text-muted-foreground">{item.bundleType}</div>}
+                              {item.credits && <div className="text-xs text-blue-600">+{item.credits} Credits</div>}
+                            </TableCell>
                             <TableCell>{item.description}</TableCell>
                             <TableCell>{item.amount}</TableCell>
                             <TableCell>
-                              <Badge variant={item.status === 'paid' ? 'default' : 'secondary'}>
-                                {item.status}
+                              <Badge variant="default" className="bg-green-600">
+                                ✅ Bezahlt
                               </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => downloadInvoice(item.id, item.invoiceNumber)}
+                                className="gap-2"
+                              >
+                                <Download className="h-4 w-4" />
+                                PDF
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center py-8">
+                          <TableCell colSpan={6} className="text-center py-8">
                             <div className="flex flex-col items-center gap-2 text-muted-foreground">
                               <CreditCard className="h-8 w-8 opacity-50" />
                               <span>Keine Rechnungen vorhanden</span>
