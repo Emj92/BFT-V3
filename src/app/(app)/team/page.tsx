@@ -12,6 +12,7 @@ import { Users, Send, Crown, UserPlus, Mail, Settings } from "lucide-react"
 import { useUser } from "@/hooks/useUser"
 import { useBundle } from "@/hooks/useBundle"
 import { UpgradeDialog } from "@/components/upgrade-dialog"
+import { toast } from "sonner"
 
 export default function TeamPage() {
   const { user } = useUser()
@@ -64,13 +65,13 @@ export default function TeamPage() {
       })
 
       if (response.ok) {
-        alert('Einladung erfolgreich versendet!')
+        toast.success('Einladung erfolgreich versendet!')
         setTeamInviteEmail("")
         setTeamInviteMessage("")
         loadTeamData()
       } else {  
         const error = await response.json()
-        alert('Fehler: ' + error.error)
+        toast.error('Fehler: ' + error.error)
       }
     } catch (error) {
       toast.error('Fehler beim Senden der Einladung')
@@ -78,25 +79,29 @@ export default function TeamPage() {
   }
 
   const removeTeamMember = async (memberId: string) => {
-    // Verwende ein Dialog statt confirm - für jetzt einfach Toast
-    toast.error('Teammitglied entfernen: Diese Funktion ist noch nicht implementiert')
+    // Bestätigungsabfrage
+    const confirmed = window.confirm('Möchten Sie dieses Teammitglied wirklich entfernen?')
+    
+    if (!confirmed) {
+      return
+    }
     
     try {
-      const response = await fetch('/api/teams/member', {
+      const response = await fetch('/api/teams/remove-member', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'remove', memberId })
+        body: JSON.stringify({ memberId })
       })
 
       if (response.ok) {
-        alert('Teammitglied erfolgreich entfernt')
+        toast.success('Teammitglied erfolgreich entfernt')
         loadTeamData()
       } else {
         const error = await response.json()
-        alert('Fehler: ' + error.error)
+        toast.error('Fehler: ' + error.error)
       }
     } catch (error) {
-      alert('Fehler beim Entfernen des Teammitglieds')
+      toast.error('Fehler beim Entfernen des Teammitglieds')
     }
   }
 
