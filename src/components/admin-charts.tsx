@@ -82,25 +82,39 @@ export function AdminCharts() {
       const response = await fetch(`/api/admin/credit-usage?${params.toString()}`, {
         cache: 'no-store',
         headers: {
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         }
       })
       
       if (response.ok) {
-        const data = await response.json()
-        
-        setStats(prev => ({
-          ...prev,
-          usedCredits: data.totalUsedCredits || 0,
-          scanCredits: data.scanCredits || 0,
-          coachCredits: data.coachCredits || 0,
-          bfeCredits: data.bfeCredits || 0
-        }))
-        
-        console.log('Echte Credit-Daten geladen:', data)
+        const contentType = response.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json()
+          
+          setStats(prev => ({
+            ...prev,
+            usedCredits: data.totalUsedCredits || 0,
+            scanCredits: data.scanCredits || 0,
+            coachCredits: data.coachCredits || 0,
+            bfeCredits: data.bfeCredits || 0
+          }))
+          
+          console.log('Echte Credit-Daten geladen:', data)
+        } else {
+          console.error('Credit-Usage API gibt kein JSON zurück:', contentType)
+          setStats(prev => ({
+            ...prev,
+            usedCredits: 0,
+            scanCredits: 0,
+            coachCredits: 0,
+            bfeCredits: 0
+          }))
+        }
       } else {
-        console.error('Credit-Usage API Fehler:', response.status)
-        // KEINE Fallback-Daten - setze auf 0
+        const errorText = await response.text()
+        console.error('Credit-Usage API Fehler:', response.status, errorText)
         setStats(prev => ({
           ...prev,
           usedCredits: 0,
@@ -126,13 +140,25 @@ export function AdminCharts() {
     const loadStats = async () => {
       try {
         const [usersResponse, creditsResponse] = await Promise.all([
-          fetch('/api/users'),
-          fetch('/api/credits/usage')
+          fetch('/api/users', {
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          }),
+          fetch('/api/credits/usage', {
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          })
         ])
 
         if (usersResponse.ok) {
-          const usersData = await usersResponse.json()
-          const users = Array.isArray(usersData) ? usersData : (usersData.users || [])
+          const contentType = usersResponse.headers.get('content-type')
+          if (contentType && contentType.includes('application/json')) {
+            const usersData = await usersResponse.json()
+            const users = Array.isArray(usersData) ? usersData : (usersData.users || [])
           
           // Berechne neue Nutzer diesen Monat
           const thisMonth = new Date()
@@ -166,9 +192,16 @@ export function AdminCharts() {
             avgRegistrationsPerPeriod: Math.round(newUsersThisMonth / registrationChartData.length)
           }))
           
-          // Lade Credit-Verbrauchsdaten - ECHTE DATEN
-          await loadCreditUsageStats()
-          setRegistrationData(registrationChartData)
+            // Lade Credit-Verbrauchsdaten - ECHTE DATEN
+            await loadCreditUsageStats()
+            setRegistrationData(registrationChartData)
+          } else {
+            console.error('Users API gibt kein JSON zurück:', contentType)
+            const errorText = await usersResponse.text()
+            console.error('Response text:', errorText)
+            setLoading(false)
+            return
+          }
         }
 
         // Echte Credit-Daten laden

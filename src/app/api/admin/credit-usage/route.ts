@@ -8,22 +8,38 @@ export const dynamic = 'force-dynamic'
 // GET - Credit-Verbrauchsstatistiken für Admin
 export async function GET(request: NextRequest) {
   try {
+    console.log('Credit-Usage API: Starting...')
+    
     const token = cookies().get('auth-token')?.value
     
     if (!token) {
-      return NextResponse.json({ error: 'Nicht authentifiziert' }, { status: 401 })
+      console.log('Credit-Usage API: No token found')
+      return NextResponse.json({ error: 'Nicht authentifiziert' }, { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
     }
 
     const decoded = verify(token, process.env.JWT_SECRET || 'barrierefrei-secret-key') as any
+    console.log('Credit-Usage API: Token decoded, user ID:', decoded.id)
     
     // Prüfe Admin-Berechtigung
     const user = await prisma.user.findUnique({
       where: { id: decoded.id }
+    }).catch((error) => {
+      console.error('Credit-Usage API: User lookup error:', error)
+      return null
     })
 
     if (!user || user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Keine Berechtigung' }, { status: 403 })
+      console.log('Credit-Usage API: No admin access for user:', user?.role)
+      return NextResponse.json({ error: 'Keine Berechtigung' }, { 
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      })
     }
+
+    console.log('Credit-Usage API: Admin access confirmed')
 
     // URL-Parameter für Filterung
     const url = new URL(request.url)
@@ -102,19 +118,38 @@ export async function GET(request: NextRequest) {
       .filter(t => t.description?.toLowerCase().includes('bfe') || t.description?.toLowerCase().includes('generator'))
       .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
-    return NextResponse.json({
+    const result = {
       totalUsedCredits,
       scanCredits,
       coachCredits,
       reportCredits,
       bfeCredits,
-      transactionCount: creditTransactions.length
+      transactionCount: creditTransactions.length,
+      success: true
+    }
+
+    console.log('Credit-Usage API: Success, returning:', result)
+    
+    return NextResponse.json(result, {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
     })
 
   } catch (error) {
-    console.error('Fehler beim Laden der Credit-Verbrauchsstatistiken:', error)
+    console.error('Credit-Usage API Error:', error)
     return NextResponse.json({ 
-      error: 'Interner Serverfehler' 
-    }, { status: 500 })
+      error: 'Interner Serverfehler',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      totalUsedCredits: 0,
+      scanCredits: 0,
+      coachCredits: 0,
+      reportCredits: 0,
+      bfeCredits: 0,
+      transactionCount: 0,
+      success: false
+    }, { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    })
   }
 }

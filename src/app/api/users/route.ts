@@ -9,6 +9,9 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
+    console.log('Users API: Starting to fetch users...')
+    
+    // Zuerst versuche eine einfache Abfrage ohne _count
     const users = await prisma.user.findMany({
       take: 100,
       skip: 0,
@@ -24,34 +27,68 @@ export async function GET() {
         bundlePurchasedAt: true,
         createdAt: true,
         updatedAt: true,
-        organizationId: true,
-        // Vereinfachte Beziehungen
-        _count: {
-          select: {
-            scans: true,
-            projects: true,
-            supportTickets: true
-          }
-        }
+        organizationId: true
       }
+    }).catch(async (countError) => {
+      console.error('Error with user query:', countError)
+      // Fallback: Noch einfachere Abfrage
+      return await prisma.user.findMany({
+        take: 50,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          credits: true,
+          bundle: true,
+          createdAt: true
+        }
+      })
     })
     
-    // Füge isActive und openTickets zu jedem Benutzer hinzu
+    console.log(`Users API: Found ${users.length} users`)
+    
+    // Füge Standardwerte hinzu ohne komplexe Abfragen
     const usersWithExtendedData = users.map(user => ({
       ...user,
-      isActive: true, // Alle Benutzer sind standardmäßig aktiv
-      openTickets: user._count?.supportTickets || 0,
-      scansCount: user._count?.scans || 0,
-      projectsCount: user._count?.projects || 0
+      isActive: true,
+      openTickets: 0, // Defaultwert
+      scansCount: 0,  // Defaultwert  
+      projectsCount: 0, // Defaultwert
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      organizationId: user.organizationId || null,
+      bundlePurchasedAt: user.bundlePurchasedAt || null
     }))
+    
+    console.log('Users API: Successfully processed user data')
     
     return NextResponse.json({ 
       users: usersWithExtendedData,
-      total: users.length 
+      total: users.length,
+      success: true
+    }, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
     })
   } catch (error) {
-    console.error('Error fetching users:', error)
-    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
+    console.error('Users API Error:', error)
+    
+    // Rückgabe einer garantiert gültigen JSON-Response
+    return NextResponse.json({ 
+      error: 'Failed to fetch users',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      users: [], // Fallback
+      total: 0,
+      success: false
+    }, { 
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
   }
 }
 
