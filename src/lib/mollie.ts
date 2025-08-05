@@ -1,6 +1,10 @@
 import { createMollieClient } from '@mollie/api-client'
 
-// Mollie Client erstellen - mit dem bereitgestellten Test-Schlüssel
+// Mollie Client erstellen
+if (!process.env.MOLLIE_API_KEY) {
+  console.error('⚠️ MOLLIE_API_KEY nicht konfiguriert!')
+}
+
 const mollie = createMollieClient({
   apiKey: process.env.MOLLIE_API_KEY || 'test_dHar4XY7LxsDOtmnkVtjNVWXLSlXsM'
 })
@@ -20,7 +24,7 @@ export async function testMollieConnection() {
 export interface PaymentData {
   amount: number
   description: string
-  bundle: 'STARTER' | 'PRO' | 'ENTERPRISE'
+  bundle: 'STARTER' | 'PRO' | 'PROFESSIONAL' | 'ENTERPRISE' | 'TEST_PRO'
   userId: string
   userEmail: string
 }
@@ -45,11 +49,7 @@ const BUNDLE_PRICES = {
     yearly: 296.00, // Aufgerundet von 295.60
     title: 'PROFESSIONAL - Für Unternehmen'
   },
-  PROFESSIONAL: {
-    monthly: 29.00,
-    yearly: 296.00, // Aufgerundet von 295.60
-    title: 'PROFESSIONAL - Für Unternehmen'
-  },
+
   ENTERPRISE: {
     monthly: 79.00,
     yearly: 806.00, // Aufgerundet von 805.40
@@ -76,9 +76,9 @@ export async function createBundlePayment(data: PaymentData & { interval: 'month
   try {
     console.log('💳 Creating bundle payment:', data)
     
-    const bundlePrice = BUNDLE_PRICES[data.bundle]
+    const bundlePrice = BUNDLE_PRICES[data.bundle as keyof typeof BUNDLE_PRICES]
     if (!bundlePrice) {
-      throw new Error('Ungültiges Bundle')
+      throw new Error(`Ungültiges Bundle: ${data.bundle}`)
     }
 
     const amount = data.interval === 'yearly' ? bundlePrice.yearly : bundlePrice.monthly
@@ -131,7 +131,7 @@ export async function createCreditPayment(data: CreditPackageData) {
     
     const creditPackage = CREDIT_PACKAGES[data.credits as keyof typeof CREDIT_PACKAGES]
     if (!creditPackage) {
-      throw new Error('Ungültiges Credit-Paket')
+      throw new Error(`Ungültiges Credit-Paket: ${data.credits} Credits`)
     }
     
     const redirectUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/einstellungen?payment=success&credits=${data.credits}`
@@ -170,7 +170,7 @@ export async function createCreditPayment(data: CreditPackageData) {
     console.error('Mollie Credit Payment Error:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Fehler bei der Zahlungsabwicklung'
+      error: error instanceof Error ? error.message : 'Fehler bei der Credit-Zahlungsabwicklung'
     }
   }
 }
@@ -190,7 +190,7 @@ export async function verifyPayment(paymentId: string) {
     console.error('Mollie Payment Verification Error:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Fehler bei der Zahlungsverifizierung'
+      error: error instanceof Error ? error.message : 'Fehler bei der Payment-Verifizierung'
     }
   }
 }
@@ -229,7 +229,7 @@ export async function handlePaymentWebhook(paymentId: string) {
     console.error('🚨 Mollie Webhook Error:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Webhook-Fehler'
+      error: error instanceof Error ? error.message : 'Mollie Webhook-Verarbeitung fehlgeschlagen'
     }
   }
 }

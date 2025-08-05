@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { handlePaymentWebhook } from '@/lib/mollie'
 import { prisma } from '@/lib/prisma'
-import { BundleType, TransactionType } from '@prisma/client'
+import { BundleType } from '@prisma/client'
 import { generateInvoicePDF, InvoiceData } from '@/lib/pdf-generator'
 import { sendInvoiceEmail } from '@/lib/email'
+
+// Metadata Interface für bessere Type-Safety
+interface MollieMetadata {
+  type: 'bundle' | 'credits'
+  bundle?: string
+  interval?: 'monthly' | 'yearly'
+  credits?: string
+  userId: string
+  userEmail: string
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,10 +66,10 @@ export async function POST(request: NextRequest) {
     // Nur wenn Zahlung erfolgreich
     if (webhookResult.status === 'paid' && webhookResult.metadata) {
       console.log('✅ Payment successful, processing metadata:', webhookResult.metadata)
-      const metadata = webhookResult.metadata
+      const metadata = webhookResult.metadata as MollieMetadata
       
       // Fortlaufende Rechnungsnummer generieren
-      const latestInvoice = await prisma.invoice.findFirst({
+      const latestInvoice = await (prisma as any).invoice.findFirst({
         orderBy: { invoiceNumber: 'desc' }
       })
       
@@ -121,15 +131,15 @@ export async function POST(request: NextRequest) {
         await prisma.creditTransaction.create({
           data: {
             userId: metadata.userId,
-            type: TransactionType.PURCHASE, // TODO: Nach DB-Migration zu BUNDLE_PURCHASE ändern
+            type: 'PURCHASE', // Credit transaction type
             amount: creditsToAdd,
-            description: `Bundle-Upgrade zu ${metadata.bundle} - ${metadata.interval} (+${creditsToAdd} Credits)`,
-            paymentId: paymentId
+            description: `Bundle-Upgrade zu ${metadata.bundle} - ${metadata.interval} (+${creditsToAdd} Credits)`
+            // paymentId: paymentId // Field nicht im Schema
           }
         })
 
         // Rechnung erstellen
-        const invoice = await prisma.invoice.create({
+        const invoice = await (prisma as any).invoice.create({
           data: {
             invoiceNumber,
             userId: metadata.userId,
@@ -191,7 +201,7 @@ export async function POST(request: NextRequest) {
         console.log('💰 Processing credit purchase:', metadata.credits, 'for user:', metadata.userId)
         
         // Credits hinzufügen
-        const creditAmount = parseInt(metadata.credits)
+        const creditAmount = parseInt(metadata.credits || '0')
         
         await prisma.user.update({
           where: { id: metadata.userId },
@@ -208,15 +218,15 @@ export async function POST(request: NextRequest) {
         await prisma.creditTransaction.create({
           data: {
             userId: metadata.userId,
-            type: TransactionType.PURCHASE,
+            type: 'PURCHASE',
             amount: creditAmount,
-            description: `${creditAmount} Credits gekauft`,
-            paymentId: paymentId
+            description: `${creditAmount} Credits gekauft`
+            // paymentId: paymentId // Field nicht im Schema
           }
         })
 
         // Rechnung erstellen
-        const creditInvoice = await prisma.invoice.create({
+        const creditInvoice = await (prisma as any).invoice.create({
           data: {
             invoiceNumber,
             userId: metadata.userId,
