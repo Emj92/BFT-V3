@@ -93,12 +93,18 @@ export default function HomePage() {
     }
   }, [])
 
-  // Prüfe Registrierungsstatus
+  // Prüfe Registrierungsstatus und leite zum Dashboard um wenn eingeloggt
   useEffect(() => {
     const checkRegistration = async () => {
       try {
         const response = await fetch('/api/auth/me')
         if (response.ok) {
+          const data = await response.json()
+          if (data.user) {
+            // User ist eingeloggt - automatische Umleitung zum Dashboard
+            window.location.href = '/dashboard'
+            return
+          }
           setIsRegistered(true)
         }
       } catch (error) {

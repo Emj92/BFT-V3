@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { handlePaymentWebhook } from '@/lib/mollie'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { BundleType, TransactionType } from '@prisma/client'
 import { generateInvoicePDF, InvoiceData } from '@/lib/pdf-generator'
 import { sendInvoiceEmail } from '@/lib/email'

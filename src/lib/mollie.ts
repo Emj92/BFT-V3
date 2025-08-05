@@ -207,7 +207,8 @@ export async function handlePaymentWebhook(paymentId: string) {
       metadata: payment.metadata
     })
     
-    if (payment.isPaid) {
+    // Prüfe sowohl isPaid als auch status für bessere Kompatibilität
+    if (payment.isPaid || payment.status === 'paid') {
       console.log('✅ Payment confirmed as PAID')
       return {
         success: true,
