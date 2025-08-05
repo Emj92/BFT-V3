@@ -29,20 +29,17 @@ export async function GET() {
         updatedAt: true,
         organizationId: true,
         isTeamOwner: true,
-        teamMemberships: {
+        teamId: true,
+        team: {
           select: {
-            team: {
-              select: {
-                id: true,
-                name: true
-              }
-            }
+            id: true,
+            name: true
           }
         }
       }
     }).catch(async (countError) => {
-      console.error('Error with user query:', countError)
-      // Fallback: Noch einfachere Abfrage
+      console.error('Error with user query (with teams):', countError)
+      // Fallback: Ohne Team-Daten
       return await prisma.user.findMany({
         take: 50,
         select: {
@@ -54,17 +51,23 @@ export async function GET() {
           bundle: true,
           createdAt: true,
           isTeamOwner: true,
-          teamMemberships: {
-            select: {
-              team: {
-                select: {
-                  id: true,
-                  name: true
-                }
-              }
-            }
-          }
+          teamId: true
         }
+      }).catch(async (simpleError) => {
+        console.error('Error with simple user query:', simpleError)
+        // Letzter Fallback: Minimal-Daten
+        return await prisma.user.findMany({
+          take: 20,
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            credits: true,
+            bundle: true,
+            createdAt: true
+          }
+        })
       })
     })
     
@@ -81,10 +84,8 @@ export async function GET() {
       lastName: user.lastName || '',
       organizationId: user.organizationId || null,
       bundlePurchasedAt: user.bundlePurchasedAt || null,
-      isInTeam: (user.teamMemberships && user.teamMemberships.length > 0) || false,
-      teamName: user.teamMemberships && user.teamMemberships.length > 0 
-        ? user.teamMemberships[0].team.name 
-        : null
+      isInTeam: !!(user.teamId),
+      teamName: (user as any).team?.name || null
     }))
     
     console.log('Users API: Successfully processed user data')
