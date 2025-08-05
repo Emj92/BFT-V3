@@ -7,8 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Bell, Check, Info, AlertTriangle, CheckCircle, XCircle, Zap, Trash2 } from "lucide-react"
+import { Bell, Check, Info, AlertTriangle, CheckCircle, XCircle, Zap, Trash2, Eye, EyeOff } from "lucide-react"
 import { useSSE } from "@/hooks/useSSE"
+import { toast } from "sonner"
 
 interface Notification {
   id: string
@@ -31,6 +32,8 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [showMarkAllReadDialog, setShowMarkAllReadDialog] = useState(false)
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false)
   const previousUnreadCountRef = useRef(0)
   
   // SSE-Hook für Echtzeitbenachrichtigungen
@@ -127,9 +130,14 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
       if (response.ok) {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
         setUnreadCount(0)
+        setShowMarkAllReadDialog(false)
+        toast.success('Alle Benachrichtigungen als gelesen markiert')
+      } else {
+        toast.error('Fehler beim Markieren der Benachrichtigungen')
       }
     } catch (error) {
       console.error('Error marking all as read:', error)
+      toast.error('Fehler beim Markieren der Benachrichtigungen')
     }
   }
 
@@ -143,9 +151,14 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
       if (response.ok) {
         setNotifications([])
         setUnreadCount(0)
+        setShowDeleteAllDialog(false)
+        toast.success('Alle Benachrichtigungen gelöscht')
+      } else {
+        toast.error('Fehler beim Löschen der Benachrichtigungen')
       }
     } catch (error) {
       console.error('Error deleting all notifications:', error)
+      toast.error('Fehler beim Löschen der Benachrichtigungen')
     }
   }
 
@@ -309,7 +322,36 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
           align="end" 
           sideOffset={8}
         >
-          <Card className="border-0 shadow-lg">            
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="px-4 py-3 border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium">Benachrichtigungen</CardTitle>
+                <div className="flex items-center gap-1">
+                  {notifications.some(n => !n.isRead) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-muted"
+                      onClick={() => setShowMarkAllReadDialog(true)}
+                      title="Alle als gelesen markieren"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {notifications.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-muted hover:text-destructive"
+                      onClick={() => setShowDeleteAllDialog(true)}
+                      title="Alle löschen"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="h-96">
                 {notifications.length === 0 ? (
@@ -394,6 +436,57 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Löschen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Alle als gelesen markieren */}
+      <Dialog open={showMarkAllReadDialog} onOpenChange={setShowMarkAllReadDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alle Benachrichtigungen als gelesen markieren</DialogTitle>
+            <DialogDescription>
+              Möchten Sie wirklich alle Benachrichtigungen als gelesen markieren?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowMarkAllReadDialog(false)}
+            >
+              Abbrechen
+            </Button>
+            <Button onClick={markAllAsRead}>
+              <Eye className="h-4 w-4 mr-2" />
+              Alle als gelesen markieren
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Alle löschen */}
+      <Dialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alle Benachrichtigungen löschen</DialogTitle>
+            <DialogDescription>
+              Möchten Sie wirklich alle Benachrichtigungen löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeleteAllDialog(false)}
+            >
+              Abbrechen
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={deleteAllNotifications}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Alle löschen
             </Button>
           </DialogFooter>
         </DialogContent>

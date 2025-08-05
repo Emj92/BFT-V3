@@ -27,7 +27,18 @@ export async function GET() {
         bundlePurchasedAt: true,
         createdAt: true,
         updatedAt: true,
-        organizationId: true
+        organizationId: true,
+        isTeamOwner: true,
+        teamMemberships: {
+          select: {
+            team: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        }
       }
     }).catch(async (countError) => {
       console.error('Error with user query:', countError)
@@ -41,7 +52,18 @@ export async function GET() {
           role: true,
           credits: true,
           bundle: true,
-          createdAt: true
+          createdAt: true,
+          isTeamOwner: true,
+          teamMemberships: {
+            select: {
+              team: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
+            }
+          }
         }
       })
     })
@@ -58,7 +80,11 @@ export async function GET() {
       firstName: user.firstName || '',
       lastName: user.lastName || '',
       organizationId: user.organizationId || null,
-      bundlePurchasedAt: user.bundlePurchasedAt || null
+      bundlePurchasedAt: user.bundlePurchasedAt || null,
+      isInTeam: (user.teamMemberships && user.teamMemberships.length > 0) || false,
+      teamName: user.teamMemberships && user.teamMemberships.length > 0 
+        ? user.teamMemberships[0].team.name 
+        : null
     }))
     
     console.log('Users API: Successfully processed user data')
@@ -276,7 +302,14 @@ export async function DELETE(request: NextRequest) {
           where: { ownerId: id }
         })
 
-        // 8. Alle anderen verknüpften Datensätze parallel löschen
+        // 8. Team-bezogene Daten löschen
+        // Team-Einladungen löschen
+        await tx.teamInvitation.deleteMany({ where: { email: user.email } })
+        
+        // Team-Memberships löschen (User aus Teams entfernen)
+        await tx.teamMembership.deleteMany({ where: { userId: id } })
+
+        // 9. Alle anderen verknüpften Datensätze parallel löschen
         await Promise.all([
           tx.creditTransaction.deleteMany({ where: { userId: id } }),
           tx.report.deleteMany({ where: { userId: id } }),
@@ -285,7 +318,7 @@ export async function DELETE(request: NextRequest) {
           tx.bfeGeneration.deleteMany({ where: { userId: id } })
         ])
 
-        // 9. Endlich den User löschen
+        // 10. Endlich den User löschen
         await tx.user.delete({
           where: { id }
         })

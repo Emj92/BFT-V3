@@ -108,6 +108,7 @@ export default function AdminPage() {
   })
   const [isDeleteUserDialogOpen, setIsDeleteUserDialogOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<string | null>(null)
+  const [userToDeleteData, setUserToDeleteData] = useState<any | null>(null)
   const [editingCredits, setEditingCredits] = useState<{[userId: string]: boolean}>({})
   const [tempCredits, setTempCredits] = useState<{[userId: string]: number}>({})
   const [editingBundle, setEditingBundle] = useState<{[userId: string]: boolean}>({})
@@ -248,7 +249,9 @@ export default function AdminPage() {
   }
 
   const handleDeleteUser = async (userId: string) => {
+    const userData = users.find(user => user.id === userId)
     setUserToDelete(userId)
+    setUserToDeleteData(userData)
     setIsDeleteUserDialogOpen(true)
   }
 
@@ -274,6 +277,7 @@ export default function AdminPage() {
     } finally {
       setIsDeleteUserDialogOpen(false)
       setUserToDelete(null)
+      setUserToDeleteData(null)
     }
   }
 
@@ -676,15 +680,22 @@ export default function AdminPage() {
                               <td className="px-4 py-2">{user.name}</td>
                               <td className="px-4 py-2">{user.email}</td>
                               <td className="px-4 py-2">
-                                <Badge 
-                                  className={
-                                    (user.role === 'ADMIN' || user.role === 'admin') ? 'bg-red-500 text-white hover:bg-red-600' :
-                                    user.role === 'moderator' ? 'bg-yellow-500 text-white hover:bg-yellow-600' :
-                                    'bg-green-500 text-white hover:bg-green-600'
-                                  }
-                                >
-                                  {(user.role === 'ADMIN' || user.role === 'admin') ? 'Admin' : user.role === 'moderator' ? 'Moderator' : 'Kunde'}
-                                </Badge>
+                                <div className="flex items-center gap-2">
+                                  <Badge 
+                                    className={
+                                      (user.role === 'ADMIN' || user.role === 'admin') ? 'bg-red-500 text-white hover:bg-red-600' :
+                                      user.role === 'moderator' ? 'bg-yellow-500 text-white hover:bg-yellow-600' :
+                                      'bg-green-500 text-white hover:bg-green-600'
+                                    }
+                                  >
+                                    {(user.role === 'ADMIN' || user.role === 'admin') ? 'Admin' : user.role === 'moderator' ? 'Moderator' : 'Kunde'}
+                                  </Badge>
+                                  {user.isInTeam && (
+                                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                      Team
+                                    </Badge>
+                                  )}
+                                </div>
                               </td>
                               <td className="px-4 py-2">
                                 {editingBundle[user.id] ? (
@@ -782,16 +793,14 @@ export default function AdminPage() {
                               <td className="px-4 py-2">
                                 <div className="flex gap-2">
                                   <Button variant="destructive" size="sm" onClick={() => handleDeleteUser(user.id)}>
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Löschen
+                                    <Trash2 className="h-4 w-4" />
                                   </Button>
                                   <Button variant="default" size="sm" onClick={() => handleToggleUserStatus(user.id, !user.isActive)}>
                                     {user.isActive ? (
-                                      <Ban className="mr-2 h-4 w-4" />
+                                      <Ban className="h-4 w-4" />
                                     ) : (
-                                      <UserCheck className="mr-2 h-4 w-4" />
+                                      <UserCheck className="h-4 w-4" />
                                     )}
-                                    {user.isActive ? 'Sperren' : 'Aktivieren'}
                                   </Button>
                                   {editingCredits[user.id] && (
                                     <Button variant="outline" size="sm" onClick={() => handleCancelEditCredits(user.id)}>
@@ -916,7 +925,25 @@ export default function AdminPage() {
               <DialogHeader>
                 <DialogTitle>Benutzer löschen</DialogTitle>
                 <DialogDescription>
-                  Sind Sie sicher, dass Sie diesen Benutzer löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.
+                  {userToDeleteData?.isInTeam ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                        <AlertTriangle className="h-5 w-5 text-amber-600" />
+                        <div>
+                          <p className="font-medium text-amber-800">Team-Mitglied erkannt</p>
+                          <p className="text-sm text-amber-700">
+                            Dieser Benutzer ist Mitglied im Team "{userToDeleteData?.teamName}".
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        Beim Löschen wird der Benutzer automatisch aus dem Team entfernt. 
+                        Sind Sie sicher, dass Sie diesen Benutzer <strong>und alle seine Daten</strong> unwiderruflich löschen möchten?
+                      </p>
+                    </div>
+                  ) : (
+                    "Sind Sie sicher, dass Sie diesen Benutzer löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden."
+                  )}
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
@@ -930,7 +957,7 @@ export default function AdminPage() {
                   variant="destructive"
                   onClick={confirmDeleteUser}
                 >
-                  Löschen
+                  {userToDeleteData?.isInTeam ? 'Aus Team entfernen und löschen' : 'Löschen'}
                 </Button>
               </DialogFooter>
             </DialogContent>

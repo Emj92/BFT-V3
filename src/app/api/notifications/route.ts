@@ -30,10 +30,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 })
     }
 
-    // Alle globalen Benachrichtigungen abrufen
+    // Alle globalen Benachrichtigungen abrufen (nur die, die nach der User-Registrierung erstellt wurden)
     const notifications = await prisma.notification.findMany({
       where: {
-        isGlobal: true
+        isGlobal: true,
+        createdAt: {
+          gte: user.createdAt // Nur Benachrichtigungen nach User-Registrierung
+        }
       },
       include: {
         readBy: {
@@ -196,9 +199,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 })
     }
 
-    // Alle globalen Benachrichtigungen abrufen
+    // Alle globalen Benachrichtigungen abrufen (nur die, die nach der User-Registrierung erstellt wurden)
     const notifications = await prisma.notification.findMany({
-      where: { isGlobal: true }
+      where: { 
+        isGlobal: true,
+        createdAt: {
+          gte: user.createdAt // Nur Benachrichtigungen nach User-Registrierung
+        }
+      }
     })
 
     // Für jede Benachrichtigung einen NotificationRead-Eintrag mit "gelöscht" Flag erstellen
