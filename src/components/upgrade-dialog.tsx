@@ -244,7 +244,8 @@ export function UpgradeDialog({
                     <h4 className="text-lg font-semibold">{plan.name}</h4>
                     <span className="text-2xl font-bold">{plan.price}</span>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">{plan.priceMonthly}</p>
+                  <p className="text-gray-600 dark:text-gray-400 mb-2">{plan.priceMonthly}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">inkl. MwSt.</p>
                   
                   <ul className="space-y-2 mb-4">
                     {plan.features.map((feature, index) => (
@@ -287,7 +288,8 @@ export function UpgradeDialog({
                     </div>
                     <span className="text-2xl font-bold">{creditPackage.price}</span>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">{creditPackage.description}</p>
+                  <p className="text-gray-600 dark:text-gray-400 mb-2">{creditPackage.description}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">inkl. MwSt.</p>
                   
                   <div className="text-center mb-4">
                     <div className="text-3xl font-bold text-blue-600">{creditPackage.credits}</div>

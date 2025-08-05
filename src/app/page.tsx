@@ -1369,6 +1369,7 @@ export default function HomePage() {
                   <div className="text-lg text-muted-foreground">"Test & Kennenlernen"</div>
                   <div className="text-3xl font-bold">0,00€</div>
                   <CardDescription>/ Monat</CardDescription>
+                  <div className="text-sm text-muted-foreground">kostenlos</div>
                 </CardHeader>
                 <CardContent className="space-y-3 flex-1 flex flex-col">
                   <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
@@ -1437,6 +1438,7 @@ export default function HomePage() {
                   <div className="text-lg text-muted-foreground">"Für Einzelpersonen"</div>
                   <div className="text-3xl font-bold">{isYearly ? '92,00€' : '9,00€'}</div>
                   <CardDescription>{isYearly ? '/ Jahr (7,67€/Monat)' : '/ Monat'}</CardDescription>
+                  <div className="text-sm text-muted-foreground">inkl. MwSt.</div>
                 </CardHeader>
                 <CardContent className="space-y-3 flex-1 flex flex-col">
                   <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
@@ -1532,6 +1534,7 @@ export default function HomePage() {
                   <div className="text-lg text-muted-foreground">"Für Unternehmen"</div>
                   <div className="text-3xl font-bold">{isYearly ? '296,00€' : '29,00€'}</div>
                   <CardDescription>{isYearly ? '/ Jahr (24,67€/Monat)' : '/ Monat'}</CardDescription>
+                  <div className="text-sm text-muted-foreground">inkl. MwSt.</div>
                 </CardHeader>
                 <CardContent className="space-y-3 flex-1 flex flex-col">
                   <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
@@ -1619,6 +1622,7 @@ export default function HomePage() {
                   <div className="text-lg text-muted-foreground">"Für Agenturen & Teams"</div>
                   <div className="text-3xl font-bold">{isYearly ? 'Ab 806,00€' : 'Ab 79,00€'}</div>
                   <CardDescription>{isYearly ? '/ Jahr (67,17€/Monat)' : '/ Monat'}</CardDescription>
+                  <div className="text-sm text-muted-foreground">inkl. MwSt.</div>
                 </CardHeader>
                 <CardContent className="space-y-3 flex-1 flex flex-col">
                   <div className="text-sm font-semibold text-muted-foreground mb-2">Kernlimits:</div>
@@ -1715,6 +1719,7 @@ export default function HomePage() {
                     <div className="text-sm text-muted-foreground">Credits</div>
                     <div className="text-lg font-semibold mt-2">15€</div>
                     <div className="text-xs text-muted-foreground">1,50€ pro Credit</div>
+                    <div className="text-xs text-muted-foreground">inkl. MwSt.</div>
                     <Button 
                       className="w-full mt-3" 
                       size="sm"
@@ -1751,6 +1756,7 @@ export default function HomePage() {
                     <div className="text-sm text-muted-foreground">Credits</div>
                     <div className="text-lg font-semibold mt-2">30€</div>
                     <div className="text-xs text-green-600">20% Rabatt</div>
+                    <div className="text-xs text-muted-foreground">inkl. MwSt.</div>
                     <Button 
                       className="w-full mt-3" 
                       size="sm"
@@ -1787,6 +1793,7 @@ export default function HomePage() {
                     <div className="text-sm text-muted-foreground">Credits</div>
                     <div className="text-lg font-semibold mt-2">50€</div>
                     <div className="text-xs text-green-600">33% Rabatt</div>
+                    <div className="text-xs text-muted-foreground">inkl. MwSt.</div>
                     <Button 
                       className="w-full mt-3" 
                       size="sm"
@@ -1823,6 +1830,7 @@ export default function HomePage() {
                     <div className="text-sm text-muted-foreground">Credits</div>
                     <div className="text-lg font-semibold mt-2">85€</div>
                     <div className="text-xs text-green-600">43% Rabatt</div>
+                    <div className="text-xs text-muted-foreground">inkl. MwSt.</div>
                     <Button 
                       className="w-full mt-3" 
                       size="sm"
@@ -1859,6 +1867,7 @@ export default function HomePage() {
                     <div className="text-sm text-muted-foreground">Credits</div>
                     <div className="text-lg font-semibold mt-2">175€</div>
                     <div className="text-xs text-green-600">53% Rabatt</div>
+                    <div className="text-xs text-muted-foreground">inkl. MwSt.</div>
                     <Button 
                       className="w-full mt-3" 
                       size="sm"

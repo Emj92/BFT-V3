@@ -961,6 +961,9 @@ export default function EinstellungenPage() {
                               pkg.period
                             }
                           </CardDescription>
+                          {pkg.price > 0 && (
+                            <div className="text-sm text-muted-foreground">inkl. MwSt.</div>
+                          )}
                         </CardHeader>
                         <CardContent className="space-y-3 flex-1 flex flex-col">
                           {/* Kernlimits */}
@@ -1118,6 +1121,7 @@ export default function EinstellungenPage() {
                         <div className="text-sm text-muted-foreground">Credits</div>
                         <div className="text-lg font-semibold mt-2">{formatGermanPrice(1)}</div>
                         <div className="text-xs text-muted-foreground">{formatGermanPrice(0.10)} pro Credit</div>
+                        <div className="text-xs text-muted-foreground">inkl. MwSt.</div>
                         <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3" 
@@ -1155,6 +1159,7 @@ export default function EinstellungenPage() {
                         <div className="text-sm text-muted-foreground">Credits</div>
                         <div className="text-lg font-semibold mt-2">{formatGermanPrice(2.25)}</div>
                         <div className="text-xs text-green-600">10% Rabatt</div>
+                        <div className="text-xs text-muted-foreground">inkl. MwSt.</div>
                         <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3" 
@@ -1192,6 +1197,7 @@ export default function EinstellungenPage() {
                         <div className="text-sm text-muted-foreground">Credits</div>
                         <div className="text-lg font-semibold mt-2">{formatGermanPrice(4)}</div>
                         <div className="text-xs text-green-600">20% Rabatt</div>
+                        <div className="text-xs text-muted-foreground">inkl. MwSt.</div>
                         <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3" 
@@ -1229,6 +1235,7 @@ export default function EinstellungenPage() {
                         <div className="text-sm text-muted-foreground">Credits</div>
                         <div className="text-lg font-semibold mt-2">{formatGermanPrice(7.5)}</div>
                         <div className="text-xs text-green-600">25% Rabatt</div>
+                        <div className="text-xs text-muted-foreground">inkl. MwSt.</div>
                         <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3" 
@@ -1266,6 +1273,7 @@ export default function EinstellungenPage() {
                         <div className="text-sm text-muted-foreground">Credits</div>
                         <div className="text-lg font-semibold mt-2">{formatGermanPrice(17.5)}</div>
                         <div className="text-xs text-green-600">30% Rabatt</div>
+                        <div className="text-xs text-muted-foreground">inkl. MwSt.</div>
                         <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3" 
@@ -1304,6 +1312,7 @@ export default function EinstellungenPage() {
                         <div className="text-sm font-semibold">150 Credits Test</div>
                         <div className="text-lg font-semibold mt-2 text-orange-600">{formatGermanPrice(0.5)}</div>
                         <div className="text-xs text-orange-600">Testpaket - Nur 50 Cent</div>
+                        <div className="text-xs text-muted-foreground">inkl. MwSt.</div>
                         <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3 bg-orange-600 hover:bg-orange-700" 
@@ -1342,6 +1351,7 @@ export default function EinstellungenPage() {
                         <div className="text-sm font-semibold">Weiteres Teammitglied</div>
                         <div className="text-lg font-semibold mt-2 text-purple-600">{formatGermanPrice(5)}</div>
                         <div className="text-xs text-purple-600">/ Monat (Enterprise)</div>
+                        <div className="text-xs text-muted-foreground">inkl. MwSt.</div>
                         <div className="flex-1"></div>
                         <Button 
                           className="w-full mt-3" 

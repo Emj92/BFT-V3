@@ -36,56 +36,51 @@ export async function sendVerificationEmail(email: string, token: string, name: 
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>E-Mail bestätigen</title>
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f4f4f4; }
-            .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-            .header { text-align: center; margin-bottom: 30px; }
-            .logo { font-size: 24px; font-weight: bold; color: #2563eb; margin-bottom: 10px; }
-            .button { display: inline-block; background: #10b981; color: white; padding: 15px 35px; text-decoration: none; border-radius: 8px; margin: 25px 0; font-weight: bold; font-size: 16px; }
-            .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center; }
-            .highlight { background: #f0f9ff; border-left: 4px solid #2563eb; padding: 15px; margin: 20px 0; border-radius: 5px; }
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 20px; background-color: #f8fafc; }
+            .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+            .header { text-align: center; margin-bottom: 32px; }
+            .logo { font-size: 28px; font-weight: 700; color: #2563eb; margin-bottom: 16px; }
+            .button { display: inline-block; background: #2563eb; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; margin: 24px 0; font-weight: 600; font-size: 16px; }
+            .footer { margin-top: 40px; padding-top: 24px; border-top: 1px solid #e5e7eb; font-size: 14px; color: #6b7280; text-align: center; }
+            .highlight { background: #eff6ff; border-left: 4px solid #2563eb; padding: 20px; margin: 24px 0; border-radius: 6px; }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
-              <div class="logo">🛡️ barriere-frei24</div>
-              <h1>🎉 Du hast es fast geschafft!</h1>
+              <div class="logo">barriere-frei24</div>
+              <h1 style="color: #1f2937; margin: 0; font-size: 24px;">E-Mail-Bestätigung erforderlich</h1>
             </div>
             
-            <p>Hi <strong>${name}</strong>,</p>
+            <p>Hallo <strong>${name}</strong>,</p>
             
-            <p>du hast es fast geschafft! 🚀 Um dein Konto bei barriere-frei24 zu aktivieren, bestätige einfach diesen Link und du kannst sofort mit der Barrierefreiheitsprüfung deiner Website beginnen.</p>
+            <p>vielen Dank für Ihre Registrierung bei barriere-frei24. Um Ihr Konto zu aktivieren und mit der professionellen Barrierefreiheitsprüfung zu beginnen, bestätigen Sie bitte Ihre E-Mail-Adresse.</p>
             
             <div style="text-align: center;">
-              <a href="${verifyUrl}" class="button">✅ Jetzt E-Mail bestätigen</a>
+              <a href="${verifyUrl}" class="button">E-Mail-Adresse bestätigen</a>
             </div>
             
             <div class="highlight">
-              <p><strong>💡 Was dich erwartet:</strong></p>
-              <p>Nach der Bestätigung kannst du direkt loslegen und deine Website auf WCAG-Konformität prüfen. Du bekommst detaillierte Berichte und konkrete Verbesserungsvorschläge - alles in wenigen Minuten!</p>
+              <p style="margin: 0 0 12px 0;"><strong>Nach der Bestätigung erhalten Sie Zugang zu:</strong></p>
+              <ul style="padding-left: 0; list-style: none;">
+                <li style="padding: 4px 0; color: #374151;">✓ Automatische WCAG-Konformitätsprüfung</li>
+                <li style="padding: 4px 0; color: #374151;">✓ Detaillierte Analyseberichte</li>
+                <li style="padding: 4px 0; color: #374151;">✓ Konkrete Verbesserungsvorschläge</li>
+                <li style="padding: 4px 0; color: #374151;">✓ Strukturierte Aufgabenverwaltung</li>
+              </ul>
             </div>
             
-            <p>Falls der Button nicht funktioniert, kopiere einfach diesen Link in deinen Browser:</p>
-            <p style="word-break: break-all; background: #f8f9fa; padding: 12px; border-radius: 5px; font-size: 14px;">${verifyUrl}</p>
+            <p>Falls der Button nicht funktioniert, können Sie folgenden Link kopieren und in Ihrem Browser öffnen:</p>
+            <div style="word-break: break-all; background: #f8fafc; padding: 16px; border-radius: 6px; font-family: monospace; font-size: 14px; color: #4b5563; margin: 16px 0;">${verifyUrl}</div>
             
-            <p><strong>⏰ Wichtig:</strong> Dieser Link ist 24 Stunden gültig. Falls er abgelaufen ist, kannst du dich einfach erneut registrieren.</p>
+            <p><strong>Hinweis:</strong> Dieser Bestätigungslink ist 24 Stunden gültig.</p>
             
-            <p>Freue dich auf:</p>
-            <ul style="color: #059669;">
-              <li><strong>✅ Automatische WCAG-Prüfungen</strong> in unter 60 Sekunden</li>
-              <li><strong>📊 Detaillierte Berichte</strong> mit konkreten Lösungsvorschlägen</li>
-              <li><strong>🎯 Aufgabenverwaltung</strong> für strukturierte Verbesserungen</li>
-              <li><strong>🧠 WCAG-Coach</strong> für dein Team</li>
-            </ul>
-            
-            <p>Bei Fragen sind wir für dich da! 😊</p>
-            
-            <p>Bis gleich im Dashboard,<br>
-            <strong>Dein barriere-frei24 Team</strong></p>
+            <p>Mit freundlichen Grüßen<br>
+            <strong>Ihr barriere-frei24 Team</strong></p>
             
             <div class="footer">
-              <p>Diese E-Mail wurde automatisch generiert. Bitte antworte nicht auf diese E-Mail.</p>
-              <p><strong>barriere-frei24</strong> | Dein Partner für digitale Barrierefreiheit 🌟</p>
+              <p>Diese E-Mail wurde automatisch generiert. Bitte antworten Sie nicht auf diese E-Mail.</p>
+              <p><strong>barriere-frei24</strong> – Professionelle Barrierefreiheitsprüfung</p>
             </div>
           </div>
         </body>
@@ -182,7 +177,7 @@ export async function sendInvoiceEmail(
     const mailOptions = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: email,
-      subject: `📧 Ihre Rechnung ${invoiceNumber} von barriere-frei24`,
+      subject: `Rechnung ${invoiceNumber} - barriere-frei24`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -191,32 +186,32 @@ export async function sendInvoiceEmail(
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Rechnung ${invoiceNumber}</title>
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; background-color: #f4f4f4; }
-            .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-            .header { text-align: center; margin-bottom: 30px; }
-            .logo { font-size: 24px; font-weight: bold; color: #2563eb; margin-bottom: 10px; }
-            .highlight { background: #f0f9ff; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 5px; }
-            .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; text-align: center; }
-            .success-box { background: #10b981; color: white; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0; }
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; margin: 0; padding: 20px; background-color: #f8fafc; }
+            .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+            .header { text-align: center; margin-bottom: 32px; }
+            .logo { font-size: 28px; font-weight: 700; color: #2563eb; margin-bottom: 16px; }
+            .highlight { background: #eff6ff; border-left: 4px solid #2563eb; padding: 20px; margin: 24px 0; border-radius: 6px; }
+            .footer { margin-top: 40px; padding-top: 24px; border-top: 1px solid #e5e7eb; font-size: 14px; color: #6b7280; text-align: center; }
+            .success-box { background: #2563eb; color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 24px 0; }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
-              <div class="logo">🛡️ barriere-frei24</div>
-              <h1>📧 Ihre Rechnung ist da!</h1>
+              <div class="logo">barriere-frei24</div>
+              <h1 style="color: #1f2937; margin: 0; font-size: 24px;">Rechnung ${invoiceNumber}</h1>
             </div>
             
             <div class="success-box">
-              <h2 style="margin: 0; font-size: 18px;">✅ Zahlung erfolgreich verarbeitet!</h2>
+              <h2 style="margin: 0; font-size: 18px;">Zahlung erfolgreich verarbeitet ✓</h2>
             </div>
             
             <p>Hallo <strong>${name}</strong>,</p>
             
-            <p>vielen Dank für Ihren Kauf bei barriere-frei24! 🎉</p>
+            <p>vielen Dank für Ihren Kauf bei barriere-frei24.</p>
             
             <div class="highlight">
-              <p><strong>📋 Rechnungsdetails:</strong></p>
+              <p><strong>Rechnungsdetails:</strong></p>
               <ul>
                 <li><strong>Rechnungsnummer:</strong> ${invoiceNumber}</li>
                 <li><strong>Betrag:</strong> ${amount.toFixed(2)} € (inkl. MwSt.)</li>
@@ -226,38 +221,38 @@ export async function sendInvoiceEmail(
               </ul>
             </div>
             
-            <p>🔗 Ihre Rechnung finden Sie als PDF im Anhang dieser E-Mail.</p>
+            <p>Ihre Rechnung finden Sie als PDF im Anhang dieser E-Mail.</p>
             
             <p>Sie können Ihre Rechnungen auch jederzeit in Ihrem Dashboard unter "Einstellungen > Rechnungen & Pakete" einsehen und herunterladen.</p>
             
             ${bundleType ? `
-              <div style="background: #10b981; color: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 0;"><strong>🚀 Ihr ${bundleType} Bundle ist jetzt aktiv!</strong></p>
-                <p style="margin: 5px 0 0 0;">Alle Features sind sofort verfügbar. Loggen Sie sich ein und nutzen Sie Ihre neuen Möglichkeiten!</p>
+              <div style="background: #2563eb; color: white; padding: 20px; border-radius: 8px; margin: 24px 0;">
+                <p style="margin: 0;"><strong>Ihr ${bundleType} Bundle ist jetzt aktiv ✓</strong></p>
+                <p style="margin: 8px 0 0 0;">Alle Features sind sofort verfügbar. Loggen Sie sich in Ihr Dashboard ein.</p>
               </div>
             ` : ''}
             
             ${credits ? `
-              <div style="background: #2563eb; color: white; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 0;"><strong>💰 ${credits} Credits wurden gutgeschrieben!</strong></p>
-                <p style="margin: 5px 0 0 0;">Ihre Credits sind sofort einsatzbereit für Scans, Coach und BFE-Generator.</p>
+              <div style="background: #2563eb; color: white; padding: 20px; border-radius: 8px; margin: 24px 0;">
+                <p style="margin: 0;"><strong>${credits} Credits wurden gutgeschrieben ✓</strong></p>
+                <p style="margin: 8px 0 0 0;">Ihre Credits sind sofort einsatzbereit für Scans, Coach und BFE-Generator.</p>
               </div>
             ` : ''}
             
             <p><strong>Bei Fragen stehen wir Ihnen gerne zur Verfügung:</strong></p>
             <ul>
-              <li>📧 E-Mail: support@barriere-frei24.de</li>
-              <li>🌐 Dashboard: <a href="${process.env.NEXTAUTH_URL || 'https://app.barriere-frei24.de'}/dashboard">Jetzt einloggen</a></li>
+              <li>E-Mail: support@barriere-frei24.de</li>
+              <li>Dashboard: <a href="${process.env.NEXTAUTH_URL || 'https://app.barriere-frei24.de'}/dashboard" style="color: #2563eb;">Jetzt einloggen</a></li>
             </ul>
             
-            <p>Vielen Dank für Ihr Vertrauen! 😊</p>
+            <p>Vielen Dank für Ihr Vertrauen.</p>
             
-            <p>Mit freundlichen Grüßen,<br>
+            <p>Mit freundlichen Grüßen<br>
             <strong>Ihr barriere-frei24 Team</strong></p>
             
             <div class="footer">
               <p>Diese E-Mail wurde automatisch generiert.</p>
-              <p><strong>barriere-frei24</strong> | Ihre Experten für digitale Barrierefreiheit 🌟</p>
+              <p><strong>barriere-frei24</strong> – Professionelle Barrierefreiheitsprüfung</p>
             </div>
           </div>
         </body>

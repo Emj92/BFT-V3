@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { GlobalBanner } from '@/components/global-banner';
+import { Toaster } from '@/components/ui/sonner';
 
 // Force dynamic rendering für das gesamte Layout
 export const dynamic = 'force-dynamic';
@@ -34,6 +35,7 @@ export default function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
             <GlobalBanner />
             {children}
+            <Toaster position="top-right" />
           </ThemeProvider>
         </LanguageProvider>
       </body>
