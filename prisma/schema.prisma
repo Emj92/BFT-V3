@@ -47,6 +47,7 @@ model User {
   receivedTeamInvitations TeamInvitation[]     @relation("InvitationReceiver")
   sentTeamInvitations     TeamInvitation[]     @relation("InvitationSender")
   ticketMessages          TicketMessage[]
+  invoices                Invoice[]
   organization            Organization?        @relation(fields: [organizationId], references: [id])
   team                    Team?                @relation(fields: [teamId], references: [id])
   wcagSessions            WcagSession[]
@@ -275,6 +276,21 @@ model BfeGeneration {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   user       User     @relation(fields: [userId], references: [id])
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  invoiceNumber String        @unique
+  amount        Float
+  description   String
+  status        InvoiceStatus @default(PENDING)
+  bundleType    BundleType?
+  credits       Int?
+  paymentId     String?
+  userId        String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  user          User          @relation(fields: [userId], references: [id])
 }
 
 model Team {
