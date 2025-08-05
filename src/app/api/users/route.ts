@@ -304,11 +304,19 @@ export async function DELETE(request: NextRequest) {
         })
 
         // 8. Team-bezogene Daten löschen
-        // Team-Einladungen löschen
+        // Falls User in einem Team ist, Team-Counter dekrementieren
+        if (user.teamId) {
+          await tx.team.update({
+            where: { id: user.teamId },
+            data: { currentMembers: { decrement: 1 } }
+          })
+        }
+        
+        // Team-Einladungen löschen (falls der User Einladungen erhalten hat)
         await tx.teamInvitation.deleteMany({ where: { email: user.email } })
         
-        // Team-Memberships löschen (User aus Teams entfernen)
-        await tx.teamMembership.deleteMany({ where: { userId: id } })
+        // Team-Einladungen löschen (falls der User Einladungen gesendet hat)
+        await tx.teamInvitation.deleteMany({ where: { senderId: id } })
 
         // 9. Alle anderen verknüpften Datensätze parallel löschen
         await Promise.all([
