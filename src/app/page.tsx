@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { toast } from "sonner"
+import { getRandomMotivationalQuote } from "@/utils/motivational-quotes"
 import { LanguageToggle } from "@/components/language-toggle"
 import { formatUrl, isValidUrl } from '@/lib/utils'
 import ScanResults from '@/components/scan-results'
@@ -208,6 +209,16 @@ export default function HomePage() {
       }
       setResults(data)
       incrementScanCount()
+      
+      // Erfolgsmeldung mit Motivationsspruch anzeigen
+      const totalViolations = data.violations ? data.violations.length : 0;
+      const score = data.score || 0;
+      const motivationalQuote = getRandomMotivationalQuote();
+      
+      toast.success('Barrierefreiheits-Scan erfolgreich abgeschlossen!', {
+        description: `${totalViolations} Probleme gefunden, Score: ${Math.round(score)}%\n\n${motivationalQuote}`,
+        duration: 6000
+      });
       
       // Auto-Scroll zu den Ergebnissen nach kurzer Verzögerung
       setTimeout(() => {

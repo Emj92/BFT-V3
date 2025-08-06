@@ -49,6 +49,7 @@ import { useLiveCredits } from "@/hooks/useLiveCredits"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { UpgradeDialog } from "@/components/upgrade-dialog"
 import { toast } from "sonner"
+import { getScoreBasedMotivationalQuote } from "@/utils/motivational-quotes"
 
 // Typdefinitionen für Scan-Ergebnisse
 interface ScanIssueDetails {
@@ -620,9 +621,14 @@ export default function AccessibilityCheckPage() {
       setScanResults(resultsWithTimestamp);
       setError(null);
       
-      // *** STANDARD ERFOLGSMELDUNG FÜR BFSE-SCANNER ***
+      // *** ERWEITERTE ERFOLGSMELDUNG MIT MOTIVATIONSSPRUCH ***
+      const score = normalizeScore(data.score);
+      const totalProblems = formattedResults.issues.critical + formattedResults.issues.serious + formattedResults.issues.moderate + formattedResults.issues.minor;
+      const motivationalQuote = getScoreBasedMotivationalQuote(score);
+      
       toast.success('Accessibility Check erfolgreich abgeschlossen!', {
-        description: `${formattedResults.issues.critical + formattedResults.issues.serious + formattedResults.issues.moderate + formattedResults.issues.minor} Probleme gefunden, Score: ${normalizeScore(data.score)}%`
+        description: `${totalProblems} Probleme gefunden, Score: ${score}%\n\n${motivationalQuote}`,
+        duration: 6000
       });
       
       // Automatischer Fokus auf "Schwerwiegende Probleme" wenn keine kritischen Probleme
