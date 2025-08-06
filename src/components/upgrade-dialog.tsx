@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { Crown, Zap, Check, CreditCard, Package } from "lucide-react"
+import { toast } from "sonner"
 
 interface UpgradeDialogProps {
   open: boolean
@@ -133,11 +134,11 @@ export function UpgradeDialog({
     setLoading(true)
     try {
       // Hier würde die tatsächliche Upgrade-Logik stattfinden
-      alert(`Upgrade auf ${bundleType} erfolgreich!`)
+      toast.success(`Upgrade auf ${bundleType} erfolgreich!`)
       onUpgradeComplete?.()
       onOpenChange(false)
     } catch (error) {
-      alert('Upgrade fehlgeschlagen')
+      toast.error('Upgrade fehlgeschlagen')
     } finally {
       setLoading(false)
     }
@@ -159,11 +160,11 @@ export function UpgradeDialog({
       }
 
       const data = await response.json()
-      alert(data.message)
+      toast.success(data.message)
       onUpgradeComplete?.()
       onOpenChange(false)
     } catch (error) {
-      alert('Kauf fehlgeschlagen')
+      toast.error('Kauf fehlgeschlagen')
     } finally {
       setLoading(false)
     }

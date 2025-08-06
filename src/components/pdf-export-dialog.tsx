@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -249,7 +250,7 @@ ${formData.additionalInfo ? `## Zusätzliche Informationen\n\n${formData.additio
       URL.revokeObjectURL(url)
     } catch (error) {
       console.error('PDF-Erstellung fehlgeschlagen:', error)
-      alert('Fehler beim Erstellen der PDF-Datei.')
+              toast.error('Fehler beim Erstellen der PDF-Datei.')
     }
   }
 

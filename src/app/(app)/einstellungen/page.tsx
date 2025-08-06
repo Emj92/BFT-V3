@@ -89,21 +89,11 @@ export default function EinstellungenPage() {
     if (paymentStatus === 'success') {
       if (bundle) {
         toast.success(`🎉 Bundle-Upgrade erfolgreich! Sie haben jetzt ${bundle.replace('_', ' ')} und alle Features freigeschaltet!`, {
-          duration: 8000,
-          style: {
-            background: '#10b981',
-            color: 'white',
-            fontWeight: 'bold'
-          }
+          duration: 8000
         })
       } else if (credits) {
         toast.success(`💰 Credit-Kauf erfolgreich! ${credits} Credits wurden Ihrem Konto gutgeschrieben!`, {
-          duration: 8000,
-          style: {
-            background: '#10b981',
-            color: 'white',
-            fontWeight: 'bold'
-          }
+          duration: 8000
         })
       }
       

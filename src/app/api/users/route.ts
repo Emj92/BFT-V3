@@ -303,7 +303,10 @@ export async function DELETE(request: NextRequest) {
           where: { ownerId: id }
         })
 
-        // 8. Team-bezogene Daten löschen
+        // 8. Team-Chat-Messages löschen (MUSS VOR User-Löschung passieren wegen FK)
+        await tx.teamChatMessage.deleteMany({ where: { senderId: id } })
+
+        // 9. Team-bezogene Daten löschen
         // Falls User in einem Team ist, Team-Counter dekrementieren
         if (user.teamId) {
           await tx.team.update({
@@ -318,7 +321,7 @@ export async function DELETE(request: NextRequest) {
         // Team-Einladungen löschen (falls der User Einladungen gesendet hat)
         await tx.teamInvitation.deleteMany({ where: { senderId: id } })
 
-        // 9. Alle anderen verknüpften Datensätze parallel löschen
+        // 10. Alle anderen verknüpften Datensätze parallel löschen
         await Promise.all([
           tx.creditTransaction.deleteMany({ where: { userId: id } }),
           tx.report.deleteMany({ where: { userId: id } }),
@@ -327,7 +330,7 @@ export async function DELETE(request: NextRequest) {
           tx.bfeGeneration.deleteMany({ where: { userId: id } })
         ])
 
-        // 10. Endlich den User löschen
+        // 11. Endlich den User löschen
         await tx.user.delete({
           where: { id }
         })

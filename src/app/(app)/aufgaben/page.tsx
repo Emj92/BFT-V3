@@ -336,7 +336,7 @@ export default function AufgabenPage() {
       })
       
       saveTasks(updatedTasks)
-      alert(`❌ Fehler beim Testen: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`)
+      toast.error(`❌ Fehler beim Testen: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`)
     } finally {
       setTestingTasks(prev => {
         const newSet = new Set(prev)
@@ -353,7 +353,7 @@ export default function AufgabenPage() {
     )
     
     if (testableTasks.length === 0) {
-      alert('Keine testbaren Aufgaben gefunden.')
+      toast.info('Keine testbaren Aufgaben gefunden.')
       return
     }
 

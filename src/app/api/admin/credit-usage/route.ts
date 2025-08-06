@@ -114,14 +114,24 @@ export async function GET(request: NextRequest) {
       .filter(t => t.type === 'BFE_GENERATION')
       .reduce((sum, t) => sum + Math.abs(t.amount), 0)
 
+    // Detaillierte Type-Analyse
+    const typeBreakdown = creditTransactions.reduce((acc, t) => {
+      const type = t.type || 'NULL'
+      if (!acc[type]) acc[type] = { count: 0, totalAmount: 0 }
+      acc[type].count++
+      acc[type].totalAmount += Math.abs(t.amount)
+      return acc
+    }, {} as Record<string, { count: number, totalAmount: number }>)
+
     console.log('Credit-Usage Debug AUSFÜHRLICH:', {
       totalTransactions: creditTransactions.length,
       scanCredits,
       coachCredits, 
       bfeCredits,
       totalUsedCredits,
-      allTypes: [...new Set(creditTransactions.map(t => t.type))],
-      sampleTransactions: creditTransactions.slice(0, 3).map(t => ({
+      allTypes: Array.from(new Set(creditTransactions.map(t => t.type))),
+      typeBreakdown,
+      sampleTransactions: creditTransactions.slice(0, 5).map(t => ({
         type: t.type,
         amount: t.amount,
         description: t.description,

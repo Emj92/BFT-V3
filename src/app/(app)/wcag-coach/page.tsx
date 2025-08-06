@@ -160,8 +160,8 @@ export default function WCAGCoachPage() {
     })
   }
 
-  // Lade-Indikator für User und Bundle
-  if (userLoading || bundleLoading) {
+  // Lade-Indikator für User
+  if (userLoading) {
     return (
       <SidebarInset>
         <GlobalNavigation title="WCAG Coach" />

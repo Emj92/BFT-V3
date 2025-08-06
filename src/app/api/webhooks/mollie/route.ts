@@ -53,6 +53,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Payment ID erforderlich' }, { status: 400 })
     }
 
+    // IDEMPOTENZ-PRÜFUNG: Schon verarbeitet?
+    console.log('🔍 Checking if payment already processed:', paymentId)
+    const existingInvoice = await (prisma as any).invoice.findFirst({
+      where: { paymentId: paymentId }
+    })
+
+    if (existingInvoice) {
+      console.log('✅ Payment already processed, skipping:', paymentId)
+      return NextResponse.json({ message: 'Already processed', paymentId })
+    }
+
     console.log('🔔 Mollie Webhook received for paymentId:', paymentId)
     
     const webhookResult = await handlePaymentWebhook(paymentId)

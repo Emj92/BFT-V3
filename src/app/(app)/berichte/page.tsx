@@ -15,12 +15,12 @@ import {
   Download, 
   Calendar, 
   Eye,
-
   Filter,
   BarChart3,
   PieChart,
   TrendingUp
 } from "lucide-react"
+import { toast } from "sonner"
 
 // Dynamischer Import der Animation
 

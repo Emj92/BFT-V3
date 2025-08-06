@@ -71,14 +71,48 @@ export async function GET(request: NextRequest) {
     const onlineThreshold = new Date(Date.now() - 15 * 60 * 1000) // 15 Minuten
 
     try {
-      // Aktuelle Online-User
-      const currentOnlineUsers = await prisma.user.count({
-        where: {
-          ...bundleFilter,
-          updatedAt: {
-            gte: onlineThreshold
+      // Verbesserte Online-User Erkennung: Mehrere Aktivitätsindikatoren
+      const usersWithRecentActivity = await prisma.user.findMany({
+        where: bundleFilter,
+        select: {
+          id: true,
+          updatedAt: true,
+          scans: {
+            where: { createdAt: { gte: onlineThreshold } },
+            select: { id: true }
+          },
+          wcagSessions: {
+            where: { createdAt: { gte: onlineThreshold } },
+            select: { id: true }
+          },
+          bfeGenerations: {
+            where: { createdAt: { gte: onlineThreshold } },
+            select: { id: true }
+          },
+          transactions: {
+            where: { createdAt: { gte: onlineThreshold } },
+            select: { id: true }
           }
         }
+      })
+
+      // User ist online wenn er:
+      // 1. updatedAt in letzten 15 min hat ODER
+      // 2. Recent scans/sessions/generations/transactions hat
+      const currentOnlineUsers = usersWithRecentActivity.filter(user => {
+        const hasRecentUpdate = user.updatedAt >= onlineThreshold
+        const hasRecentScans = user.scans.length > 0
+        const hasRecentSessions = user.wcagSessions.length > 0
+        const hasRecentGenerations = user.bfeGenerations.length > 0
+        const hasRecentTransactions = user.transactions.length > 0
+        
+        return hasRecentUpdate || hasRecentScans || hasRecentSessions || hasRecentGenerations || hasRecentTransactions
+      }).length
+
+      console.log('Online-Users: Enhanced detection result:', {
+        totalUsersChecked: usersWithRecentActivity.length,
+        currentOnlineUsers,
+        onlineThreshold: onlineThreshold.toISOString()
       })
 
       // ECHTE Online-User Verlaufsdaten basierend auf tatsächlicher User-Aktivität
@@ -90,16 +124,48 @@ export async function GET(request: NextRequest) {
         const intervalStart = new Date(Date.now() - (i * intervalHours * 60 * 60 * 1000))
         const intervalEnd = new Date(Date.now() - ((i - 1) * intervalHours * 60 * 60 * 1000))
         
-        // ECHTE Daten: User die in diesem Zeitraum aktiv waren (letzte Aktivität)
-        const activeUsersInInterval = await prisma.user.count({
-          where: {
-            ...bundleFilter,
-            updatedAt: {
-              gte: intervalStart,
-              lte: intervalEnd
+        // ECHTE Daten: User die in diesem Zeitraum aktiv waren (erweiterte Aktivitätserkennung)
+        const usersInInterval = await prisma.user.findMany({
+          where: bundleFilter,
+          select: {
+            id: true,
+            updatedAt: true,
+            scans: {
+              where: { 
+                createdAt: { gte: intervalStart, lte: intervalEnd }
+              },
+              select: { id: true }
+            },
+            wcagSessions: {
+              where: { 
+                createdAt: { gte: intervalStart, lte: intervalEnd }
+              },
+              select: { id: true }
+            },
+            bfeGenerations: {
+              where: { 
+                createdAt: { gte: intervalStart, lte: intervalEnd }
+              },
+              select: { id: true }
+            },
+            transactions: {
+              where: { 
+                createdAt: { gte: intervalStart, lte: intervalEnd }
+              },
+              select: { id: true }
             }
           }
-        }).catch(() => 0)
+        }).catch(() => [])
+
+        const activeUsersInInterval = usersInInterval.filter(user => {
+          const hasRecentUpdate = user.updatedAt >= intervalStart && user.updatedAt <= intervalEnd
+          const hasRecentScans = user.scans.length > 0
+          const hasRecentSessions = user.wcagSessions.length > 0
+          const hasRecentGenerations = user.bfeGenerations.length > 0
+          const hasRecentTransactions = user.transactions.length > 0
+          
+          return hasRecentUpdate || hasRecentScans || hasRecentSessions || hasRecentGenerations || hasRecentTransactions
+        }).length
 
         const label = period === 'day' 
           ? intervalStart.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })

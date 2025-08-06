@@ -236,7 +236,7 @@ export default function AppSidebar() {
       
       const existingWebsite = websites.find(w => normalizeUrlForDuplicateCheck(w.url) === normalizedUrl)
       if (existingWebsite) {
-        alert('Diese Website ist bereits in Ihrer Liste vorhanden.')
+        toast.error('Diese Website ist bereits in Ihrer Liste vorhanden.')
         return
       }
       
@@ -248,7 +248,7 @@ export default function AppSidebar() {
       setAddWebsiteDialogOpen(false)
     } catch (error) {
       console.error('Fehler beim Hinzufügen der Website:', error)
-      alert('Fehler beim Hinzufügen der Website. Bitte versuchen Sie es erneut.')
+      toast.error('Fehler beim Hinzufügen der Website. Bitte versuchen Sie es erneut.')
     }
   }
 
