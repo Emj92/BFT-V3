@@ -32,7 +32,6 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     })
 
-    console.log('KRITISCHER DEBUG - Banner API: Gefundene Banner:', notifications.length, 'isAdmin:', isAdmin)
     notifications.forEach(n => console.log('Banner:', n.id, n.title, n.targetPackages, 'isActive:', n.isActive))
 
     return NextResponse.json(notifications)
@@ -66,7 +65,6 @@ export async function POST(request: NextRequest) {
     }
 
     const requestBody = await request.json()
-    console.log('ADMIN-NOTIFICATIONS DEBUG: Request Body:', requestBody)
     
     const {
       message,

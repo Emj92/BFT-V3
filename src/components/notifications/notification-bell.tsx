@@ -61,7 +61,6 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
       oscillator.start()
       oscillator.stop(audioContext.currentTime + 0.3)
     } catch (error) {
-      console.log('Audio nicht verfügbar:', error)
     }
   }
 
@@ -267,7 +266,6 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
   // SSE-Event-Listener für Echtzeitbenachrichtigungen
   useEffect(() => {
     const handleNewNotification = (data: any) => {
-      console.log('Neue Benachrichtigung erhalten:', data)
       fetchNotifications() // Notifications neu laden
       
       // Animiere die Benachrichtigungsglocke
@@ -279,7 +277,6 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
     }
 
     const handleNotificationRead = (data: any) => {
-      console.log('Benachrichtigung als gelesen markiert:', data)
       fetchNotifications() // Notifications neu laden
     }
 

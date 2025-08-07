@@ -133,15 +133,12 @@ export function AdminCharts() {
           }))
           
           setOnlineData(data.onlineHistory || [])
-          console.log('Online-User Daten geladen:', data)
         } else {
-          console.error('Online-Users API gibt kein JSON zurück:', contentType)
           setStats(prev => ({ ...prev, onlineUsers: 0 }))
           setOnlineData([])
         }
       } else {
         const errorText = await response.text()
-        console.error('Online-Users API Fehler:', response.status, errorText)
         setStats(prev => ({ ...prev, onlineUsers: 0 }))
         setOnlineData([])
       }
@@ -182,9 +179,7 @@ export function AdminCharts() {
           }))
           
           setPackageData(data.chartData || [])
-          console.log('Package-Sales Daten geladen:', data)
         } else {
-          console.error('Package-Sales API gibt kein JSON zurück:', contentType)
           setStats(prev => ({ 
             ...prev, 
             totalPackagesSold: 0, 
@@ -195,7 +190,6 @@ export function AdminCharts() {
         }
       } else {
         const errorText = await response.text()
-        console.error('Package-Sales API Fehler:', response.status, errorText)
         setStats(prev => ({ 
           ...prev, 
           totalPackagesSold: 0, 
@@ -269,9 +263,7 @@ export function AdminCharts() {
           }))
           
           setTicketsData(data.chartData || [])
-          console.log('Support-Tickets Daten geladen:', data)
         } else {
-          console.error('Support-Tickets API gibt kein JSON zurück:', contentType)
           setStats(prev => ({ 
             ...prev, 
             totalTickets: 0, 
@@ -282,7 +274,6 @@ export function AdminCharts() {
         }
       } else {
         const errorText = await response.text()
-        console.error('Support-Tickets API Fehler:', response.status, errorText)
         setStats(prev => ({ 
           ...prev, 
           totalTickets: 0, 
@@ -335,9 +326,7 @@ export function AdminCharts() {
             bfeCredits: data.bfeCredits || 0
           }))
           
-          console.log('Echte Credit-Daten geladen:', data)
         } else {
-          console.error('Credit-Usage API gibt kein JSON zurück:', contentType)
           setStats(prev => ({
             ...prev,
             usedCredits: 0,
@@ -348,7 +337,6 @@ export function AdminCharts() {
         }
       } else {
         const errorText = await response.text()
-        console.error('Credit-Usage API Fehler:', response.status, errorText)
         setStats(prev => ({
           ...prev,
           usedCredits: 0,
@@ -438,9 +426,7 @@ export function AdminCharts() {
             // Starte Live-Updates für Online-User
             startLiveUpdates()
           } else {
-            console.error('Users API gibt kein JSON zurück:', contentType)
             const errorText = await usersResponse.text()
-            console.error('Response text:', errorText)
             setLoading(false)
             return
           }

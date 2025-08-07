@@ -9,7 +9,6 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    console.log('Users API: Starting to fetch users...')
     
     // Zuerst versuche eine einfache Abfrage ohne _count
     const users = await prisma.user.findMany({
@@ -71,7 +70,6 @@ export async function GET() {
       })
     })
     
-    console.log(`Users API: Found ${users.length} users`)
     
     // Füge Standardwerte hinzu ohne komplexe Abfragen
     const usersWithExtendedData = users.map(user => ({
@@ -88,7 +86,6 @@ export async function GET() {
       teamName: (user as any).team?.name || null
     }))
     
-    console.log('Users API: Successfully processed user data')
     
     return NextResponse.json({ 
       users: usersWithExtendedData,
@@ -250,7 +247,6 @@ export async function DELETE(request: NextRequest) {
     }
 
     // CASCADE DELETE in einer Transaktion für Datenintegrität
-    console.log(`Beginne Cascade Delete für User ${id}`)
     
     await prisma.$transaction(async (tx) => {
       try {
@@ -335,14 +331,12 @@ export async function DELETE(request: NextRequest) {
           where: { id }
         })
 
-        console.log(`Cascade Delete für User ${id} erfolgreich abgeschlossen`)
       } catch (error) {
         console.error(`Fehler beim Cascade Delete für User ${id}:`, error)
         throw error // Transaktion rollback
       }
     })
 
-    console.log(`Cascade Delete für User ${id} erfolgreich abgeschlossen`)
     return NextResponse.json({ message: 'User and all related data deleted successfully' })
   } catch (error) {
     console.error('Error deleting user:', error)

@@ -11,7 +11,6 @@ export async function GET(
   try {
     // Prisma verfügbarkeit prüfen
     if (!prisma) {
-      console.error('🚨 CRITICAL: Prisma client is undefined in invoice download route!')
       return NextResponse.json({ error: 'Database unavailable' }, { status: 500 })
     }
 

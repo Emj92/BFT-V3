@@ -34,19 +34,12 @@ function VerifyEmailContent() {
     
     const verifyEmail = async () => {
       try {
-        console.log('Starte E-Mail-Verifizierung...') // Debug log
         
         const response = await fetch(`/api/auth/verify-email?token=${token}`, {
           method: 'GET',
           cache: 'no-cache'
-        })
-        const data = await response.json()
-        
-        console.log('Verifizierung Response:', { 
-          status: response.status, 
-          success: data.success, 
-          data 
-        }) // Debug log
+                    })
+            const data = await response.json()
         
         if (response.ok && data.success) {
           setStatus('success')
@@ -57,7 +50,6 @@ function VerifyEmailContent() {
             setCountdown((prev) => {
               if (prev <= 1) {
                 clearInterval(timer)
-                console.log('Weiterleitung zum Dashboard...') // Debug log
                 router.push('/dashboard')
                 return 0
               }
@@ -67,7 +59,6 @@ function VerifyEmailContent() {
           
           return () => clearInterval(timer)
         } else {
-          console.error('Verifizierung fehlgeschlagen:', data) // Debug log
           setStatus('error')
           setMessage(data.error || 'Fehler bei der E-Mail-Bestätigung')
         }

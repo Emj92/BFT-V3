@@ -69,7 +69,6 @@ export default function WebsiteScansPage() {
     
     // Event-Listener für neue Scans hinzufügen
     const handleScanComplete = () => {
-      console.log('Neuer Scan abgeschlossen - Scans werden neu geladen')
       setTimeout(() => loadScans(), 1000)
     }
     

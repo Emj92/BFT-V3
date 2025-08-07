@@ -44,7 +44,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         parsedResults = scan.results
       }
     } catch (e) {
-      console.log('Fehler beim Parsen der Scan-Results für:', scan.id)
     }
 
     const responseData = {

@@ -110,15 +110,12 @@ export default function WCAGCoachPage() {
           return
         }
         
-        console.error('WCAG Coach API Error:', response.status, errorData)
         throw new Error(errorData.message || errorData.error || 'Fehler beim Senden der Nachricht')
       }
 
       const data = await response.json()
-      console.log('WCAG Coach Response:', data)
       
       if (!data.response) {
-        console.error('Keine Response in Daten:', data)
         throw new Error('Keine Antwort vom WCAG Coach erhalten')
       }
       

@@ -5,6 +5,16 @@ import { NextRequest, NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic';
 import { prisma } from '@/lib/prisma';
 
+// Bundle-Features definieren
+function getBundleFeatures(bundle: string) {
+  const features = {
+    'starter': ['basic-scans', 'pdf-export'],
+    'professional': ['advanced-scans', 'pdf-export', 'team-features', 'priority-support'],
+    'enterprise': ['unlimited-scans', 'api-access', 'white-label', 'custom-integrations']
+  };
+  return features[bundle as keyof typeof features] || [];
+}
+
 export async function GET(req: NextRequest) {
   try {
     // Token aus Cookie auslesen
@@ -150,9 +160,11 @@ export async function PUT(request: NextRequest) {
       }
     });
 
-    // Bundle-Informationen aus der Datenbank oder Konfiguration laden
-    // TODO: Implementierung der echten Bundle-Logik basierend auf Benutzer-Subscription
-    const bundleInfo = null; // Wird später durch echte Bundle-Daten ersetzt
+    // Bundle-Informationen aus der Benutzer-Datenbank laden
+    const bundleInfo = user.bundle ? {
+      name: user.bundle,
+      features: getBundleFeatures(user.bundle)
+    } : null;
 
     return NextResponse.json({
       success: true,

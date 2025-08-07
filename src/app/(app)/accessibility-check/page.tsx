@@ -336,8 +336,6 @@ export default function AccessibilityCheckPage() {
     }
   }
 
-
-
   // Automatisch URL setzen wenn Website ausgewählt wird 
   useEffect(() => {
     if (selectedWebsite && selectedWebsite.url) {
@@ -366,7 +364,6 @@ export default function AccessibilityCheckPage() {
             setScannedPages(matchingScan.scanResults.scannedPages || [url])
             setSelectedPageFilter('alle')
             setError(null)
-            console.log('Gespeicherte Scan-Ergebnisse geladen für:', url)
           }
         }
       } catch (error) {
@@ -399,7 +396,6 @@ export default function AccessibilityCheckPage() {
           const parsedResults = JSON.parse(savedResults)
           setScanResults(parsedResults)
           setUrl(savedUrl)
-          console.log('PERSISTENZ: Gespeicherte Scan-Ergebnisse wiederhergestellt für:', savedUrl)
         }
       } catch (error) {
         console.error('PERSISTENZ: Fehler beim Laden gespeicherter Ergebnisse:', error)
@@ -418,7 +414,6 @@ export default function AccessibilityCheckPage() {
       try {
         localStorage.setItem('accessibility-check-results', JSON.stringify(scanResults))
         localStorage.setItem('accessibility-check-url', url)
-        console.log('PERSISTENZ: Scan-Ergebnisse gespeichert für:', url)
       } catch (error) {
         console.error('PERSISTENZ: Fehler beim Speichern der Ergebnisse:', error)
       }
@@ -514,7 +509,6 @@ export default function AccessibilityCheckPage() {
     setSelectedPageFilter('alle')
     localStorage.removeItem('accessibility-check-results')
     localStorage.removeItem('accessibility-check-url')
-    console.log('PERSISTENZ: Scan-Ergebnisse verworfen')
   }
 
   const handleScan = async () => {
@@ -678,16 +672,6 @@ export default function AccessibilityCheckPage() {
           scanResults: formattedResults
         };
         
-        console.log('KRITISCHER DEBUG: Speichere Scan (Option aktiviert):', scanData);
-        console.log('KRITISCHER DEBUG: FormattedResults Struktur:', {
-          hasViolations: !!formattedResults.violations,
-          violationsCount: formattedResults.violations?.length || 0,
-          hasPasses: !!formattedResults.passes,
-          passesCount: formattedResults.passes?.length || 0,
-          hasDetails: !!formattedResults.details,
-          detailsCount: formattedResults.details?.length || 0
-        });
-        
         const response = await fetch('/api/scans', {
           method: 'POST',
           headers: {
@@ -695,15 +679,11 @@ export default function AccessibilityCheckPage() {
           },
           body: JSON.stringify(scanData)
         });
-        
-        console.log('KRITISCHER DEBUG: Scan-Speicher Response Status:', response.status);
-        
+
         if (response.ok) {
           const responseData = await response.json()
-          console.log('KRITISCHER DEBUG: Scan erfolgreich gespeichert:', responseData);
         } else {
           const errorText = await response.text()
-          console.error('KRITISCHER DEBUG: Scan-Speicher-Fehler:', response.status, errorText);
           throw new Error(`Scan konnte nicht gespeichert werden: ${response.status}`)
         }
       } catch (error) {
@@ -711,12 +691,10 @@ export default function AccessibilityCheckPage() {
         throw error // Fehler weiterwerfen - KEIN Fallback
         }
       } else {
-        console.log('KRITISCHER DEBUG: Scan-Speicherung übersprungen - Option deaktiviert');
       }
       
       // Event auslösen für andere Komponenten (Dashboard, Website-Scans) - NUR WENN GESPEICHERT
       if (saveScannedPages) {
-      console.log('KRITISCHER DEBUG: Löse scanCompleted Event aus')
       window.dispatchEvent(new CustomEvent('scanCompleted', {
         detail: {
             url: url,
@@ -1652,8 +1630,6 @@ export default function AccessibilityCheckPage() {
                                 Zu Aufgaben hinzufügen
                               </Button>
                             )}
-                            
-
 
                           </div>
                         </div>

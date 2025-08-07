@@ -31,7 +31,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Benutzer nicht gefunden' }, { status: 404 })
     }
 
-    console.log('KRITISCHER DEBUG - GET: Lade Websites für User:', user.email)
     
     // KEINE Projekt-Erstellung hier! Nur Websites aus ALLEN Projekten des Users laden
     const websites = await prisma.website.findMany({
@@ -76,8 +75,6 @@ export async function GET(request: NextRequest) {
       lastScanStatus: website.pages[0]?.scans[0]?.status || null
     }))
 
-    console.log('KRITISCHER DEBUG - GET: Gefundene Websites aus DB:', websites.length)
-    console.log('KRITISCHER DEBUG - GET: Formatierte Websites:', formattedWebsites.map(w => ({ id: w.id, name: w.name, url: w.url })))
     
     // Duplikat-Check: Websites mit gleicher URL nur einmal zurückgeben (mit Normalisierung)
     const uniqueWebsites = formattedWebsites.reduce((unique: any[], website: any) => {
@@ -85,12 +82,10 @@ export async function GET(request: NextRequest) {
       if (!unique.find(w => normalizeUrlForDuplicateCheck(w.url) === normalizedUrl)) {
         unique.push(website)
       } else {
-        console.log('KRITISCHER DEBUG - GET: Duplikat entfernt:', website.url, '(normalisiert:', normalizedUrl, ')')
       }
       return unique
     }, [])
     
-    console.log('KRITISCHER DEBUG - GET: Nach Duplikat-Entfernung:', uniqueWebsites.length)
     
     return NextResponse.json({ 
       success: true,
@@ -163,7 +158,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('KRITISCHER DEBUG - POST: Neue Website hinzufügen:', name, url)
     
     // Prüfe ZUERST auf Duplikate in ALLEN Projekten des Users
     const existingWebsiteCheck = await prisma.website.findFirst({
@@ -176,7 +170,6 @@ export async function POST(request: NextRequest) {
     })
 
     if (existingWebsiteCheck) {
-      console.log('KRITISCHER DEBUG - POST: Website bereits vorhanden:', existingWebsiteCheck.id)
       return NextResponse.json(
         { error: 'Diese Website wurde bereits hinzugefügt' },
         { status: 409 }
@@ -199,7 +192,6 @@ export async function POST(request: NextRequest) {
           ownerId: user.id
         }
       })
-      console.log('KRITISCHER DEBUG - POST: Standard-Projekt erstellt:', userProject.id)
     }
 
     // Website erstellen

@@ -2,7 +2,6 @@
 // Dieser Hook wird nicht mehr verwendet und kann entfernt werden
 
 export function useWcagSessions() {
-  console.warn('useWcagSessions is deprecated. WCAG Coach now uses the credit system.')
   
   return {
     sessions: 0,

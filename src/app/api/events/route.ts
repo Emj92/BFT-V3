@@ -13,7 +13,6 @@ class SSEManager {
     }
     this.connections.get(userId)!.push(controller)
     
-    console.log(`SSE: User ${userId} connected. Total connections: ${this.getTotalConnections()}`)
   }
   
   removeConnection(userId: string, controller: ResponseController) {
@@ -26,7 +25,6 @@ class SSEManager {
       this.connections.set(userId, filtered)
     }
     
-    console.log(`SSE: User ${userId} disconnected. Total connections: ${this.getTotalConnections()}`)
   }
   
   broadcastToUser(userId: string, event: any) {

@@ -8,12 +8,10 @@ export const dynamic = 'force-dynamic'
 // GET - Credit-Verbrauchsstatistiken für Admin
 export async function GET(request: NextRequest) {
   try {
-    console.log('Credit-Usage API: Starting...')
     
     const token = cookies().get('auth-token')?.value
     
     if (!token) {
-      console.log('Credit-Usage API: No token found')
       return NextResponse.json({ error: 'Nicht authentifiziert' }, { 
         status: 401,
         headers: { 'Content-Type': 'application/json' }
@@ -21,7 +19,6 @@ export async function GET(request: NextRequest) {
     }
 
     const decoded = verify(token, process.env.JWT_SECRET || 'barrierefrei-secret-key') as any
-    console.log('Credit-Usage API: Token decoded, user ID:', decoded.id)
     
     // Prüfe Admin-Berechtigung
     const user = await prisma.user.findUnique({
@@ -32,14 +29,12 @@ export async function GET(request: NextRequest) {
     })
 
     if (!user || user.role !== 'ADMIN') {
-      console.log('Credit-Usage API: No admin access for user:', user?.role)
       return NextResponse.json({ error: 'Keine Berechtigung' }, { 
         status: 403,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
-    console.log('Credit-Usage API: Admin access confirmed')
 
     // URL-Parameter für Filterung
     const url = new URL(request.url)
@@ -121,16 +116,16 @@ export async function GET(request: NextRequest) {
       acc[type].count++
       acc[type].totalAmount += Math.abs(t.amount)
       return acc
-    }, {} as Record<string, { count: number, totalAmount: number }>)
+            }, {} as Record<string, { count: number, totalAmount: number }>)
 
-    console.log('Credit-Usage Debug AUSFÜHRLICH:', {
-      totalTransactions: creditTransactions.length,
-      scanCredits,
-      coachCredits, 
-      bfeCredits,
-      totalUsedCredits,
-      allTypes: Array.from(new Set(creditTransactions.map(t => t.type))),
-      typeBreakdown,
+        return NextResponse.json({
+          totalTransactions: creditTransactions.length,
+          scanCredits,
+          coachCredits,
+          bfeCredits,
+          totalUsedCredits,
+          allTypes: Array.from(new Set(creditTransactions.map(t => t.type))),
+          typeBreakdown,
       sampleTransactions: creditTransactions.slice(0, 5).map(t => ({
         type: t.type,
         amount: t.amount,
@@ -151,7 +146,6 @@ export async function GET(request: NextRequest) {
       success: true
     }
 
-    console.log('Credit-Usage API: Success, returning:', result)
     
     return NextResponse.json(result, {
       status: 200,

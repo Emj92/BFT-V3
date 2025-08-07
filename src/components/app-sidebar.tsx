@@ -266,7 +266,6 @@ export default function AppSidebar() {
     // Prüfe ob Benutzer berechtigt ist
     if (!hasPremiumSupport) {
       // Zeige Upgrade-Dialog oder bessere UX statt Alert
-      console.log('Support-Tickets sind nur ab dem STARTER-Paket verfügbar.')
       return
     }
     

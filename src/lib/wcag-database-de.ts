@@ -315,7 +315,7 @@ export function getAccessibilityRating(score: number): {
     return {
       rating: 'Gut',
       description: 'Gute BF-Konformität',
-      color: 'text-green-500'
+      color: 'text-orange-500'  // Orange wie der Kreis
     };
   } else if (normalizedScore >= 60) {
     return {
@@ -363,4 +363,9 @@ export const positiveTestsDE: Record<string, string> = {
 // Funktion zum Übersetzen positiver Tests
 export function translatePositiveTest(englishText: string): string {
   return positiveTestsDE[englishText] || englishText;
+}
+
+// Funktion zum Abrufen von WCAG-Fehlern nach Code
+export function getErrorByCode(code: string): WCAGError | null {
+  return wcagErrorsDE[code] || null;
 }

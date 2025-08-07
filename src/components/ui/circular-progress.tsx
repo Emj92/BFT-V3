@@ -20,11 +20,13 @@ export function CircularProgress({
   const strokeDasharray = circumference
   const strokeDashoffset = circumference - (value / 100) * circumference
 
-  // Farbe basierend auf dem Wert bestimmen
+  // Farbe basierend auf dem Wert bestimmen - konsistent mit Text
   const getColor = (value: number) => {
-    if (value >= 80) return '#10b981' // Grün
-    if (value >= 60) return '#f59e0b' // Orange
-    return '#ef4444' // Rot
+    if (value >= 90) return '#10b981' // Grün (sehr gut)
+    if (value >= 75) return '#f97316' // Orange (gut)  
+    if (value >= 60) return '#eab308' // Gelb (befriedigend)
+    if (value >= 40) return '#f97316' // Orange (schlecht)
+    return '#ef4444' // Rot (sehr schlecht)
   }
 
   const color = getColor(value)

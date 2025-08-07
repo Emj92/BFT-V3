@@ -40,7 +40,6 @@ export function useUser() {
         setError(null)
       } else {
         setError('Failed to fetch user data')
-        console.error('Failed to fetch user data')
       }
     } catch (err) {
       setError('Error fetching user data')

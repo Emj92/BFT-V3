@@ -38,9 +38,7 @@ function WcagChart({ score, level }: { score: number; level: string }) {
     if (percentage >= 60) return "text-yellow-500"
     return "text-red-500"
   }
-  
-  console.log('KRITISCHER DEBUG - WcagChart:', { score, percentage, level })
-  
+
   return (
     <div className="flex flex-col items-center space-y-2">
       <div className="relative w-24 h-24">
@@ -150,7 +148,6 @@ export default function DashboardPage() {
       setError(null)
 
       try {
-        console.log('Dashboard-Datenladung startet...')
         
         // IMMER alle Daten parallel laden - KEINE KONDITIONELLE LOGIK
         const [websitesResponse, scansResponse] = await Promise.all([
@@ -173,8 +170,6 @@ export default function DashboardPage() {
         const allWebsites = websitesData.websites || [];
         const allScans = scansData.scans || [];
 
-        console.log('Geladene Daten:', { websites: allWebsites.length, scans: allScans.length });
-
         if (isCancelled) return;
 
         // Berechne Statistiken
@@ -186,14 +181,15 @@ export default function DashboardPage() {
           ? allScans.reduce((sum: number, scan: any) => sum + (normalizeScore(scan.score || 0)), 0) / totalScans
           : 0;
         
-        const criticalIssues = allScans.reduce((sum: number, scan: any) => 
-          sum + (scan.criticalIssues || 0), 0);
+                    const criticalIssues = allScans.reduce((sum: number, scan: any) => 
+              sum + (scan.criticalIssues || 0), 0);
 
-        console.log('KRITISCHER DEBUG - Dashboard Score Berechnung:', { 
-          totalScans, 
-          rawScores: allScans.map((s: any) => s.score), 
-          avgScore 
-        });
+            setStats({
+              totalWebsites,
+              totalScans,
+              avgScore,
+              criticalIssues
+            });
 
         // ATOMIC UPDATE - alles auf einmal setzen
         const newStats = {
@@ -208,17 +204,9 @@ export default function DashboardPage() {
           wcagAAACompliance: 0
         };
         
-        console.log('KRITISCHER DEBUG: Score-Berechnung:', { 
-          avgScore, 
-          totalScans, 
-          'wcagAACompliance': newStats.wcagAACompliance,
-          'erster Scan Score': allScans[0]?.score,
-          'alle Scores': allScans.map(s => s.score).slice(0, 5),
-          'Raw allScans length': allScans.length
-        });
+        setStats(newStats);
 
         // ALLE SCANS als Activities anzeigen - KEIN Duplikat-Filter hier!
-        console.log('KRITISCHER DEBUG - Activities: Verwende alle', allScans.length, 'Scans für Activities');
         
         const newActivities = allScans.slice(0, 4).map((scan: any, index: number) => ({
           id: scan.id || index + 1,
@@ -229,13 +217,10 @@ export default function DashboardPage() {
           score: scan.score || 0
         }));
 
-        console.log('KRITISCHER DEBUG - Activities: Generierte Activities:', newActivities.length);
-
         // EINMALIGES ATOMIC UPDATE
         if (!isCancelled) {
           setStats(newStats);
           setRecentActivities(newActivities);
-          console.log('Dashboard-Daten erfolgreich gesetzt:', newStats);
         }
 
       } catch (error) {
@@ -254,7 +239,6 @@ export default function DashboardPage() {
     
     // Event-Listener für Scan-Abschluss hinzufügen
     const handleScanComplete = () => {
-      console.log('Scan abgeschlossen - Dashboard wird neu geladen')
       setTimeout(() => {
         if (!isCancelled) {
           loadDashboardData()

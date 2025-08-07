@@ -88,7 +88,6 @@ export default function CreateTicketPage() {
 
       if (response.ok) {
         const result = await response.json()
-        console.log("Ticket erfolgreich erstellt:", result.ticket)
         
         // Zeige Erfolgsdialog
         setCreatedTicket(result.ticket)
@@ -101,7 +100,6 @@ export default function CreateTicketPage() {
         }, 2000)
       } else {
         const error = await response.json()
-        console.error("Fehler beim Erstellen des Tickets:", error)
         alert("Fehler beim Erstellen des Tickets. Bitte versuchen Sie es erneut.")
       }
     } catch (error) {

@@ -57,7 +57,6 @@ export async function POST(request: NextRequest) {
       cleanedRecords += deletedScans.count + deletedReports.count
     }
 
-    console.log(`Datenbereinigung abgeschlossen: ${cleanedRecords} Datensätze gelöscht`)
 
     return NextResponse.json({
       success: true,

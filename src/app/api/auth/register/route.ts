@@ -54,7 +54,6 @@ export async function POST(request: NextRequest) {
     // Bestätigungs-Email senden
     try {
       const emailResult = await sendVerificationEmail(email, verificationToken, name)
-      console.log('Email-Versand:', emailResult.message)
     } catch (emailError) {
       console.error('Fehler beim Email-Versand:', emailError)
       // Registrierung trotzdem fortsetzen, aber Hinweis geben

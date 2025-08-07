@@ -17,15 +17,9 @@ interface MollieMetadata {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔔 🔔 🔔 MOLLIE WEBHOOK RECEIVED! 🔔 🔔 🔔')
-    console.log('⏰ Timestamp:', new Date().toISOString())
-    console.log('📥 Headers:', JSON.stringify(Object.fromEntries(request.headers), null, 2))
-    console.log('🌐 Request URL:', request.url)
-    console.log('📋 Request Method:', request.method)
     
     // Prisma verfügbarkeit prüfen
     if (!prisma) {
-      console.error('🚨 CRITICAL: Prisma client is undefined!')
       return NextResponse.json({ error: 'Database unavailable' }, { status: 500 })
     }
     
@@ -33,20 +27,13 @@ export async function POST(request: NextRequest) {
 
     // Mollie sendet form-data, nicht JSON
     const contentType = request.headers.get('content-type')
-    console.log('📋 Content-Type:', contentType)
     
     if (contentType?.includes('application/x-www-form-urlencoded')) {
-      console.log('📝 Parsing as form data...')
       const formData = await request.formData()
-      console.log('📊 Form data entries:', Object.fromEntries(formData))
       paymentId = formData.get('id') as string
-      console.log('🆔 Extracted payment ID from form:', paymentId)
     } else {
-      console.log('📝 Parsing as JSON...')
       const jsonData = await request.json()
-      console.log('📊 JSON data:', jsonData)
       paymentId = jsonData.id
-      console.log('🆔 Extracted payment ID from JSON:', paymentId)
     }
     
     if (!paymentId) {
@@ -54,29 +41,23 @@ export async function POST(request: NextRequest) {
     }
 
     // IDEMPOTENZ-PRÜFUNG: Schon verarbeitet?
-    console.log('🔍 Checking if payment already processed:', paymentId)
     const existingInvoice = await (prisma as any).invoice.findFirst({
       where: { paymentId: paymentId }
     })
 
     if (existingInvoice) {
-      console.log('✅ Payment already processed, skipping:', paymentId)
       return NextResponse.json({ message: 'Already processed', paymentId })
     }
 
-    console.log('🔔 Mollie Webhook received for paymentId:', paymentId)
     
     const webhookResult = await handlePaymentWebhook(paymentId)
-    console.log('🔔 Webhook result:', webhookResult)
     
     if (!webhookResult.success) {
-      console.error('❌ Webhook failed:', webhookResult.error)
       return NextResponse.json({ error: webhookResult.error }, { status: 400 })
     }
 
     // Nur wenn Zahlung erfolgreich
     if (webhookResult.status === 'paid' && webhookResult.metadata) {
-      console.log('✅ Payment successful, processing metadata:', webhookResult.metadata)
       const metadata = webhookResult.metadata as MollieMetadata
       
       // Fortlaufende Rechnungsnummer generieren
@@ -92,7 +73,6 @@ export async function POST(request: NextRequest) {
       }
       
       if (metadata.type === 'bundle') {
-        console.log('📦 Processing bundle upgrade:', metadata.bundle, 'for user:', metadata.userId)
         
         // Bundle-Upgrade durchführen
         const purchaseDate = new Date()
@@ -114,15 +94,8 @@ export async function POST(request: NextRequest) {
         
         const creditsToAdd = bundleCredits[metadata.bundle as keyof typeof bundleCredits] || 0
         
-        // Bundle-Mapping: TEST_PRO löst PRO aus
-        const actualBundle = metadata.bundle === 'TEST_PRO' ? 'PRO' : metadata.bundle
-        
-        console.log('🔄 Updating user bundle:', {
-          userId: metadata.userId,
-          fromBundle: metadata.bundle,
-          toBundle: actualBundle,
-          creditsToAdd
-        })
+                    // Bundle-Mapping: TEST_PRO löst PRO aus
+            const actualBundle = metadata.bundle === 'TEST_PRO' ? 'PRO' : metadata.bundle
         
         await prisma.user.update({
           where: { id: metadata.userId },
@@ -136,7 +109,6 @@ export async function POST(request: NextRequest) {
           }
         })
         
-        console.log('✅ User bundle updated successfully!')
 
         // Credit-Transaktion erstellen
         await prisma.creditTransaction.create({
@@ -169,7 +141,6 @@ export async function POST(request: NextRequest) {
         })
 
         if (user) {
-          console.log('📧 Sending invoice email to:', user.email)
           
           // PDF-Rechnung generieren
           const invoiceData: InvoiceData = {
@@ -199,9 +170,7 @@ export async function POST(request: NextRequest) {
             )
             
             if (emailResult.success) {
-              console.log('✅ Invoice email sent successfully!')
             } else {
-              console.error('❌ Failed to send invoice email:', emailResult.message)
             }
           } catch (emailError) {
             console.error('❌ Error generating PDF or sending email:', emailError)
@@ -209,7 +178,6 @@ export async function POST(request: NextRequest) {
         }
 
       } else if (metadata.type === 'credits') {
-        console.log('💰 Processing credit purchase:', metadata.credits, 'for user:', metadata.userId)
         
         // Credits hinzufügen
         const creditAmount = parseInt(metadata.credits || '0')
@@ -223,7 +191,6 @@ export async function POST(request: NextRequest) {
           }
         })
         
-        console.log('✅ Credits added successfully!')
 
         // Credit-Transaktion erstellen
         await prisma.creditTransaction.create({
@@ -256,7 +223,6 @@ export async function POST(request: NextRequest) {
         })
 
         if (creditUser) {
-          console.log('📧 Sending credit invoice email to:', creditUser.email)
           
           // PDF-Rechnung für Credits generieren
           const creditInvoiceData: InvoiceData = {
@@ -285,9 +251,7 @@ export async function POST(request: NextRequest) {
             )
             
             if (creditEmailResult.success) {
-              console.log('✅ Credit invoice email sent successfully!')
             } else {
-              console.error('❌ Failed to send credit invoice email:', creditEmailResult.message)
             }
           } catch (creditEmailError) {
             console.error('❌ Error generating credit PDF or sending email:', creditEmailError)
@@ -296,10 +260,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('🎉 🎉 🎉 WEBHOOK PROCESSING COMPLETED SUCCESSFULLY! 🎉 🎉 🎉')
-    console.log('✅ Payment ID:', paymentId)
-    console.log('✅ Status:', webhookResult.status)
-    console.log('✅ Timestamp:', new Date().toISOString())
     return NextResponse.json({ success: true, status: webhookResult.status })
 
   } catch (error) {

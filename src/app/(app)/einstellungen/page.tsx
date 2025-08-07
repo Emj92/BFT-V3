@@ -154,7 +154,6 @@ export default function EinstellungenPage() {
           const data = await response.json()
           setBillingHistory(data.invoices || [])
         } else {
-          console.warn('Rechnungshistorie konnte nicht geladen werden')
           setBillingHistory([])
         }
       } catch (error) {
@@ -178,7 +177,6 @@ export default function EinstellungenPage() {
     const credits = urlParams.get('credits')
 
     if (paymentSuccess) {
-      console.log('🎉 Payment success detected:', { bundle, credits })
       
       // Erfolgstoast sofort anzeigen
       if (bundle) {
@@ -194,12 +192,10 @@ export default function EinstellungenPage() {
       // Warten bis Webhook verarbeitet wurde, dann User-Daten neu laden
       const refreshUserData = async () => {
         try {
-          console.log('⏳ Waiting for webhook to process...')
           
           // 3 Sekunden warten damit Webhook verarbeitet wird
           await new Promise(resolve => setTimeout(resolve, 3000))
           
-          console.log('🔄 Refreshing user data...')
           
           // User-Daten und Bundle-Info neu laden  
           try {
@@ -207,14 +203,12 @@ export default function EinstellungenPage() {
             const userResponse = await fetch('/api/auth/me')
             if (userResponse.ok) {
               const userData = await userResponse.json()
-              console.log('✅ User data refreshed:', userData)
             }
             
             // Bundle-Info neu laden
             const bundleResponse = await fetch('/api/user/bundle')
             if (bundleResponse.ok) {
               const bundleData = await bundleResponse.json()
-              console.log('✅ Bundle data refreshed:', bundleData)
             }
             
             // Rechnungshistorie neu laden
@@ -222,7 +216,6 @@ export default function EinstellungenPage() {
             if (invoiceResponse.ok) {
               const invoiceData = await invoiceResponse.json()
               setBillingHistory(invoiceData.invoices || [])
-              console.log('✅ Invoice data refreshed')
             }
             
             // Erfolgreiche Aktualisierung anzeigen
@@ -331,10 +324,8 @@ export default function EinstellungenPage() {
       })
 
       if (response.ok) {
-        console.log("Einstellungen erfolgreich gespeichert")
         toast.success("Einstellungen wurden gespeichert!")
       } else {
-        console.error("Fehler beim Speichern der Einstellungen")
         toast.error("Fehler beim Speichern der Einstellungen.")
       }
     } catch (error) {

@@ -295,7 +295,6 @@ export default function AufgabenPage() {
       // (könnte bedeuten, dass die Regel-ID nicht korrekt ist)
       if (testResult === 'passed' && scanResult.violations && scanResult.violations.length > 0) {
         const allViolationIds = scanResult.violations.map((v: any) => v.id).join(', ')
-        console.warn(`Keine Violations für Regel "${task.wcagCode}" gefunden. Verfügbare Regeln: ${allViolationIds}`)
       }
       
       // Aktualisiere die Aufgabe mit dem Testergebnis (aber setze NICHT automatisch auf completed)

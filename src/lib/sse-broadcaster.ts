@@ -13,7 +13,6 @@ export interface SSEEventData {
  */
 export function broadcastToUser(userId: string, event: SSEEventData) {
   if (!userId || !event.type) {
-    console.error('SSE: Invalid parameters for broadcastToUser', { userId, event })
     return
   }
 
@@ -25,7 +24,6 @@ export function broadcastToUser(userId: string, event: SSEEventData) {
 
   try {
     sseManager.broadcastToUser(userId, eventWithTimestamp)
-    console.log(`SSE: Broadcasted '${event.type}' to user ${userId}`)
   } catch (error) {
     console.error('SSE: Error broadcasting to user', userId, error)
   }
@@ -47,7 +45,6 @@ export function broadcastToAll(event: SSEEventData) {
 
   try {
     sseManager.broadcastToAll(eventWithTimestamp)
-    console.log(`SSE: Broadcasted '${event.type}' to all users`)
   } catch (error) {
     console.error('SSE: Error broadcasting to all users', error)
   }
@@ -82,8 +79,6 @@ export async function broadcastToTeam(teamId: string, event: SSEEventData) {
       sseManager.broadcastToUser(member.id, eventWithTimestamp)
     })
 
-    console.log(`SSE: Broadcasted '${event.type}' to team ${teamId} (${teamMembers.length} members)`)
-    
   } catch (error) {
     console.error('SSE: Error broadcasting to team', teamId, error)
   }
@@ -161,7 +156,6 @@ export function getSSEStats() {
 }
 
 export function debugBroadcast(event: SSEEventData) {
-  console.log('SSE Debug broadcast:', event)
   broadcastToAll({
     ...event,
     type: 'debug_' + event.type

@@ -46,7 +46,6 @@ export function TeamInvitationBell() {
   // SSE-Event-Listener für Echtzeit-Team-Einladungen
   useEffect(() => {
     const handleTeamInvitation = (data: any) => {
-      console.log('Neue Team-Einladung erhalten:', data)
       loadInvitations() // Einladungen neu laden
     }
 

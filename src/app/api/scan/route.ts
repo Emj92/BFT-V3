@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic';
-import { scanUrl } from '@/lib/accessibility-scanner';
+import { scanUrl, getCachedScanResult } from '@/lib/accessibility-scanner';
 import { isValidUrl, formatUrl } from '@/lib/utils';
 import { getServerSession, authOptions } from '@/lib/auth';
 import { runCleanupIfNeeded } from '@/lib/data-cleanup';
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       console.error('Cleanup-Fehler:', error);
     });
 
-    const { url, standard } = await req.json();
+    const { url, standard, useCache = true } = await req.json();
     
     if (!url) {
       return NextResponse.json(
@@ -34,14 +34,27 @@ export async function POST(req: NextRequest) {
       );
     }
     
+    // Prüfe Cache zuerst (nur wenn useCache true ist)
+    if (useCache) {
+      const cachedResult = getCachedScanResult(formattedUrl);
+      if (cachedResult) {
+        return NextResponse.json({
+          ...cachedResult,
+          fromCache: true
+        });
+      }
+    }
+    
     // Führe den Scan durch
-    const result = await scanUrl(formattedUrl, standard);
+    const result = await scanUrl(formattedUrl, standard, useCache);
     
     // WICHTIG: Homepage-Scans werden NICHT gespeichert!
     // Diese API ist nur für öffentliche/Gast-Scans gedacht
-    console.log('HOMEPAGE-SCAN: Scan durchgeführt aber NICHT gespeichert für URL:', formattedUrl);
     
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      fromCache: false
+    });
   } catch (error) {
     console.error('Scan error:', error);
     

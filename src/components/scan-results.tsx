@@ -21,6 +21,7 @@ import {
   XCircle
 } from "lucide-react"
 import { getAccessibilityRating, normalizeScore, translatePositiveTest } from '@/lib/wcag-database-de'
+import { CircularProgress } from '@/components/ui/circular-progress'
 import { Chart } from './chart'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
@@ -275,33 +276,13 @@ export default function ScanResults({
           <div className="lg:col-span-1">
             <div className="bg-white border-2 border-gray-100 rounded-lg p-6 text-center h-full flex flex-col justify-center">
               <h3 className="text-lg font-semibold text-gray-600 mb-4">Gesamt-Score</h3>
-              <div className="relative w-32 h-32 mx-auto mb-4">
-                <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 120 120">
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="50"
-                    stroke="#e5e7eb"
-                    strokeWidth="8"
-                    fill="transparent"
-                  />
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="50"
-                    stroke={getCircleStrokeColor(results.score)}
-                    strokeWidth="8"
-                    fill="transparent"
-                    strokeDasharray={`${2 * Math.PI * 50}`}
-                    strokeDashoffset={`${2 * Math.PI * 50 * (1 - results.score)}`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className={`text-2xl font-bold ${getAccessibilityRating(results.score).color}`}>
-                    {normalizeScore(results.score)}%
-                  </span>
-                </div>
+              <div className="flex flex-col items-center mb-4">
+                <CircularProgress 
+                  value={normalizeScore(results.score)} 
+                  size={128} 
+                  strokeWidth={8}
+                  className="mb-2"
+                />
               </div>
               <div className={`text-lg font-medium ${getAccessibilityRating(results.score).color}`}>
                 {getAccessibilityRating(results.score).rating}

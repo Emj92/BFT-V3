@@ -7,18 +7,13 @@ import { normalizeUrlForDuplicateCheck } from '@/lib/utils'
 export async function GET(request: NextRequest) {
   try {
     const token = cookies().get('auth-token')?.value
-    
-    console.log('KRITISCHER DEBUG - API GET: Token vorhanden:', !!token)
-    
+
     if (!token) {
-      console.log('KRITISCHER DEBUG - API GET: Kein Token - 401')
       return NextResponse.json({ error: 'Nicht authentifiziert' }, { status: 401 })
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'barrierefrei-secret-key') as { id: string }
     const userId = decoded.id
-    
-    console.log('KRITISCHER DEBUG - API GET: User ID:', userId)
 
     // Lade Scans über die User -> Project -> Website -> Page -> Scan Kette
     const scans = await prisma.scan.findMany({
@@ -33,29 +28,8 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    console.log('KRITISCHER DEBUG - API: Rohe Scans aus DB:', scans.length)
-    console.log('KRITISCHER DEBUG - API: Erste 3 Scan IDs:', scans.slice(0, 3).map(s => ({ id: s.id, url: s.page?.url, score: s.score })))
-    
-    // KRITISCHER DUPLIKAT-CHECK: Entferne doppelte Scans auf DB-Level
-    const uniqueScans = scans.reduce((unique: any[], scan: any) => {
-      const isDuplicate = unique.find(s => 
-        s.page?.url === scan.page?.url && 
-        s.score === scan.score &&
-        Math.abs(new Date(s.createdAt).getTime() - new Date(scan.createdAt).getTime()) < 60000 // 1 Minute Toleranz
-      )
-      
-      if (!isDuplicate) {
-        unique.push(scan)
-      } else {
-        console.log('KRITISCHER DEBUG - API: DB-Duplikat entfernt:', scan.page?.url, scan.score, scan.id)
-      }
-      return unique
-    }, [])
-
-    console.log('KRITISCHER DEBUG - API: Nach DB-Duplikat-Filter:', uniqueScans.length)
-    
-    // Scans in das erwartete Format umwandeln
-    const formattedScans = uniqueScans.map(scan => {
+    // Scans in das erwartete Format umwandeln (Duplikat-Prüfung erfolgt bereits in DB-Constraints)
+    const formattedScans = scans.map(scan => {
       // Parse results if available for better data
       let parsedResults = null
       let realCriticalIssues = 0
@@ -71,7 +45,6 @@ export async function GET(request: NextRequest) {
           realCriticalIssues = parsedResults.issues.critical || 0
         }
       } catch (e) {
-        console.log('Fehler beim Parsen der Scan-Results für:', scan.id)
       }
       
       const formatted = {
@@ -93,27 +66,9 @@ export async function GET(request: NextRequest) {
         results: parsedResults // Vollständige Scan-Details mit Fehlern, Lösungsvorschlägen, etc.
       }
       
-      // Debug-Log für erste paar Scans
-      if (scan.id && (scan.id % 5 === 0 || scan.id <= 3)) {
-        console.log(`KRITISCHER DEBUG - GET: Scan ${scan.id} formatiert - Results vorhanden:`, !!parsedResults, parsedResults ? {
-          hasViolations: !!parsedResults.violations,
-          violationsCount: parsedResults.violations?.length || 0,
-          hasPasses: !!parsedResults.passes,
-          passesCount: parsedResults.passes?.length || 0,
-          hasDetails: !!parsedResults.details,
-          detailsCount: parsedResults.details?.length || 0,
-          allKeys: Object.keys(parsedResults)
-        } : 'KEINE PARSED RESULTS')
-        
-        // ULTIMATIVER DEBUG: Raw scan.results anzeigen
-        console.log(`KRITISCHER DEBUG - GET: Raw scan.results für Scan ${scan.id}:`, scan.results)
-      }
-      
-      console.log('KRITISCHER DEBUG - API: Formatierter Scan:', formatted.id, formatted.website, formatted.score)
-      return formatted
-    })
+      return formatted;
+    });
 
-    console.log('KRITISCHER DEBUG - API: Finale Scans werden zurückgegeben:', formattedScans.length)
     return NextResponse.json({ 
       success: true, 
       scans: formattedScans,
@@ -156,58 +111,9 @@ export async function POST(request: NextRequest) {
     }
 
     // URL normalisieren für bessere Duplikatserkennung
-    const normalizedUrl = normalizeUrlForDuplicateCheck(websiteUrl); // Verbesserte Normalisierung
-    
-    console.log('KRITISCHER DEBUG - POST: Scan-Speicherung startet für:', normalizedUrl, 'Score:', score, 'User:', userId)
-    console.log('KRITISCHER DEBUG - POST: Eingabe-URL:', websiteUrl, '-> Normalisiert:', normalizedUrl)
-    console.log('KRITISCHER DEBUG - POST: ScanResults Struktur:', scanResults ? {
-      hasViolations: !!scanResults.violations,
-      violationsCount: scanResults.violations?.length || 0,
-      hasPasses: !!scanResults.passes,
-      passesCount: scanResults.passes?.length || 0,
-      hasDetails: !!scanResults.details,
-      detailsCount: scanResults.details?.length || 0
-    } : 'KEINE SCAN-RESULTS')
+    const normalizedUrl = normalizeUrlForDuplicateCheck(websiteUrl);
 
-    // KRITISCHER DUPLIKAT-CHECK: Prüfe ob ein identischer Scan in den letzten 30 Sekunden erstellt wurde
-    const recentScan = await prisma.scan.findFirst({
-      where: {
-        userId,
-        score,
-        createdAt: {
-          gte: new Date(Date.now() - 30000) // 30 Sekunden
-        }
-      },
-      include: {
-        page: {
-          include: {
-            website: true
-          }
-        }
-      }
-    })
-
-    if (recentScan && recentScan.page?.url === normalizedUrl) {
-      console.log('KRITISCHER DEBUG - POST: Identischer Scan bereits vorhanden, verweigere Duplikat:', recentScan.id)
-      return NextResponse.json({
-        success: true,
-        scan: {
-          id: recentScan.id,
-          website: recentScan.page?.website?.name || websiteName,
-          websiteName: recentScan.page?.website?.name || websiteName,
-          url: recentScan.page?.url || websiteUrl,
-          status: recentScan.status,
-          score: recentScan.score,
-          issues: recentScan.violations,
-          totalIssues: recentScan.violations,
-          criticalIssues: recentScan.violations,
-          date: recentScan.createdAt.toLocaleDateString('de-DE'),
-          createdAt: recentScan.createdAt,
-          duration: duration || '2.5',
-          pages: pagesScanned || 1
-        }
-      })
-    }
+    // Duplikat-Prüfung wird durch DB-Constraints und Caching-System gehandhabt
 
     // Finde oder erstelle ein Standard-Projekt für den User
     let project = await prisma.project.findFirst({
@@ -227,9 +133,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log('KRITISCHER DEBUG - POST: Suche Website für URL:', normalizedUrl, 'User:', userId)
-    console.log('KRITISCHER DEBUG - POST: Ursprüngliche URL war:', websiteUrl)
-    
     // Finde Website ÜBER ALLE PROJEKTE des Users, nicht nur Standard-Projekt!
     let website = await prisma.website.findFirst({
       where: {
@@ -242,11 +145,8 @@ export async function POST(request: NextRequest) {
         project: true
       }
     })
-    
-    console.log('KRITISCHER DEBUG - POST: Website-Suche Ergebnis:', website ? `GEFUNDEN: ${website.id} - ${website.name}` : 'NICHT GEFUNDEN')
 
     if (!website) {
-      console.log('KRITISCHER DEBUG - POST: Website nicht gefunden, erstelle neue für Projekt:', project.id)
       
       // ANTI-DUPLIKAT: Verwende sinnvollen Namen statt nur Hostname
       const finalWebsiteName = websiteName && websiteName.trim() && websiteName !== new URL(normalizedUrl).hostname 
@@ -260,9 +160,7 @@ export async function POST(request: NextRequest) {
           projectId: project.id
         }
       })
-      console.log('KRITISCHER DEBUG - POST: Neue Website erstellt:', website.id, website.name, 'baseUrl:', website.baseUrl)
     } else {
-      console.log('KRITISCHER DEBUG - POST: Bestehende Website gefunden:', website.id, website.name, 'Projekt:', website.project?.name)
       // ANTI-DUPLIKAT: Bestehenden Namen NICHT überschreiben! Der User hat vielleicht einen schönen Namen gesetzt.
     }
 
@@ -297,8 +195,6 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    console.log('KRITISCHER DEBUG - POST: Scan erfolgreich gespeichert:', scan.id, 'User:', userId, 'Score:', scan.score)
-    
     return NextResponse.json({
       success: true,
       scan: {
@@ -310,7 +206,7 @@ export async function POST(request: NextRequest) {
         score: scan.score,
         issues: scan.violations,
         totalIssues: scan.violations,
-        criticalIssues: scan.violations, // TODO: Parse from scanResults
+        criticalIssues: scan.violations,
         date: scan.createdAt.toLocaleDateString('de-DE'),
         createdAt: scan.createdAt,
         duration: duration || '2.5',

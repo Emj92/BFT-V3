@@ -41,7 +41,6 @@ export default function TeamChatPage() {
     if (!hasEnterpriseAccess || !user?.teamId) return
 
     const handleTeamChatMessage = (data: any) => {
-      console.log('Neue Team-Chat-Nachricht erhalten:', data)
       
       // Verhindere Duplikate - prüfe ob Nachricht bereits existiert
       setChatMessages(prev => {

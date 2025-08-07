@@ -43,15 +43,12 @@ export function CookieBanner() {
     // Hier würden externe Scripts geladen werden basierend auf Consent
     if (consentData.analytics) {
       // Google Analytics laden
-      console.log('Analytics Scripts werden geladen')
     }
     if (consentData.marketing) {
       // Marketing Scripts laden  
-      console.log('Marketing Scripts werden geladen')
     }
     if (consentData.preferences) {
       // Präferenz Scripts laden
-      console.log('Präferenz Scripts werden geladen')
     }
   }
 

@@ -12,7 +12,8 @@ import { toast } from "sonner"
 import { getRandomMotivationalQuote } from "@/utils/motivational-quotes"
 import { LanguageToggle } from "@/components/language-toggle"
 import { formatUrl, isValidUrl } from '@/lib/utils'
-import ScanResults from '@/components/scan-results'
+import { CircularProgress } from "@/components/ui/circular-progress"
+import { getAccessibilityRating } from '@/lib/wcag-database-de'
 import { HomepageDisclaimer, useHomepageDisclaimer } from '@/components/homepage-disclaimer'
 import { FirstLoginDisclaimer, useFirstLoginDisclaimer } from '@/components/first-login-disclaimer'
 import { CookieBanner } from '@/components/cookie-banner'
@@ -41,7 +42,13 @@ import { TrendingUp } from "lucide-react"
 import { Award } from "lucide-react"
 import { Lightbulb } from "lucide-react"
 import { Settings } from "lucide-react"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, AlertTriangle, Eye, XCircle, Plus } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { ExternalLink } from "lucide-react"
+import { getErrorByCode } from "@/lib/wcag-database-de"
+import { generateDeviceFingerprint, canScan, incrementScanCount as incrementFingerprintScan, getScanCount } from "@/lib/device-fingerprint"
 import { Code2 } from "lucide-react"
 import { Clock } from "lucide-react"
 import { UserPlus, Lock } from "lucide-react"
@@ -59,6 +66,36 @@ const AppScreenshotsOverlay = dynamic(() => import('@/components/app-screenshots
 // Logo-Komponente importieren
 import { Logo } from "@/components/ui/logo"
 
+// Normalisiert den Score für CircularProgress (0-100)
+const normalizeScore = (score: number): number => {
+  // Annahme: Score kommt als 0-1 oder bereits als 0-100
+  if (score <= 1) {
+    return Math.round(score * 100)
+  }
+  return Math.round(Math.min(100, Math.max(0, score)))
+}
+
+// Hilfsfunktionen für die detaillierte Anzeige
+const getImpactColor = (impact: string) => {
+  switch (impact) {
+    case 'critical': return 'text-red-600'
+    case 'serious': return 'text-orange-600'
+    case 'moderate': return 'text-yellow-600'
+    case 'minor': return 'text-blue-600'
+    default: return 'text-gray-600'
+  }
+}
+
+const getImpactBadgeColor = (impact: string) => {
+  switch (impact) {
+    case 'critical': return 'bg-red-100 text-red-800'
+    case 'serious': return 'bg-orange-100 text-orange-800'
+    case 'moderate': return 'bg-yellow-100 text-yellow-800'
+    case 'minor': return 'bg-blue-100 text-blue-800'
+    default: return 'bg-gray-100 text-gray-800'
+  }
+}
+
 export default function HomePage() {
   const { t } = useLanguage()
   const [isDarkMode, setIsDarkMode] = useState(false)
@@ -75,6 +112,12 @@ export default function HomePage() {
   const [isRegistered, setIsRegistered] = useState(false)
   const [scanCount, setScanCount] = useState(0)
   const [dailyScanLimit] = useState(3)
+  const [deviceFingerprint, setDeviceFingerprint] = useState<string | null>(null)
+  
+  // Filter und Interaktions-States für detaillierte Anzeige
+  const [activeFilter, setActiveFilter] = useState<'all' | 'critical' | 'serious' | 'positive' | 'total'>('all')
+  const [selectedErrors, setSelectedErrors] = useState<Set<number>>(new Set())
+  const [hiddenIssues, setHiddenIssues] = useState<Set<number>>(new Set())
   
   // Homepage-Disclaimer
   const { shouldShow: showDisclaimer, markAsAccepted } = useHomepageDisclaimer()
@@ -83,6 +126,45 @@ export default function HomePage() {
   // Ersten Login Disclaimer
   const { shouldShow: showFirstLoginDisclaimer, markAsAccepted: markFirstLoginAsAccepted } = useFirstLoginDisclaimer()
   const [firstLoginDisclaimerOpen, setFirstLoginDisclaimerOpen] = useState(false)
+
+  // Handler-Funktionen für die detaillierte Anzeige
+  const handleFilterChange = (filter: 'all' | 'critical' | 'serious' | 'positive' | 'total') => {
+    setActiveFilter(filter)
+  }
+
+  const handleErrorSelection = (index: number, checked: boolean) => {
+    const newSelected = new Set(selectedErrors)
+    if (checked) {
+      newSelected.add(index)
+    } else {
+      newSelected.delete(index)
+    }
+    setSelectedErrors(newSelected)
+  }
+
+  const getFilteredResults = () => {
+    if (!results) return []
+    
+    let items: any[] = []
+    
+    if (activeFilter === 'positive') {
+      items = results.passes || []
+    } else if (activeFilter === 'total') {
+      items = [
+        ...(results.violations || []),
+        ...(results.passes || []),
+        ...(results.incomplete || [])
+      ]
+    } else if (activeFilter === 'critical') {
+      items = (results.violations || []).filter((v: any) => v.impact === 'critical')
+    } else if (activeFilter === 'serious') {
+      items = (results.violations || []).filter((v: any) => v.impact === 'serious')
+    } else {
+      items = results.violations || []
+    }
+    
+    return items
+  }
 
   useEffect(() => {
     setIsClient(true)
@@ -112,37 +194,32 @@ export default function HomePage() {
         setIsRegistered(false)
       }
     }
-    
-    checkRegistration()
-  }, [])
 
-  // Prüfe Scan-Limit für nicht-registrierte Nutzer
-  useEffect(() => {
-    if (!isRegistered) {
-      const today = new Date().toDateString()
-      const scanData = localStorage.getItem('dailyScans')
-      
-      if (scanData) {
-        const parsed = JSON.parse(scanData)
-        if (parsed.date === today) {
-          setScanCount(parsed.count)
-        } else {
-          localStorage.setItem('dailyScans', JSON.stringify({ date: today, count: 0 }))
-          setScanCount(0)
-        }
-      } else {
-        localStorage.setItem('dailyScans', JSON.stringify({ date: today, count: 0 }))
-        setScanCount(0)
+    // Generiere Device Fingerprint für nicht-registrierte Nutzer
+    const initFingerprint = async () => {
+      if (typeof window !== 'undefined') {
+        const fingerprint = await generateDeviceFingerprint()
+        setDeviceFingerprint(fingerprint)
       }
     }
-  }, [isRegistered])
+    
+    checkRegistration()
+    initFingerprint()
+  }, [])
+
+  // Prüfe Scan-Limit für nicht-registrierte Nutzer mit Fingerprint
+  useEffect(() => {
+    if (!isRegistered && deviceFingerprint) {
+      // Verwende Fingerprint-basiertes System
+      const currentCount = getScanCount(deviceFingerprint)
+      setScanCount(currentCount)
+    }
+  }, [isRegistered, deviceFingerprint])
 
   // Aktualisiere Scan-Count nach erfolgreichem Scan
   const incrementScanCount = () => {
-    if (!isRegistered) {
-      const today = new Date().toDateString()
-      const newCount = scanCount + 1
-      localStorage.setItem('dailyScans', JSON.stringify({ date: today, count: newCount }))
+    if (!isRegistered && deviceFingerprint) {
+      const newCount = incrementFingerprintScan(deviceFingerprint)
       setScanCount(newCount)
     }
   }
@@ -162,9 +239,16 @@ export default function HomePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Prüfe Scan-Limit für nicht-registrierte Nutzer
-    if (!isRegistered && scanCount >= dailyScanLimit) {
+    // Prüfe Scan-Limit für nicht-registrierte Nutzer mit Fingerprint
+    if (!isRegistered && deviceFingerprint && !canScan(deviceFingerprint, dailyScanLimit)) {
       setError(`Tägliches Scan-Limit erreicht (${dailyScanLimit} Scans). Registrieren Sie sich für unbegrenzte Scans.`)
+      // Scroll zu Paketen
+      setTimeout(() => {
+        const packagesSection = document.querySelector('#packages-section')
+        if (packagesSection) {
+          packagesSection.scrollIntoView({ behavior: 'smooth' })
+        }
+      }, 100)
       return
     }
     
@@ -210,13 +294,15 @@ export default function HomePage() {
       setResults(data)
       incrementScanCount()
       
-      // Erfolgsmeldung mit Motivationsspruch anzeigen
-      const totalViolations = data.violations ? data.violations.length : 0;
+      // Erfolgsmeldung mit korrekten Zahlen anzeigen - nur echte Violations zählen
+      const criticalCount = (data.detailedAnalysis?.criticalIssues || 0);
+      const seriousCount = (data.detailedAnalysis?.highPriorityIssues || 0);
+      const totalViolations = criticalCount + seriousCount;
       const score = data.score || 0;
       const motivationalQuote = getRandomMotivationalQuote();
       
       toast.success('Barrierefreiheits-Scan erfolgreich abgeschlossen!', {
-        description: `${totalViolations} Probleme gefunden, Score: ${Math.round(score)}%\n\n${motivationalQuote}`,
+        description: `${totalViolations} Probleme gefunden, Score: ${Math.round(normalizeScore(score))}%\n\n${motivationalQuote}`,
         duration: 6000
       });
       
@@ -541,7 +627,441 @@ export default function HomePage() {
         {results && !isLoading && (
           <section id="scan-results" className="py-20 bg-background">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-              <ScanResults results={results} showFullDetails={isRegistered} />
+              {/* Header mit Aktionen */}
+              <Card className="mb-6">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h2 className="text-2xl font-bold mb-2">
+                        Scan-Ergebnisse für {new URL(results.url).hostname}
+                      </h2>
+                      <p className="text-muted-foreground">
+                        {Math.round(normalizeScore(results.score))}% Barrierefreiheit
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setResults(null)}
+                      >
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Ergebnisse verwerfen
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Übersicht mit neuem Layout */}
+              <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
+                {/* Kreisdiagramm - 2 Kacheln hoch */}
+                <Card className="lg:row-span-2">
+                  <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-base font-medium">Gesamt-Score</CardTitle>
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  </CardHeader>
+                  <CardContent className="relative flex items-center justify-center py-8">
+                    <div className="text-center">
+                      <CircularProgress value={normalizeScore(results.score)} size={120} strokeWidth={8} />
+                      {(() => {
+                        const rating = getAccessibilityRating(results.score);
+                        return (
+                          <div className="mt-4">
+                            <div className={`text-lg font-medium ${rating.color}`}>
+                              {rating.rating}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {rating.description}
+                            </p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Filter-Kacheln rechts - KLICKBAR */}
+                <Card 
+                  className={`cursor-pointer transition-all hover:shadow-md bg-red-50 border-2 ${
+                    activeFilter === 'critical' ? 'border-red-500 ring-2 ring-red-200' : 'border-red-200'
+                  }`}
+                  onClick={() => handleFilterChange('critical')}
+                >
+                  <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-base font-medium text-red-600">Kritische Probleme</CardTitle>
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                  </CardHeader>
+                  <CardContent className="relative">
+                    <div className="text-3xl font-bold text-red-600">{results.detailedAnalysis?.criticalIssues || 0}</div>
+                    <p className="text-base text-red-500">
+                      Sofort beheben
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card 
+                  className={`cursor-pointer transition-all hover:shadow-md bg-orange-50 border-2 ${
+                    activeFilter === 'serious' ? 'border-orange-500 ring-2 ring-orange-200' : 'border-orange-200'
+                  }`}
+                  onClick={() => handleFilterChange('serious')}
+                >
+                  <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-base font-medium text-orange-600">Schwerwiegende Probleme</CardTitle>
+                    <AlertTriangle className="h-4 w-4 text-orange-500" />
+                  </CardHeader>
+                  <CardContent className="relative">
+                    <div className="text-3xl font-bold text-orange-600">{results.detailedAnalysis?.highPriorityIssues || 0}</div>
+                    <p className="text-base text-orange-500">
+                      Bald beheben
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card 
+                  className={`cursor-pointer transition-all hover:shadow-md bg-green-50 border-2 ${
+                    activeFilter === 'positive' ? 'border-green-500 ring-2 ring-green-200' : 'border-green-200'
+                  }`}
+                  onClick={() => handleFilterChange('positive')}
+                >
+                  <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-base font-medium text-green-600">Positiv geprüfte Ergebnisse</CardTitle>
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  </CardHeader>
+                  <CardContent className="relative">
+                    <div className="text-3xl font-bold text-green-600">{results.summary?.passes || 0}</div>
+                    <p className="text-base text-green-500">
+                      Erfolgreich bestanden
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card 
+                  className={`cursor-pointer transition-all hover:shadow-md bg-blue-50 border-2 ${
+                    activeFilter === 'total' ? 'border-blue-500 ring-2 ring-blue-200' : 'border-blue-200'
+                  }`}
+                  onClick={() => handleFilterChange('total')}
+                >
+                  <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-base font-medium text-blue-600">Zu prüfen</CardTitle>
+                    <Eye className="h-4 w-4 text-blue-500" />
+                  </CardHeader>
+                  <CardContent className="relative">
+                    <div className="text-3xl font-bold text-blue-600">{results.summary?.incomplete || 0}</div>
+                    <p className="text-base text-blue-500">
+                      Manuelle Prüfung
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Detaillierte Ergebnisse */}
+              <Card className="mt-6">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-xl">
+                        Detaillierte Prüfergebnisse
+                        {activeFilter !== 'all' && (
+                          <span className="ml-2 text-sm font-normal text-muted-foreground">
+                            - {activeFilter === 'critical' ? 'Kritische Probleme' :
+                               activeFilter === 'serious' ? 'Schwerwiegende Probleme' :
+                               activeFilter === 'positive' ? 'Positive Ergebnisse' :
+                               activeFilter === 'total' ? 'Alle Ergebnisse' : 'Alle Probleme'}
+                          </span>
+                        )}
+                      </CardTitle>
+                      <CardDescription className="text-base">
+                        {activeFilter === 'positive' 
+                          ? `Erfolgreich bestandene Tests für ${results.url}`
+                          : `Gefundene Barrierefreiheitsprobleme für ${results.url}`
+                        }
+                      </CardDescription>
+                      {activeFilter !== 'all' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleFilterChange('all')}
+                          className="mt-2 w-fit"
+                        >
+                          Alle anzeigen
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {getFilteredResults().map((item, index) => {
+                      const isHidden = hiddenIssues.has(index)
+                      const isPositive = activeFilter === 'positive' || (activeFilter === 'total' && 'rule' in item && !('type' in item))
+                      
+                      return (
+                        <div 
+                          key={index} 
+                          className={`transition-all duration-200 ${isHidden ? 'opacity-30' : ''}`}
+                        >
+                          <div className="flex items-start gap-4 p-6 border rounded-lg">
+                            {/* Checkbox für nicht-positive Ergebnisse */}
+                            {!isPositive && (
+                              <Checkbox
+                                checked={selectedErrors.has(index)}
+                                onCheckedChange={(checked) => handleErrorSelection(index, checked as boolean)}
+                                className="mt-1"
+                              />
+                            )}
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <h4 className="font-semibold text-lg cursor-help hover:text-blue-600 transition-colors">
+                                        {item.id || item.description || 'Unbekannter Check'}
+                                      </h4>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-md">
+                                      <div className="space-y-2">
+                                        <p className="font-medium">Technische Details:</p>
+                                        <p className="text-sm">
+                                          {item.id ? `Regel-ID: ${item.id}` : 'Keine Regel-ID verfügbar'}
+                                        </p>
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                
+                                {item.impact && (
+                                  <Badge className={getImpactBadgeColor(item.impact)}>
+                                    {item.impact}
+                                  </Badge>
+                                )}
+                                
+                                {isPositive && (
+                                  <Badge className="bg-green-500 text-white">
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Bestanden
+                                  </Badge>
+                                )}
+                                
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge variant="outline" className="text-base cursor-help hover:bg-blue-50">
+                                        WCAG {item.tags?.find((tag: string) => tag.includes('wcag')) || 'N/A'}
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Web Content Accessibility Guidelines</p>
+                                      <p className="text-sm">Standard für digitale Barrierefreiheit</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                              
+                              <p className="text-base text-muted-foreground mb-2">
+                                {item.description || item.help || 'Keine Beschreibung verfügbar'}
+                              </p>
+                              
+                              {(() => {
+                                const wcagError = getErrorByCode(item.id || '');
+                                return wcagError ? (
+                                  <div className="mt-2 p-3 bg-muted rounded-md">
+                                    <div className="flex items-start justify-between mb-2">
+                                      <div className="flex-1">
+                                        <p className="text-sm font-medium">WCAG Richtlinie:</p>
+                                        <p className="text-sm text-muted-foreground">{wcagError.description}</p>
+                                        <p className="text-xs text-muted-foreground mt-1">Level: {wcagError.level} | Impact: {wcagError.impact}</p>
+                                      </div>
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                              <ExternalLink className="h-3 w-3" />
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>WCAG-Richtlinie online aufrufen</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    </div>
+                                    {wcagError.solutions && wcagError.solutions.length > 0 && (
+                                      <div className="mt-2 border-t pt-2">
+                                        <p className="text-xs font-medium text-green-700 mb-1">💡 Lösungsvorschläge:</p>
+                                        <ul className="text-xs text-muted-foreground space-y-1">
+                                          {wcagError.solutions.slice(0, 2).map((solution: string, idx: number) => (
+                                            <li key={idx}>• {solution}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : null;
+                              })()}
+                              
+                              <div className="flex items-center gap-4">
+                                <span className="text-base font-medium">
+                                  {item.nodes ? `${item.nodes.length} betroffene Elemente` : 'Unbekannte Anzahl Elemente'}
+                                </span>
+                                
+                                {/* Quick-Access Links */}
+                                {!isPositive && (
+                                  <div className="flex gap-2">
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button variant="link" size="sm" className="text-blue-600 hover:text-blue-800 p-0 h-auto">
+                                          Betroffene Elemente
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto">
+                                        <DialogHeader>
+                                          <DialogTitle>Betroffene Elemente</DialogTitle>
+                                          <DialogDescription>
+                                            Details zu den HTML-Elementen die von diesem Problem betroffen sind
+                                          </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="space-y-2 bg-gray-50 p-3 rounded max-h-[70vh] overflow-y-auto">
+                                          {item.nodes && item.nodes.length > 0 ? (
+                                            item.nodes.map((node: any, nodeIndex: number) => (
+                                              <div key={nodeIndex} className="text-xs font-mono bg-white p-2 rounded border">
+                                                <div><strong>Selektor:</strong> {node.target?.join(' ') || 'Nicht verfügbar'}</div>
+                                                <div><strong>HTML:</strong> {node.html ? (node.html.length > 150 ? node.html.substring(0, 150) + '...' : node.html) : 'Nicht verfügbar'}</div>
+                                                {node.failureSummary && (
+                                                  <div><strong>Problem:</strong> {node.failureSummary}</div>
+                                                )}
+                                                {node.impact && (
+                                                  <div><strong>Schweregrad:</strong> <span className={`font-semibold ${
+                                                    node.impact === 'critical' ? 'text-red-600' : 
+                                                    node.impact === 'serious' ? 'text-orange-600' :
+                                                    node.impact === 'moderate' ? 'text-yellow-600' : 'text-blue-600'
+                                                  }`}>{node.impact === 'critical' ? 'Kritisch' : 
+                                                       node.impact === 'serious' ? 'Schwerwiegend' :
+                                                       node.impact === 'moderate' ? 'Mäßig' : 'Gering'}</span></div>
+                                                )}
+                                              </div>
+                                            ))
+                                          ) : (
+                                            <div className="text-sm text-muted-foreground">Keine detaillierten Element-Informationen verfügbar</div>
+                                          )}
+                                        </div>
+                                      </DialogContent>
+                                    </Dialog>
+                                    
+                                    <span className="text-muted-foreground">|</span>
+                                    
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <Button variant="link" size="sm" className="text-green-600 hover:text-green-800 p-0 h-auto">
+                                          Lösungsvorschläge
+                                        </Button>
+                                      </DialogTrigger>
+                                      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                                        <DialogHeader>
+                                          <DialogTitle>💡 Lösungsvorschläge</DialogTitle>
+                                          <DialogDescription>
+                                            Konkrete Schritte zur Behebung dieses Barrierefreiheitsproblems
+                                          </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="space-y-2">
+                                          {(() => {
+                                            const wcagError = getErrorByCode(item.id || '');
+                                            
+                                            if (wcagError && wcagError.solutions && wcagError.solutions.length > 0) {
+                                              return wcagError.solutions.map((solution: string, idx: number) => (
+                                                <div key={idx} className="text-sm text-blue-700 p-2 bg-blue-50 rounded">• {solution}</div>
+                                              ));
+                                            }
+                                            
+                                            // Erweiterte Lösungsvorschläge basierend auf Regel-ID
+                                            if (item.id && item.id.includes('color-contrast')) {
+                                              return [
+                                                <div key="contrast-1" className="text-sm p-3 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg">
+                                                  <div className="font-semibold text-red-800 mb-2">🎯 Kontrast optimieren</div>
+                                                  <div className="text-red-700">• Erhöhen Sie den Kontrast zwischen Text und Hintergrund auf mindestens 4.5:1 für normale Texte</div>
+                                                  <div className="text-red-700">• Für große Texte (ab 18pt) genügt ein Kontrast von 3:1</div>
+                                                </div>,
+                                                <div key="contrast-2" className="text-sm p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+                                                  <div className="font-semibold text-blue-800 mb-2">🔧 Technische Umsetzung</div>
+                                                  <div className="text-blue-700">• Beispiel: Ändern Sie #21d5dc zu #1a9ca3 für ausreichenden Kontrast</div>
+                                                  <div className="text-blue-700">• Verwenden Sie CSS-Variablen für konsistente Farbschemata</div>
+                                                </div>,
+                                                <div key="contrast-3" className="text-sm p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+                                                  <div className="font-semibold text-green-800 mb-2">🛠️ Hilfreiche Tools</div>
+                                                  <div className="text-green-700">• WebAIM Contrast Checker, Colour Contrast Analyser</div>
+                                                  <div className="text-green-700">• Browser-Entwicklertools haben integrierte Kontrast-Checker</div>
+                                                </div>
+                                              ];
+                                            } else if (item.id && item.id.includes('image-alt')) {
+                                              return [
+                                                <div key="alt-1" className="text-sm p-3 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg">
+                                                  <div className="font-semibold text-purple-800 mb-2">📝 Alt-Text Regeln</div>
+                                                  <div className="text-purple-700">• Beschreiben Sie WAS auf dem Bild zu sehen ist, nicht WIE es aussieht</div>
+                                                  <div className="text-purple-700">• Maximal 125 Zeichen für bessere Screenreader-Kompatibilität</div>
+                                                </div>,
+                                                <div key="alt-2" className="text-sm p-3 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-lg">
+                                                  <div className="font-semibold text-yellow-800 mb-2">🎯 Praktische Beispiele</div>
+                                                  <div className="text-yellow-700">• Logo: "Firmenname XY - Zurück zur Startseite"</div>
+                                                  <div className="text-yellow-700">• Dekorative Bilder: alt="" (leerer Alt-Text)</div>
+                                                </div>,
+                                                <div key="alt-3" className="text-sm p-3 bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200 rounded-lg">
+                                                  <div className="font-semibold text-teal-800 mb-2">🔍 Qualitätskontrolle</div>
+                                                  <div className="text-teal-700">• Testen Sie mit Screenreader (NVDA/JAWS) oder Browsererweiterungen</div>
+                                                  <div className="text-teal-700">• Alt-Text sollte auch ohne Bild verständlich sein</div>
+                                                </div>
+                                              ];
+                                            } else {
+                                              return [
+                                                <div key="general-1" className="text-sm p-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg">
+                                                  <div className="font-semibold text-indigo-800 mb-2">📋 Allgemeine Prüfschritte</div>
+                                                  <div className="text-indigo-700">• Überprüfen Sie die entsprechenden WCAG 2.1 Richtlinien für dieses Problem</div>
+                                                  <div className="text-indigo-700">• Testen Sie mit verschiedenen Hilfstechnologien (Screenreader, Tastaturnavigation)</div>
+                                                </div>,
+                                                <div key="general-2" className="text-sm p-3 bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-200 rounded-lg">
+                                                  <div className="font-semibold text-rose-800 mb-2">🔍 Qualitätssicherung</div>
+                                                  <div className="text-rose-700">• Führen Sie manuelle Tests mit echten Nutzern durch</div>
+                                                  <div className="text-rose-700">• Dokumentieren Sie alle Änderungen für künftige Referenz</div>
+                                                </div>
+                                              ];
+                                            }
+                                          })()}
+                                        </div>
+                                        <div className="mt-6 space-y-3">
+                                          <div className="p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg shadow-lg">
+                                            <div className="flex items-center gap-3 mb-2">
+                                              <div className="text-2xl">🤖</div>
+                                              <div>
+                                                <div className="font-bold text-lg">BF-Coach - Ihr KI-Assistent</div>
+                                                <div className="text-blue-100 text-sm">Erhalten Sie personalisierte Hilfe für dieses Problem</div>
+                                              </div>
+                                            </div>
+                                            <a 
+                                              href="/wcag-coach" 
+                                              className="inline-flex items-center gap-2 px-4 py-2 bg-white text-blue-600 font-semibold rounded-md hover:bg-blue-50 transition-colors"
+                                            >
+                                              <span>Jetzt KI-Coach starten</span>
+                                              <ExternalLink className="h-4 w-4" />
+                                            </a>
+                                          </div>
+                                        </div>
+                                      </DialogContent>
+                                    </Dialog>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                    
+                    {getFilteredResults().length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        {activeFilter === 'positive' ? 'Keine positiven Ergebnisse gefunden.' : 'Keine Probleme in dieser Kategorie gefunden.'}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
               
               {!isRegistered && results.violations && results.violations.length > 0 && (
                 <Card className="mt-6 border-primary/50">
@@ -1715,7 +2235,7 @@ export default function HomePage() {
             </div>
 
             {/* Pay-per-Use Credits */}
-            <div className="bg-muted/50 rounded-lg p-8 mb-16">
+            <div id="packages-section" className="bg-muted/50 rounded-lg p-8 mb-16">
               <div className="text-center mb-8">
                 <h3 className="text-2xl font-bold mb-4">💳 Pay-per-Use Credits</h3>
                 <p className="text-muted-foreground">

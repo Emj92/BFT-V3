@@ -159,7 +159,6 @@ Sei hilfsbereit, geduldig und gründlich in deinen Erklärungen. Wenn der Benutz
 
     // Prüfe auf gültigen API-Key
     if (!CLAUDE_API_KEY) {
-      console.error('Claude API Key nicht gefunden');
       return NextResponse.json({ 
         response: 'Der WCAG Coach ist derzeit nicht verfügbar. Bitte wenden Sie sich an den Support.',
         success: false,
@@ -167,7 +166,6 @@ Sei hilfsbereit, geduldig und gründlich in deinen Erklärungen. Wenn der Benutz
       }, { status: 200 }); // Status 200 damit Frontend die Nachricht anzeigt
     }
 
-    console.log('Sende Anfrage an Claude API...');
 
     // Claude API-Anfrage mit neuem Modell
     const claudeResponse = await fetch(CLAUDE_API_URL, {
@@ -186,11 +184,9 @@ Sei hilfsbereit, geduldig und gründlich in deinen Erklärungen. Wenn der Benutz
       })
     });
 
-    console.log('Claude Response Status:', claudeResponse.status);
 
     if (!claudeResponse.ok) {
       const errorText = await claudeResponse.text();
-      console.error('Claude API Error:', claudeResponse.status, errorText);
       
       // Fallback-Antwort statt Fehler
       const fallbackMessage = `Entschuldigung, ich kann Ihnen momentan nicht weiterhelfen. 
@@ -220,11 +216,9 @@ Bitte versuchen Sie es später erneut.`;
     }
 
     const claudeData = await claudeResponse.json();
-    console.log('Claude Response Data:', claudeData);
     
     const assistantMessage = claudeData.content?.[0]?.text || claudeData.message || 'Entschuldigung, ich konnte keine Antwort generieren.';
 
-    console.log('Assistant Message Length:', assistantMessage.length);
 
     // Session in Datenbank speichern - mit Fallback für fehlende Tabelle
     try {

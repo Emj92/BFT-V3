@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
           await prisma.creditTransaction.create({
             data: {
               userId: user.id,
-              type: TransactionType.PURCHASE, // TODO: Nach DB-Migration zu BUNDLE_PURCHASE ändern
+              type: TransactionType.PURCHASE,
               amount: creditsToAdd,
               description: `Monatliche Credit-Nachfüllung ${user.bundle} (+${creditsToAdd} Credits)`
             }

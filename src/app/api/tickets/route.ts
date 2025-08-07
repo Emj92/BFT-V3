@@ -297,7 +297,6 @@ export async function POST(request: NextRequest) {
       ]
     }
 
-    console.log('Neues Ticket erstellt:', formattedTicket)
 
     return NextResponse.json({ ticket: formattedTicket }, { status: 201 })
   } catch (error) {

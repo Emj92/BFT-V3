@@ -66,7 +66,6 @@ export async function cleanupOldData() {
     }
 
     if (cleanedRecords > 0) {
-      console.log(`Automatische Datenbereinigung: ${cleanedRecords} Datensätze gelöscht`)
     }
 
     return cleanedRecords

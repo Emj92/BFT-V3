@@ -8,12 +8,10 @@ export const dynamic = 'force-dynamic'
 // GET - Support-Tickets Statistiken für Admin
 export async function GET(request: NextRequest) {
   try {
-    console.log('Support-Tickets API: Starting...')
     
     const token = cookies().get('auth-token')?.value
     
     if (!token) {
-      console.log('Support-Tickets API: No token found')
       return NextResponse.json({ error: 'Nicht authentifiziert' }, { 
         status: 401,
         headers: { 'Content-Type': 'application/json' }
@@ -21,7 +19,6 @@ export async function GET(request: NextRequest) {
     }
 
     const decoded = verify(token, process.env.JWT_SECRET || 'barrierefrei-secret-key') as any
-    console.log('Support-Tickets API: Token decoded, user ID:', decoded.id)
     
     // Prüfe Admin-Berechtigung
     const user = await prisma.user.findUnique({
@@ -32,14 +29,12 @@ export async function GET(request: NextRequest) {
     })
 
     if (!user || user.role !== 'ADMIN') {
-      console.log('Support-Tickets API: No admin access for user:', user?.role)
       return NextResponse.json({ error: 'Keine Berechtigung' }, { 
         status: 403,
         headers: { 'Content-Type': 'application/json' }
       })
     }
 
-    console.log('Support-Tickets API: Admin access confirmed')
 
     // URL-Parameter für Filterung
     const url = new URL(request.url)
@@ -210,7 +205,6 @@ export async function GET(request: NextRequest) {
         success: true
       }
 
-      console.log('Support-Tickets API: Success, returning:', result)
       
       return NextResponse.json(result, {
         status: 200,

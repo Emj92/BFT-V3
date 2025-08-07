@@ -67,25 +67,12 @@ export function useWebsites() {
         const data = await response.json()
         const websitesList = data.websites || []
         
-        console.log('KRITISCHER DEBUG - Frontend: Websites von API geladen:', websitesList.length)
-        
-        // ZUSÄTZLICHER Frontend-Duplikat-Check für doppelte Sicherheit
-        const uniqueWebsites = websitesList.reduce((unique: Website[], website: Website) => {
-          if (!unique.find(w => w.url === website.url || w.id === website.id)) {
-            unique.push(website)
-          } else {
-            console.log('KRITISCHER DEBUG - Frontend: Duplikat entfernt:', website.url)
-          }
-          return unique
-        }, [])
-        
-        console.log('KRITISCHER DEBUG - Frontend: Nach Duplikat-Entfernung:', uniqueWebsites.length)
-        setWebsites(uniqueWebsites)
+        // Websites direkt setzen - Duplikat-Prüfung erfolgt bereits in der API
+        setWebsites(websitesList)
         
         // Entferne localStorage komplett
         localStorage.removeItem(WEBSITES_STORAGE_KEY)
       } else {
-        console.error('API-Fehler beim Laden der Websites:', response.status)
         setWebsites([]) // Leere Liste bei Fehlern
       }
     } catch (error) {
@@ -121,7 +108,6 @@ export function useWebsites() {
 
   const addWebsite = async (name: string, url: string): Promise<Website> => {
     try {
-      console.log('Website wird hinzugefügt:', { name, url })
       
       // STRENGE Duplikat-Prüfung VOR API-Call
       const formattedUrl = url.startsWith('http') ? url : `https://${url}`
@@ -129,7 +115,6 @@ export function useWebsites() {
       const existingByName = websites.find(w => w.name.toLowerCase() === name.trim().toLowerCase())
       
       if (existingByUrl || existingByName) {
-        console.log('Duplikat gefunden - nicht hinzufügen')
         return existingByUrl || existingByName!
       }
       
@@ -147,22 +132,17 @@ export function useWebsites() {
       if (response.ok) {
         const data = await response.json()
         const newWebsite = data.website
-        
-        console.log('Website erfolgreich über API hinzugefügt:', newWebsite)
-        
+
         // STRENGE Duplikat-Prüfung VOR dem Hinzufügen
         const isAlreadyAdded = websites.find(w => w.id === newWebsite.id || w.url === newWebsite.url)
         if (isAlreadyAdded) {
-          console.log('KRITISCHER DEBUG - Frontend: Website bereits in Liste, nicht hinzufügen:', newWebsite.url)
           return isAlreadyAdded
         }
         
         // Aktualisiere lokale Liste
         const updatedWebsites = [...websites, newWebsite]
         setWebsites(updatedWebsites)
-        
-        console.log('KRITISCHER DEBUG - Frontend: Website zur Liste hinzugefügt:', newWebsite.url, 'Neue Anzahl:', updatedWebsites.length)
-        
+
         // Entferne localStorage komplett
         localStorage.removeItem(WEBSITES_STORAGE_KEY)
         
@@ -174,7 +154,6 @@ export function useWebsites() {
         return newWebsite
       } else {
         const errorData = await response.json()
-        console.error('API-Fehler beim Hinzufügen:', response.status, errorData)
         throw new Error(`API-Fehler: ${response.status} - ${errorData.error || 'Unbekannter Fehler'}`)
       }
     } catch (error) {

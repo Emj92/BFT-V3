@@ -38,12 +38,10 @@ export function useSSE() {
   const connect = useCallback(() => {
     cleanup()
     
-    console.log('SSE: Attempting to connect...')
     const eventSource = new EventSource('/api/events')
     eventSourceRef.current = eventSource
 
     eventSource.onopen = () => {
-      console.log('SSE: Connection opened')
       setIsConnected(true)
       reconnectAttemptsRef.current = 0
     }
@@ -63,7 +61,6 @@ export function useSSE() {
         
         // Verbindungsbestätigung
         if (data.type === 'connected') {
-          console.log('SSE: Connected successfully', data.message)
           return
         }
         
@@ -78,7 +75,6 @@ export function useSSE() {
         })
         
         // Debug-Log für empfangene Events
-        console.log('SSE: Received event', data.type, data)
         
       } catch (error) {
         console.error('SSE: Error parsing event data:', error, event.data)
@@ -92,13 +88,11 @@ export function useSSE() {
       // Automatische Wiederverbindung
       if (reconnectAttemptsRef.current < maxReconnectAttempts) {
         reconnectAttemptsRef.current++
-        console.log(`SSE: Reconnecting in ${reconnectDelayMs}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`)
         
         reconnectTimeoutRef.current = setTimeout(() => {
           connect()
         }, reconnectDelayMs)
       } else {
-        console.error('SSE: Max reconnection attempts reached')
       }
     }
 
@@ -115,24 +109,20 @@ export function useSSE() {
     const current = listenersRef.current.get(type) || []
     listenersRef.current.set(type, [...current, listener])
     
-    console.log(`SSE: Added listener for event type '${type}'`)
     
     // Cleanup-Funktion zurückgeben
     return () => {
       const updated = listenersRef.current.get(type) || []
       listenersRef.current.set(type, updated.filter(l => l !== listener))
-      console.log(`SSE: Removed listener for event type '${type}'`)
     }
   }, [])
 
   const removeEventListener = useCallback((type: string, listener: Function) => {
     const current = listenersRef.current.get(type) || []
     listenersRef.current.set(type, current.filter(l => l !== listener))
-    console.log(`SSE: Removed listener for event type '${type}'`)
   }, [])
 
   const reconnect = useCallback(() => {
-    console.log('SSE: Manual reconnection requested')
     reconnectAttemptsRef.current = 0
     connect()
   }, [connect])

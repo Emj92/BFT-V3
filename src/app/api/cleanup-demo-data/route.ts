@@ -81,7 +81,6 @@ export async function DELETE(request: NextRequest) {
       }
     })
 
-    console.log(`Demo-Bereinigung abgeschlossen: ${deletedScans.count} Scans, ${deletedPages.count} Pages und ${deletedWebsites.count} Websites gelöscht`)
 
     return NextResponse.json({
       success: true,

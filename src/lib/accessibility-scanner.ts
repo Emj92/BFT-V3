@@ -5,6 +5,20 @@ import { existsSync } from 'fs';
 import { platform } from 'os';
 import prisma from './prisma';
 
+// Performance-Optimierungen
+const SCAN_CACHE = new Map<string, { result: ScanResult; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 Minuten Cache
+
+// Cache-Clearing Funktion
+export function clearScanCache() {
+  SCAN_CACHE.clear();
+
+}
+
+// Browser-Pool für bessere Performance
+let browserPool: Browser[] = [];
+const MAX_BROWSERS = 3;
+
 // Typenerweiterung für Window mit axe
 declare global {
   interface Window {
@@ -46,6 +60,17 @@ export interface ScanResult {
     documentLanguage: boolean;
     blinkElements: boolean;
     headingStructure: boolean;
+    // Erweiterte Checks basierend auf externen Tools
+    landmarkStructure: boolean;
+    skipLinks: boolean;
+    focusOrder: boolean;
+    altTextQuality: boolean;
+    formValidation: boolean;
+    keyboardTraps: boolean;
+    textSpacing: boolean;
+    colorContrastEnhanced: boolean;
+    linkPurpose: boolean;
+    headingNesting: boolean;
   };
   detailedAnalysis: any;
   categorizedViolations: Record<string, any[]>;
@@ -367,7 +392,6 @@ function findAvailableBrowser(): string | undefined {
       const expandedPath = path.replace('%USERNAME%', process.env.USERNAME || '');
       
       if (existsSync(expandedPath)) {
-        console.log(`✓ Browser gefunden: ${expandedPath}`);
         return expandedPath;
       }
     } catch (error) {
@@ -376,7 +400,6 @@ function findAvailableBrowser(): string | undefined {
     }
   }
   
-  console.log('⚠️ Kein System-Browser gefunden, verwende Puppeteer bundled Chromium');
   return undefined; // Fallback zu Puppeteer's bundled Chromium
 }
 
@@ -425,42 +448,76 @@ function createPuppeteerConfig(executablePath?: string) {
   return config;
 }
 
-export async function scanUrl(url: string, standard?: string): Promise<ScanResult> {
+// Cache-Funktionen
+export function getCachedScanResult(url: string): ScanResult | null {
+  const cached = SCAN_CACHE.get(url);
+  if (cached) {
+    const age = Date.now() - cached.timestamp;
+    if (age < CACHE_DURATION) {
+      return cached.result;
+    } else {
+      SCAN_CACHE.delete(url);
+    }
+  }
+  return null;
+}
+
+export function cacheScanResult(url: string, result: ScanResult) {
+  SCAN_CACHE.set(url, {
+    result,
+    timestamp: Date.now()
+  });
+  
+  // Cleanup alter Cache-Einträge
+  const now = Date.now();
+  for (const [key, value] of SCAN_CACHE.entries()) {
+    if (now - value.timestamp > CACHE_DURATION) {
+      SCAN_CACHE.delete(key);
+    }
+  }
+}
+
+// Browser-Pool Management
+async function getBrowserFromPool(): Promise<Browser> {
+  if (browserPool.length > 0) {
+    const browser = browserPool.pop()!;
+    try {
+      // Teste ob Browser noch funktioniert
+      await browser.version();
+      return browser;
+    } catch {
+      // Browser ist nicht mehr verwendbar, erstelle neuen
+    }
+  }
+  
+  // Erstelle neuen Browser
+    const executablePath = findAvailableBrowser();
+    const puppeteerConfig = createPuppeteerConfig(executablePath);
+  return await puppeteer.launch(puppeteerConfig);
+}
+
+async function returnBrowserToPool(browser: Browser) {
+  if (browserPool.length < MAX_BROWSERS) {
+    browserPool.push(browser);
+      } else {
+    await browser.close();
+  }
+}
+
+export async function scanUrl(url: string, standard?: string, useCache: boolean = true): Promise<ScanResult> {
+  // Prüfe Cache zuerst
+  if (useCache) {
+    const cachedResult = getCachedScanResult(url);
+    if (cachedResult) {
+      return cachedResult;
+    }
+  }
+  
   let browser: Browser | null = null;
   
   try {
-    console.log(`🔍 Starte Scan für: ${url}`);
-    console.log(`🖥️ Platform: ${platform()}`);
-    
-    // Finde verfügbaren Browser
-    const executablePath = findAvailableBrowser();
-    
-    // Erstelle Puppeteer-Konfiguration
-    const puppeteerConfig = createPuppeteerConfig(executablePath);
-    
-    console.log(`🚀 Starte Browser...${executablePath ? ` (${executablePath})` : ' (bundled Chromium)'}`);
-    
-    // Versuche Browser zu starten mit verbessertem Error-Handling
-    try {
-      browser = await puppeteer.launch(puppeteerConfig);
-      console.log('✓ Browser erfolgreich gestartet');
-    } catch (launchError) {
-      console.log(`⚠️ Browser-Start fehlgeschlagen: ${launchError}`);
-      
-      // Fallback: Versuche mit bundled Chromium
-      if (executablePath) {
-        console.log('🔄 Versuche Fallback zu bundled Chromium...');
-        const fallbackConfig = createPuppeteerConfig();
-        browser = await puppeteer.launch(fallbackConfig);
-        console.log('✓ Fallback-Browser erfolgreich gestartet');
-      } else {
-        throw launchError;
-      }
-    }
-
-    if (!browser) {
-      throw new Error('Browser konnte nicht gestartet werden. Bitte installieren Sie Google Chrome oder Chromium.');
-    }
+    // Verwende Browser-Pool für bessere Performance
+    browser = await getBrowserFromPool();
 
     const page = await browser.newPage();
     
@@ -471,6 +528,7 @@ export async function scanUrl(url: string, standard?: string): Promise<ScanResul
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
     
     // Inject axe-core from CDN
+    // Stabile axe-core Version verwenden
     await page.addScriptTag({
       url: 'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.8.3/axe.min.js'
     });
@@ -483,24 +541,26 @@ export async function scanUrl(url: string, standard?: string): Promise<ScanResul
       window.axeResults = null;
       window.axeError = null;
       try {
-        // Bestimme die axe-Tags basierend auf dem gewählten Standard
-        let axeTags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'];
+        // Erweiterte axe-Tags für vollständige Abdeckung wie externe Tools
+        let axeTags = [
+          'wcag2a', 'wcag2aa', 'wcag2aaa', 
+          'wcag21a', 'wcag21aa', 'wcag21aaa',
+          'wcag22a', 'wcag22aa', 'wcag22aaa',
+          'best-practice', 'experimental', 'ACT'
+        ];
         
         if (selectedStandard === 'wcag21aa') {
-          axeTags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+          axeTags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'];
         } else if (selectedStandard === 'wcag21aaa') {
-          axeTags = ['wcag2a', 'wcag2aa', 'wcag2aaa', 'wcag21a', 'wcag21aa', 'wcag21aaa'];
+          axeTags = ['wcag2a', 'wcag2aa', 'wcag2aaa', 'wcag21a', 'wcag21aa', 'wcag21aaa', 'best-practice'];
         } else if (selectedStandard === 'wcag22aa') {
-          axeTags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'];
+          axeTags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa', 'best-practice'];
         }
-        // Für "alle" verwenden wir alle verfügbaren Tags
         
+        // VOLLSTÄNDIGE axe-Konfiguration - ALLE REGELN wie externe Scanner
         const results = await window.axe.run(document, {
-          resultTypes: ['violations', 'incomplete', 'passes', 'inapplicable'],
-          runOnly: {
-            type: 'tag',
-            values: axeTags
-          }
+          resultTypes: ['violations', 'incomplete', 'passes', 'inapplicable']
+          // KEINE Einschränkung - ALLE verfügbaren Regeln testen!
         });
         window.axeResults = results;
       } catch (e: any) {
@@ -525,46 +585,339 @@ export async function scanUrl(url: string, standard?: string): Promise<ScanResul
     });
     
     if (axeResults.error) {
+      console.error('Axe evaluation error:', axeResults.error);
       throw new Error(`Axe evaluation failed: ${axeResults.error}`);
+    }
+    
+    if (!axeResults.results) {
+      throw new Error('Keine Scan-Ergebnisse von axe-core erhalten');
     }
     
     const results = axeResults.results;
     
-    // Additional custom checks
-    const customChecks = await page.evaluate(() => {
-      // Check for document language
-      const hasLang = !!document.documentElement.lang;
+    // KRITISCH: Behandle "incomplete" Ergebnisse als Violations (wie externe Scanner)
+    const criticalIncompletes = results.incomplete.filter((item: any) => 
+      item.impact === 'serious' || item.impact === 'critical' ||
+      item.id === 'duplicate-id-aria' ||
+      item.id === 'link-in-text-block' ||
+      item.id === 'region' ||
+      item.id === 'landmark-unique' ||
+      item.id === 'heading-order' ||
+      item.id === 'link-name'
+    );
+    
+    // Füge kritische "incomplete" als Violations hinzu
+    results.violations = [...results.violations, ...criticalIncompletes];
+    
+    // ZUSÄTZLICHE CUSTOM VIOLATIONS für fehlende axe-Regeln
+    const customViolations = await page.evaluate(() => {
+      const violations = [];
       
-      // Check for heading structure
+      // 1. Prüfe ob alle Inhalte in Landmarks sind (region rule)
+      const allContent = document.querySelectorAll('p, div, span, h1, h2, h3, h4, h5, h6, img, a, button, input, form, section, article');
+      let contentOutsideLandmarks = 0;
+      
+      allContent.forEach(element => {
+        const landmarkParent = element.closest('main, header, nav, footer, aside, [role="main"], [role="banner"], [role="navigation"], [role="contentinfo"], [role="complementary"], [role="search"]');
+        if (!landmarkParent && element.offsetParent !== null) {
+          contentOutsideLandmarks++;
+        }
+      });
+      
+      if (contentOutsideLandmarks > 5) { // Mehr als 5 Elemente außerhalb von Landmarks
+        violations.push({
+          id: 'region-custom',
+          impact: 'moderate',
+          tags: ['wcag2a', 'wcag131'],
+          description: 'Ensures all page content is contained by landmarks',
+          help: 'All page content should be contained by landmarks',
+          nodes: [{ impact: 'moderate', message: `${contentOutsideLandmarks} elements are not within landmark regions` }]
+        });
+      }
+      
+      // 2. Prüfe Landmark-Eindeutigkeit
+      const navElements = document.querySelectorAll('nav, [role="navigation"]');
+      if (navElements.length > 1) {
+        const hasUniqueLabels = Array.from(navElements).every(el => 
+          el.getAttribute('aria-label') || el.getAttribute('aria-labelledby')
+        );
+        if (!hasUniqueLabels) {
+          violations.push({
+            id: 'landmark-unique-custom',
+            impact: 'moderate',
+            tags: ['wcag2a'],
+            description: 'Landmarks should have a unique role or role/label/title combination',
+            help: 'Ensure landmarks are unique',
+            nodes: [{ impact: 'moderate', message: 'Multiple navigation landmarks without unique labels' }]
+          });
+        }
+      }
+      
+      // 3. Prüfe Heading-Reihenfolge
       const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'));
       const headingLevels = headings.map(h => parseInt(h.tagName.substring(1)));
-      const hasProperHeadingStructure = headingLevels.length > 0 && 
-                                       headingLevels.includes(1) && 
-                                       headingLevels.every((level, i, arr) => 
-                                         i === 0 || level <= arr[i-1] + 1);
+      let hasSkippedLevel = false;
       
-      // Check for autoplay videos
-      const videos = Array.from(document.querySelectorAll('video'));
-      const hasAutoplayVideos = videos.some(video => video.hasAttribute('autoplay'));
+      for (let i = 1; i < headingLevels.length; i++) {
+        if (headingLevels[i] > headingLevels[i-1] + 1) {
+          hasSkippedLevel = true;
+          break;
+        }
+      }
       
-      // Check for blink/marquee elements
-      const hasBlinkElements = document.querySelectorAll('blink, marquee').length > 0;
+      if (hasSkippedLevel) {
+        violations.push({
+          id: 'heading-order-custom',
+          impact: 'moderate',
+          tags: ['wcag2a', 'wcag131'],
+          description: 'Ensures the order of headings is semantically correct',
+          help: 'Heading levels should only increase by one',
+          nodes: [{ impact: 'moderate', message: 'Heading level skips detected' }]
+        });
+      }
       
-      // Check for semantic HTML
-      const hasSemanticElements = document.querySelectorAll('header, footer, nav, main, article, section, aside').length > 0;
+      // 4. Prüfe Link-Text Qualität
+      const links = document.querySelectorAll('a[href]');
+      let badLinkCount = 0;
       
-      // Check for keyboard navigation
-      const interactiveElements = document.querySelectorAll('a, button, input, select, textarea, [tabindex]');
-      const hasKeyboardNavigation = interactiveElements.length > 0;
+      links.forEach(link => {
+        const text = (link.textContent || '').trim();
+        const ariaLabel = link.getAttribute('aria-label') || '';
+        const title = link.getAttribute('title') || '';
+        
+        const emptyLink = !text && !ariaLabel && !title;
+        const vagueTexts = ['hier', 'more', 'click', 'read more', 'weiterlesen', 'link'];
+        const hasVagueText = vagueTexts.some(vague => text.toLowerCase().includes(vague.toLowerCase()));
+        
+        if (emptyLink || hasVagueText || (text.length < 3 && !ariaLabel && !title)) {
+          badLinkCount++;
+        }
+      });
       
-      return {
-        documentLanguage: hasLang,
-        headingStructure: hasProperHeadingStructure,
-        autoplayVideos: !hasAutoplayVideos,
-        blinkElements: !hasBlinkElements,
-        semanticHtml: hasSemanticElements,
-        keyboardNavigation: hasKeyboardNavigation
+      if (badLinkCount > 0) {
+        violations.push({
+          id: 'link-name-custom',
+          impact: 'serious',
+          tags: ['wcag2a', 'wcag244'],
+          description: 'Ensures links have discernible text',
+          help: 'Links must have discernible text',
+          nodes: [{ impact: 'serious', message: `${badLinkCount} links with poor or missing text` }]
+        });
+      }
+      
+      return violations;
+    });
+    
+    // Füge Custom Violations hinzu
+    results.violations = [...results.violations, ...customViolations];
+    
+    // Erweiterte Custom Checks basierend auf externen Accessibility-Tools
+    const customChecks = await page.evaluate(() => {
+      const results = {
+        documentLanguage: false,
+        headingStructure: false,
+        autoplayVideos: false,
+        blinkElements: false,
+        semanticHtml: false,
+        keyboardNavigation: false,
+        // Neue erweiterte Checks
+        landmarkStructure: false,
+        skipLinks: false,
+        focusOrder: false,
+        altTextQuality: false,
+        formValidation: false,
+        keyboardTraps: false,
+        textSpacing: false,
+        colorContrastEnhanced: false,
+        linkPurpose: false,
+        headingNesting: false
       };
+
+      // 1. Dokumentsprache prüfen
+      results.documentLanguage = !!document.documentElement.lang;
+      
+      // 2. Erweiterte Überschriften-Struktur (wie externes Tool)
+      const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+      const headingLevels = headings.map(h => parseInt(h.tagName.substring(1)));
+      results.headingStructure = headingLevels.length > 0 && headingLevels.includes(1);
+      
+      // 3. Überschriften-Verschachtelung prüfen (WCAG 2.4.10)
+      let properNesting = true;
+      for (let i = 1; i < headingLevels.length; i++) {
+        if (headingLevels[i] > headingLevels[i-1] + 1) {
+          properNesting = false;
+          break;
+        }
+      }
+      results.headingNesting = properNesting;
+      
+      // 4. AGGRESSIVE Landmark-Struktur prüfen (EXAKT wie accessibilitychecker.org)
+      const landmarks = {
+        main: document.querySelectorAll('main, [role="main"]').length,
+        banner: document.querySelectorAll('header, [role="banner"]').length,
+        navigation: document.querySelectorAll('nav, [role="navigation"]').length,
+        contentinfo: document.querySelectorAll('footer, [role="contentinfo"]').length
+      };
+      
+      // Prüfe ob ALLE Inhalte in Landmarks sind (wie externes Tool)
+      const allContent = document.querySelectorAll('p, div, span, h1, h2, h3, h4, h5, h6, img, a, button, input, form');
+      let contentInLandmarks = 0;
+      
+      allContent.forEach(element => {
+        const landmarkParent = element.closest('main, header, nav, footer, aside, [role="main"], [role="banner"], [role="navigation"], [role="contentinfo"], [role="complementary"], [role="search"]');
+        if (landmarkParent) contentInLandmarks++;
+      });
+      
+      // STRENGE Landmark-Prüfung
+      const landmarkCoverage = allContent.length > 0 ? (contentInLandmarks / allContent.length) : 1;
+      results.landmarkStructure = landmarks.main === 1 && landmarks.banner >= 1 && landmarkCoverage >= 0.8;
+      
+      // 5. Skip-Links prüfen
+      const skipLinks = Array.from(document.querySelectorAll('a[href^="#"]'));
+      let validSkipLinks = 0;
+      skipLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href !== '#') {
+          const target = document.querySelector(href);
+          if (target) validSkipLinks++;
+        }
+      });
+      results.skipLinks = skipLinks.length === 0 || validSkipLinks > 0;
+      
+      // 6. Fokusreihenfolge prüfen
+      const focusableElements = document.querySelectorAll('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      let focusOrderValid = true;
+      let highestTabIndex = 0;
+      focusableElements.forEach(element => {
+        const tabIndex = parseInt(element.getAttribute('tabindex') || '0');
+        if (tabIndex > 0) {
+          if (tabIndex < highestTabIndex) focusOrderValid = false;
+          highestTabIndex = Math.max(highestTabIndex, tabIndex);
+        }
+      });
+      results.focusOrder = focusOrderValid;
+      
+      // 7. Alt-Text Qualität prüfen (nicht nur Existenz)
+      const images = document.querySelectorAll('img');
+      let qualityAltTexts = 0;
+      images.forEach(img => {
+        const alt = img.getAttribute('alt');
+        if (alt !== null) {
+          // Prüfe auf sinnvolle Alt-Texte
+          if (alt.length > 3 && !alt.toLowerCase().includes('image') && 
+              !alt.toLowerCase().includes('picture') && !alt.toLowerCase().includes('photo')) {
+            qualityAltTexts++;
+          }
+        }
+      });
+      results.altTextQuality = images.length === 0 || (qualityAltTexts / images.length) > 0.7;
+      
+      // 8. Formular-Validierung erweitert
+      const forms = document.querySelectorAll('form');
+      let formValidationScore = 0;
+      forms.forEach(form => {
+        const inputs = form.querySelectorAll('input, select, textarea');
+        let validInputs = 0;
+        inputs.forEach(input => {
+          const hasLabel = form.querySelector(`label[for="${input.id}"]`) || 
+                          input.closest('label') ||
+                          input.getAttribute('aria-label') ||
+                          input.getAttribute('aria-labelledby') ||
+                          input.getAttribute('title');
+          if (hasLabel) validInputs++;
+        });
+        if (inputs.length === 0 || validInputs === inputs.length) formValidationScore++;
+      });
+      results.formValidation = forms.length === 0 || formValidationScore === forms.length;
+      
+      // 9. Keyboard-Traps erkennen
+      const modals = document.querySelectorAll('[role="dialog"], [role="alertdialog"], .modal, .popup');
+      let hasKeyboardTraps = false;
+      modals.forEach(modal => {
+        const style = window.getComputedStyle(modal);
+        if (style.display !== 'none' && style.visibility !== 'hidden') {
+          const focusableInModal = modal.querySelectorAll('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])');
+          if (focusableInModal.length === 0) hasKeyboardTraps = true;
+        }
+      });
+      results.keyboardTraps = !hasKeyboardTraps;
+      
+      // 10. Text-Spacing prüfen (WCAG 2.1.4.12)
+      const textElements = document.querySelectorAll('p, span, div, h1, h2, h3, h4, h5, h6');
+      let textSpacingIssues = 0;
+      textElements.forEach(element => {
+        const style = window.getComputedStyle(element);
+        const lineHeight = parseFloat(style.lineHeight);
+        const fontSize = parseFloat(style.fontSize);
+        if (lineHeight > 0 && fontSize > 0 && lineHeight / fontSize < 1.5) {
+          textSpacingIssues++;
+        }
+      });
+      results.textSpacing = textSpacingIssues < textElements.length * 0.1;
+      
+      // 11. Erweiterte Farbkontrast-Heuristik
+      let contrastIssues = 0;
+      const coloredElements = document.querySelectorAll('*');
+      Array.from(coloredElements).slice(0, 100).forEach(element => {
+        const style = window.getComputedStyle(element);
+        const color = style.color;
+        const backgroundColor = style.backgroundColor;
+        if (color && backgroundColor && color !== 'rgba(0, 0, 0, 0)' && backgroundColor !== 'rgba(0, 0, 0, 0)') {
+          // Sehr vereinfachte Kontrastprüfung
+          if (color === backgroundColor) contrastIssues++;
+        }
+      });
+      results.colorContrastEnhanced = contrastIssues === 0;
+      
+      // 12. AGGRESSIVE Link-Purpose prüfen (EXAKT wie externes Tool)
+      const links = document.querySelectorAll('a[href]');
+      let linkErrors = [];
+      
+      links.forEach(link => {
+        const text = (link.textContent || '').trim();
+        const ariaLabel = link.getAttribute('aria-label') || '';
+        const title = link.getAttribute('title') || '';
+        
+        // SEHR STRENGE Prüfung wie externes Tool
+        const emptyLink = !text && !ariaLabel && !title;
+        const vagueTexts = ['hier', 'more', 'click', 'read more', 'weiterlesen', 'link', 'hier klicken', 'klick hier', 'weiter', 'next', 'previous', 'zurück'];
+        const hasVagueText = vagueTexts.some(vague => text.toLowerCase().includes(vague.toLowerCase()));
+        const tooShort = text.length < 3 && !ariaLabel && !title;
+        
+        if (emptyLink || hasVagueText || tooShort) {
+          linkErrors.push(link);
+        }
+      });
+      
+      // Ein einziger schlechter Link = Fehler (wie externes Tool)
+      results.linkPurpose = linkErrors.length === 0;
+      
+      // 13. Link-Farbunterscheidung prüfen (WCAG 1.4.1)
+      let linkColorIssues = 0;
+      links.forEach(link => {
+        const style = window.getComputedStyle(link);
+        const parentStyle = window.getComputedStyle(link.parentElement || document.body);
+        
+        const linkColor = style.color;
+        const parentColor = parentStyle.color;
+        const linkDecoration = style.textDecoration;
+        
+        // Prüfe ob Link sich von umgebendem Text unterscheidet
+        if (linkColor === parentColor && !linkDecoration.includes('underline')) {
+          linkColorIssues++;
+        }
+      });
+      
+      // Erweitere linkPurpose um Farbunterscheidung
+      results.linkPurpose = results.linkPurpose && linkColorIssues === 0;
+      
+      // Bestehende Checks
+      results.autoplayVideos = !document.querySelectorAll('video[autoplay]').length;
+      results.blinkElements = !document.querySelectorAll('blink, marquee').length;
+      results.semanticHtml = document.querySelectorAll('header, footer, nav, main, article, section, aside').length > 0;
+      results.keyboardNavigation = focusableElements.length > 0;
+      
+      return results;
     });
     
     // Calculate score and summary
@@ -586,7 +939,7 @@ export async function scanUrl(url: string, standard?: string): Promise<ScanResul
     // Count BITV violations (approximation based on WCAG AA)
     const bitvViolations = wcagViolations.a + wcagViolations.aa;
     
-    // Technical checks
+    // Erweiterte Technical Checks
     const technicalChecks = {
       altTexts: !results.violations.some((v: any) => v.id === 'image-alt'),
       semanticHtml: customChecks.semanticHtml,
@@ -598,7 +951,18 @@ export async function scanUrl(url: string, standard?: string): Promise<ScanResul
       autoplayVideos: customChecks.autoplayVideos,
       documentLanguage: customChecks.documentLanguage,
       blinkElements: customChecks.blinkElements,
-      headingStructure: customChecks.headingStructure
+      headingStructure: customChecks.headingStructure,
+      // Neue erweiterte Checks
+      landmarkStructure: customChecks.landmarkStructure,
+      skipLinks: customChecks.skipLinks,
+      focusOrder: customChecks.focusOrder,
+      altTextQuality: customChecks.altTextQuality,
+      formValidation: customChecks.formValidation,
+      keyboardTraps: customChecks.keyboardTraps,
+      textSpacing: customChecks.textSpacing,
+      colorContrastEnhanced: customChecks.colorContrastEnhanced,
+      linkPurpose: customChecks.linkPurpose,
+      headingNesting: customChecks.headingNesting
     };
     
     // Verbesserte Analyse der Ergebnisse
@@ -630,7 +994,6 @@ export async function scanUrl(url: string, standard?: string): Promise<ScanResul
     
     // Save to database - Improved version with proper error handling
     try {
-      console.log('Attempting to save scan to database...');
       
       // Note: Die Scan-Speicherung wird jetzt über die neue Scan-API gehandhabt
       // Diese Funktion wird hauptsächlich für direkte Scans ohne API verwendet
@@ -641,10 +1004,15 @@ export async function scanUrl(url: string, standard?: string): Promise<ScanResul
       // Scan-Ergebnis trotzdem zurückgeben, auch wenn Speichern fehlschlägt
     }
     
+    // Cache das Ergebnis
+    if (useCache) {
+      cacheScanResult(url, scanResult);
+    }
+    
     return scanResult;
   } finally {
     if (browser) {
-      await browser.close();
+      await returnBrowserToPool(browser);
     }
   }
 }
@@ -656,7 +1024,6 @@ export async function executeScanWithDatabase(
   standard?: string
 ): Promise<void> {
   try {
-    console.log(`Starting scan execution for ID: ${scanId}, URL: ${url}`);
 
     // Scan-Status auf RUNNING setzen
     await prisma.scan.update({
@@ -690,7 +1057,7 @@ export async function executeScanWithDatabase(
       for (const violation of scanResult.violations) {
         try {
           // Vereinfachte Issue-Speicherung
-          // TODO: In Produktion sollten Standards und Rules referenziert werden
+          // Speichere Issue mit korrekten Rule-IDs
           await prisma.issue.create({
             data: {
               type: 'VIOLATION',
@@ -699,8 +1066,7 @@ export async function executeScanWithDatabase(
               message: violation.description || violation.help,
               impact: getImpactScore(violation.impact),
               scanId: scanId,
-              // Temporärer Workaround für Rule-Referenz
-              ruleId: 'temp-rule-id', // TODO: Echte Rule-IDs implementieren
+              ruleId: violation.id || 'unknown-rule', // Verwende echte axe Rule-ID
               status: 'OPEN'
             }
           });
@@ -710,8 +1076,6 @@ export async function executeScanWithDatabase(
         }
       }
     }
-
-    console.log(`Scan ${scanId} erfolgreich abgeschlossen`);
 
   } catch (error) {
     console.error(`Fehler beim Ausführen des Scans ${scanId}:`, error);
@@ -754,7 +1118,6 @@ export async function scanWithApi(
   } = {}
 ): Promise<{ scanId: string, status: string }> {
   try {
-    console.log('Starting API-based scan for:', url);
 
     // Erstelle einen Scan-Eintrag in der Datenbank
     const response = await fetch('/api/scans', {
